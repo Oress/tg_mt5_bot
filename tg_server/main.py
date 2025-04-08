@@ -94,7 +94,6 @@ async def invite_account_credentials(update: Update, context: ContextTypes.DEFAU
     await update.message.reply_text(
         f"{INVITE_PREFIX_MD2}{invite_link}",
         parse_mode=ParseMode.MARKDOWN_V2,
-        link_preview_options=LinkPreviewOptions(is_disabled=True)
     )
 
     return ConversationHandler.END
