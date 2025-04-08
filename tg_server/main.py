@@ -1,9 +1,10 @@
 import logging
 import uuid
 
+from telegram import helpers, Update, LinkPreviewOptions, ReplyKeyboardRemove
 from telegram.constants import ParseMode
-from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
-from telegram.ext import filters, MessageHandler, ConversationHandler, ApplicationBuilder, CommandHandler, ContextTypes, PicklePersistence
+from telegram.ext import filters, MessageHandler, ConversationHandler, ApplicationBuilder, CommandHandler, ContextTypes, \
+    PicklePersistence
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -26,36 +27,76 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 GENERATE_INVITE_PREFIX_MD2 = "*\[Generate Invite\]*\n"
+INVITE_PREFIX_MD2 = "*\[Invite\]*\n"
 
 SHARE_CONTACT, ACCOUNT_CREDENTIALS = range(2)
 
-async def invite(update: Update, context: ContextTypes.DEFAULT_TYPE):
+share_handle_msg = (GENERATE_INVITE_PREFIX_MD2
+                    + helpers.escape_markdown("Please share the client's handle (e.g. @username)", 2)
+                    )
+
+async def invite_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Starts the client invite process."""
-    await update.message.reply_text(f"{GENERATE_INVITE_PREFIX_MD2}Please share the client's user handle with me\(e\.g\. \@username\)", parse_mode=ParseMode.MARKDOWN_V2)
+    await update.message.reply_text(
+        share_handle_msg + "\n\nUse /cancel command to go back to main menu\.",
+        parse_mode=ParseMode.MARKDOWN_V2,
+        protect_content=True
+    )
     return SHARE_CONTACT
+
+async def invite_share_contact_invalid(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Garbage"""
+    await update.message.reply_text(
+        share_handle_msg,
+        parse_mode=ParseMode.MARKDOWN_V2,
+        protect_content=True
+    )
+    return SHARE_CONTACT
+
+
+share_creds_msg = (GENERATE_INVITE_PREFIX_MD2
+                   + helpers.escape_markdown("Please share the account credentials in the following format:\n<login> <password>", 2)
+                   + "\n\n*__\(Message with credentials will be deleted\)__*")
 
 async def invite_share_handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Garbage"""
-    await update.message.reply_text(f"{GENERATE_INVITE_PREFIX_MD2}Please share the account credentials in the format: <login> <password> *__(Message with credentials will be deleted)__*", parse_mode=ParseMode.MARKDOWN_V2 )
+    await update.message.reply_text(
+        share_creds_msg,
+        parse_mode=ParseMode.MARKDOWN_V2,
+        protect_content=True
+    )
     return ACCOUNT_CREDENTIALS
 
 async def invite_share_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Garbage"""
-    await update.message.reply_text(f"{GENERATE_INVITE_PREFIX_MD2}Please share the account credentials in the format: <login> <password> (Message with credentials will be deleted)", parse_mode=ParseMode.MARKDOWN_V2)
+    await update.message.reply_text(
+        share_creds_msg,
+        parse_mode=ParseMode.MARKDOWN_V2,
+        protect_content=True
+    )
     return ACCOUNT_CREDENTIALS
 
-async def invite_share_contact_invalid(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Garbage"""
-    await update.message.reply_text(f"{GENERATE_INVITE_PREFIX_MD2}Please share the client's contact with me using the 'share contact' button'", parse_mode=ParseMode.MARKDOWN_V2)
-    return SHARE_CONTACT
-
+# TODO: check credentials
 async def invite_account_credentials(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Checks the shared contact of the client"""
     invite_code = uuid.uuid4()
-    # TODO: tg share link
+    bot = context.bot
+
+    deep_link = helpers.create_deep_linked_url(bot.username, str(invite_code))
     await update.message.delete()
-    invite_link = f"[inline mention of a user](tg://user?id=123456789)"
-    await update.message.reply_text(f"{GENERATE_INVITE_PREFIX_MD2}OK, I got the credentials Here is the invite link: {invite_code}", parse_mode=ParseMode.MARKDOWN_V2)
+    await update.message.reply_text(
+        GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("OK, I got the credentials. Forward the next message to the @user_from_prev_msg. ", 2),
+        parse_mode=ParseMode.MARKDOWN_V2,
+        protect_content=True
+    )
+
+    invite_link = f"[Click here to join]({deep_link})"
+    await update.message.reply_text(
+        f"{INVITE_PREFIX_MD2}{invite_link}",
+        parse_mode=ParseMode.MARKDOWN_V2,
+        link_preview_options=LinkPreviewOptions(is_disabled=True)
+    )
+
     return ConversationHandler.END
 
 async def invite_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -86,9 +127,12 @@ if __name__ == '__main__':
     # TODO: use adequate 3rd party storage
     pickle_persistence = PicklePersistence(filepath='persistence.pickle')
 
+    # TODO: regenerate token this one is already compromised.
+    tg_token = '7137228876:AAEeBNncMzRUnV3NH9qzilrKjTsdDjm6aGs'
+
     # TODO: get from env variable
     application = (ApplicationBuilder()
-                   .token('7137228876:AAEeBNncMzRUnV3NH9qzilrKjTsdDjm6aGs')
+                   .token(tg_token)
                    # .persistence(persistence=pickle_persistence)
                    .build()
                    )
@@ -100,7 +144,7 @@ if __name__ == '__main__':
     # TODO: conversation_timeout and allow_reentry ?
     # TODO: check the authorization of the user before proceeding
     invite_handler = ConversationHandler(
-        entry_points=[CommandHandler("invite", invite)],
+        entry_points=[CommandHandler("invite", invite_start)],
         states={
             SHARE_CONTACT: [
                 CommandHandler("cancel", invite_cancel),
