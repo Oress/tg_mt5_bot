@@ -1,0 +1,22 @@
+flowchart TD
+    START(["/start invite_code"])
+    INVITE_CHECK(["INVITE_CHECK"])
+    USER_CHECK(["USER_CHECK"])
+    END(["END"])
+    USER_EXISTS(["USER_EXISTS"])
+    INVITE_EXPIRED(["INVITE_EXPIRED"])
+    USER_REGISTER(["USER_REGISTER"])
+    INVITE_INVALID(["INVITE_INVALID"])
+
+    START --> USER_CHECK
+    USER_CHECK --> |Admin or manager| END
+    USER_CHECK --> |Is registered user| USER_EXISTS
+    USER_EXISTS --> END
+    USER_CHECK --> |New user| INVITE_CHECK
+    INVITE_CHECK --> |Not intended for current user| INVITE_INVALID
+    INVITE_CHECK --> |Invalid| INVITE_INVALID
+    INVITE_INVALID --> END
+    INVITE_CHECK --> |Expired| INVITE_EXPIRED
+    INVITE_EXPIRED --> END
+    INVITE_CHECK --> |Valid| USER_REGISTER
+    USER_REGISTER --> END
