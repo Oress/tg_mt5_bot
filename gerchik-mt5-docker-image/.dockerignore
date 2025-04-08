@@ -1,6 +1,6 @@
 .devcontainer
 .git
-docker-compose.yaml
+../docker-compose.yaml
 README.md
 LICENSE.md
 .gitignore

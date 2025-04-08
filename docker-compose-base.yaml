@@ -1,0 +1,41 @@
+services:
+  mt5service:
+    build: gerchik-mt5-docker-image
+    image: mt5
+    volumes:
+      - ./config:/config
+    environment:
+      - CUSTOM_USER
+      - PASSWORD
+
+  postgresservice:
+    image: postgres:16.0
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "db_prod"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s
+    environment:
+      - POSTGRES_DB
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+    volumes:
+      - data1:/var/lib/postgresql/data
+
+  migrationservice:
+    image: liquibase:4.30
+    command:
+      - /liquibase/docker-entrypoint.sh
+      - --search-path=/liquibase/changelog/
+      - update
+      - --url=jdbc:postgresql://${MIGRATION_DB_HOST}:${MIGRATION_DB_PORT}/${POSTGRES_DB}
+      - --driver=org.postgresql.Driver
+      - --changelog-file=changelog-root.xml
+      - --username=${POSTGRES_USER}
+      - --password=${POSTGRES_PASSWORD}
+    volumes:
+      - ./database/schema:/liquibase/changelog
+
+volumes:
+  data1: { }

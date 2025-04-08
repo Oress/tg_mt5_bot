@@ -1,0 +1,27 @@
+services:
+  mt5:
+    extends:
+      file: docker-compose-base.yaml
+      service: mt5service
+    ports:
+      - 3000:3000
+      - 8001:8001
+
+  postgres:
+    extends:
+      file: docker-compose-base.yaml
+      service: postgresservice
+    ports:
+      - "5432:5432"
+
+  migration:
+    extends:
+      file: docker-compose-base.yaml
+      service: migrationservice
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: true
+
+volumes:
+  data1: { }

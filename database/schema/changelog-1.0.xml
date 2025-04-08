@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="create table tgb_users" author="oress">
+        <createTable tableName="tgb_users">
+            <column name="tg_id" type="bigint">
+                <constraints primaryKey="true" nullable="true" unique="true"/>
+            </column>
+            <column name="tg_username" type="text">
+                <constraints nullable="true" unique="true"/>
+            </column>
+            <column name="invited_by" type="bigint"/>
+            <column name="disabled" type="boolean" defaultValue="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="disabled_reason" type="text" />
+            <column name="created_at" type="TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP"/>
+        </createTable>
+
+        <addForeignKeyConstraint constraintName="fk_user_invited_by"
+                                 baseTableName="tgb_users"
+                                 baseColumnNames="invited_by"
+                                 referencedTableName="tgb_users"
+                                 referencedColumnNames="tg_id"/>
+    </changeSet>
+
+    <changeSet id="create table tgb_invite_links" author="oress">
+        <createTable tableName="tgb_invite_links">
+            <column name="code" type="text">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="username_for" type="text">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="role_on_accept" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expires_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint constraintName="fk_tgb_invite_links_created_by"
+                                 baseTableName="tgb_invite_links"
+                                 baseColumnNames="created_by"
+                                 referencedTableName="tgb_users"
+                                 referencedColumnNames="tg_id"/>
+    </changeSet>
+</databaseChangeLog>
