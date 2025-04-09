@@ -1,14 +1,15 @@
-import logging
 import asyncio
+import logging
 import os
 
 from telegram import Update, Bot
-from telegram.ext import filters, MessageHandler, ApplicationBuilder, CommandHandler, ContextTypes, \
+from telegram.ext import filters, MessageHandler, ApplicationBuilder, ContextTypes, \
     PicklePersistence
 
 from handlers.invite import invite_handler
 from services.InviteLinkService import invite_link_service
 from tg_server.constants.UserRole import UserRole
+from tg_server.handlers.start import start_handler
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -16,19 +17,6 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if len(context.args) == 0:
-        await context.bot.send_message(chat_id=update.effective_chat.id, text="Please use the invite link.")
-        return
-
-    user_id = update.effective_user.id
-    invite_code = context.args[0]
-
-    if invite_link_service.validate_invite_link(user_id, invite_code) is True:
-        await context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome!")
-    else:
-        await context.bot.send_message(chat_id=update.effective_chat.id, text="Invalid invite link.")
 
 
 async def unknown_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -47,22 +35,15 @@ if __name__ == '__main__':
     # TODO: use adequate 3rd party storage
     pickle_persistence = PicklePersistence(filepath='persistence.pickle')
 
-    # TODO: regenerate token this one is already compromised.
     tg_bot_token = os.getenv("TG_BOT_TOKEN")
 
-    # TODO: get from env variable
     application = (ApplicationBuilder()
                    .token(tg_bot_token)
                    # .persistence(persistence=pickle_persistence)
                    .build()
                    )
 
-    start_handler = CommandHandler('start', start)
     application.add_handler(start_handler)
-
-    # TODO: conversation_timeout and allow_reentry ?
-    # TODO: check the authorization of the user before proceeding
-
     application.add_handler(invite_handler)
 
     # # Sends a keyboard menu options to the user

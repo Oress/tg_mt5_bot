@@ -137,13 +137,13 @@ async def invite_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
+# TODO: conversation_timeout and allow_reentry ?
+# TODO: check the authorization of the user before proceeding
 invite_handler = ConversationHandler(
     entry_points=[CommandHandler("invite", invite_start)],
     states={
         SHARE_CONTACT: [
             CommandHandler("cancel", invite_cancel),
-            # TODO: I need to validate a tg handle, it's not possible with default API methods
-            # MessageHandler(filters.Regex("^@(?=.{5,64}(?:\s|$))(?![_])(?!.*[_]{2})[a-zA-Z0-9_]+(?<![_.])$"), invite_share_handle),
             MessageHandler(filters.StatusUpdate.USERS_SHARED, invite_users_shared),
             MessageHandler(~filters.StatusUpdate.USERS_SHARED, invite_users_shared_invalid),
         ],
