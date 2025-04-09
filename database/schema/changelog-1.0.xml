@@ -9,9 +9,9 @@
             <column name="tg_id" type="bigint">
                 <constraints primaryKey="true" nullable="true" unique="true"/>
             </column>
-            <column name="tg_username" type="text">
+<!--            <column name="tg_username" type="text">
                 <constraints nullable="true" unique="true"/>
-            </column>
+            </column>-->
             <column name="invited_by" type="bigint"/>
             <column name="disabled" type="boolean" defaultValue="false">
                 <constraints nullable="false"/>
@@ -33,15 +33,13 @@
             <column name="code" type="text">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column name="username_for" type="text">
+            <column name="tg_userid_for" type="bigint">
                 <constraints nullable="false" unique="true"/>
             </column>
             <column name="role_on_accept" type="text">
                 <constraints nullable="false"/>
             </column>
-            <column name="created_by" type="bigint">
-                <constraints nullable="false"/>
-            </column>
+            <column name="created_by" type="bigint" />
             <column name="created_at" type="timestamp">
                 <constraints nullable="false"/>
             </column>
@@ -50,10 +48,10 @@
             </column>
         </createTable>
 
-        <addForeignKeyConstraint constraintName="fk_tgb_invite_links_created_by"
+<!--        <addForeignKeyConstraint constraintName="fk_tgb_invite_links_created_by"
                                  baseTableName="tgb_invite_links"
                                  baseColumnNames="created_by"
                                  referencedTableName="tgb_users"
-                                 referencedColumnNames="tg_id"/>
+                                 referencedColumnNames="tg_id"/>-->
     </changeSet>
 </databaseChangeLog>

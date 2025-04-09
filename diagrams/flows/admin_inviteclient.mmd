@@ -1,15 +1,15 @@
 flowchart TD
-    START(["/inviteclient"])
+    START(["/inviteuser"])
     SHARE_CONTACT(["SHARE_CONTACT"])
-    PRESENT_CLIENT(["PRESENT_CLIENT"])
+    PRESENT_USER(["PRESENT_USER"])
     ACCOUNT_CREDENTIALS(["ACCOUNT_CREDENTIALS"])
     INVALID_CREDENTIALS(["INVALID_CREDENTIALS"])
     GENERATE_INVITE(["GENERATE_INVITE"])
     END(["END"])
 
     START --> SHARE_CONTACT
-    SHARE_CONTACT --> |This client is already registered| PRESENT_CLIENT
-    SHARE_CONTACT --> |New client| ACCOUNT_CREDENTIALS
+    SHARE_CONTACT --> |This user is already registered| PRESENT_USER
+    SHARE_CONTACT --> |New user| ACCOUNT_CREDENTIALS
     SHARE_CONTACT --> |/cancel| END
     SHARE_CONTACT --> |garbage| SHARE_CONTACT
     ACCOUNT_CREDENTIALS --> |Invalid broker account credentials or garbage| INVALID_CREDENTIALS
@@ -17,4 +17,4 @@ flowchart TD
     ACCOUNT_CREDENTIALS --> |Credentials are OK| GENERATE_INVITE
     ACCOUNT_CREDENTIALS --> |/cancel| END
     GENERATE_INVITE --> END
-    PRESENT_CLIENT --> END
+    PRESENT_USER --> END
