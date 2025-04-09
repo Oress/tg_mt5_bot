@@ -9,8 +9,9 @@ from telegram import helpers, Update, ReplyKeyboardRemove, ReplyKeyboardMarkup, 
 from telegram.constants import ParseMode
 from telegram.ext import filters, MessageHandler, ConversationHandler, CommandHandler, ContextTypes
 
-from tg_server.security.encryptor import pwd_encryptor
 from tg_server.database.db import engine
+from tg_server.handlers.filters.AuthFilter import manager_filter
+from tg_server.security.encryptor import pwd_encryptor
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +133,7 @@ async def invite_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Cancels and ends the conversation."""
     user = update.message.from_user
     logger.info("User %s canceled the conversation.", user.first_name)
-    await update.message.reply_text(f"{GENERATE_INVITE_PREFIX_MD2}Canceling invite generation.",
+    await update.message.reply_text(GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Canceling invite generation.", 2),
                                     reply_markup=ReplyKeyboardRemove(), parse_mode=ParseMode.MARKDOWN_V2)
     return ConversationHandler.END
 
@@ -140,7 +141,7 @@ async def invite_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # TODO: conversation_timeout and allow_reentry ?
 # TODO: check the authorization of the user before proceeding
 invite_handler = ConversationHandler(
-    entry_points=[CommandHandler("invite", invite_start)],
+    entry_points=[CommandHandler("invite", invite_start, filters=manager_filter)],
     states={
         SHARE_CONTACT: [
             CommandHandler("cancel", invite_cancel),

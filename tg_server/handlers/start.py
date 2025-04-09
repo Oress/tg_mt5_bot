@@ -25,8 +25,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         link = invite_link_service.get_invite_link(user_id, invite_code)
 
         if link is not None:
-            # TODO: Replace with actual invited_by user ID
-            user_service.register_superadmin(user_id)
+            user_service.create_user(user_id, link.role_on_accept, link.created_by)
             await context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome!")
         else:
             await context.bot.send_message(chat_id=update.effective_chat.id, text="Invalid invite link.")

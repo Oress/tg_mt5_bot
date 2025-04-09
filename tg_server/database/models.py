@@ -28,18 +28,26 @@ class InviteLink(Base):
     __tablename__ = "tgb_invite_links"
     code: Mapped[str] = mapped_column(String, primary_key=True)
     tg_userid_for: Mapped[int] = mapped_column(BigInteger)
-    created_by: Mapped[Optional[int]] = mapped_column(BigInteger)
-    role_on_accept: Mapped[str] = mapped_column(String)
+    _created_by: Mapped[Optional[int]] = mapped_column("created_by", BigInteger)
+    _role_on_accept: Mapped[str] = mapped_column("role_on_accept", String)
     created_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP)
     expires_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP)
 
-    # @hybrid_property
-    # def code(self):
-    #     return self._code
-    #
-    # @code.setter
-    # def code(self, email):
-    #     self._code = email
+    @hybrid_property
+    def role_on_accept(self):
+        return self._role_on_accept
+
+    @role_on_accept.setter
+    def role_on_accept(self, email):
+        self._role_on_accept = email
+
+    @hybrid_property
+    def created_by(self):
+        return self._created_by
+
+    @created_by.setter
+    def created_by(self, created_by):
+        self._created_by = created_by
 
     def __repr__(self):
         return f"InviteLink(code={self.code}, tg_userid_for={self.tg_userid_for})" \
@@ -49,8 +57,19 @@ class TgUser(Base):
     tg_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     invited_by: Mapped[int] = mapped_column(BigInteger)
     disabled: Mapped[bool] = mapped_column(Boolean)
-    role: Mapped[str] = mapped_column(String)
+    _role: Mapped[str] = mapped_column(name="role", type_=String)
     disabled_reason: Mapped[Optional[str]] = mapped_column(String)
     created_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP)
     updated_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP)
+
+    @hybrid_property
+    def role(self):
+        return self._role
+
+    @role.setter
+    def role(self, role):
+        self._role = role
+
+    def __repr__(self):
+        return f"TgUser(tg_id={self.tg_id}, invited_by={self.invited_by}, role={self._role})"
 

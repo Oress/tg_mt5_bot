@@ -22,8 +22,8 @@ class InviteLinkService:
         datetime_now = datetime.utcnow()
         expires_at = datetime_now + timedelta(hours=expires_in_minutes)
 
-        new_link = InviteLink(code=code, tg_userid_for=created_for, created_by=created_by,
-                              role_on_accept=role_on_accept, created_at=datetime_now, expires_at=expires_at)
+        new_link = InviteLink(code=code, tg_userid_for=created_for, _created_by=created_by,
+                              _role_on_accept=role_on_accept, created_at=datetime_now, expires_at=expires_at)
         self.session.add(new_link)
 
         return helpers.create_deep_linked_url(bot_username, code)
@@ -35,7 +35,7 @@ class InviteLinkService:
                 .where(InviteLink.code == code)
                 )
         valid_invite_link = self.session.execute(stmt).first()
-        return valid_invite_link
+        return valid_invite_link.InviteLink
 
     def __contains_invite_link(self, user_id: int) -> bool:
         stmt = select(InviteLink).where(InviteLink.tg_userid_for == user_id)
