@@ -6,6 +6,7 @@ from telegram import Update, Bot
 from telegram.ext import filters, MessageHandler, ApplicationBuilder, ContextTypes, \
     PicklePersistence
 
+from sqlalchemy.orm.session import Session
 from handlers.invite import invite_handler
 from tg_server.constants.UserRole import UserRole
 from tg_server.database.db import engine
@@ -24,25 +25,23 @@ logger = logging.getLogger(__name__)
 async def unknown_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, I didn't understand that command.")
 
-# TODO: check if superadmin already exists
 async def generate_superadmin_invite():
-    superadmin_id = os.getenv("SUPERADMIN_ID")
+    superadmin_id = int(os.getenv("SUPERADMIN_ID"))
     bot = Bot(tg_bot_token)
     async with bot:
         bot_user = await bot.get_me()
-        with engine.connect() as conn:
-            user_service = UserService(conn)
-            invite_link_service = InviteLinkService(conn)
+        with Session(engine) as session:
+            user_service = UserService(session)
+            invite_link_service = InviteLinkService(session)
 
             superadmin_link = None
             if not user_service.contains_user(superadmin_id):
                 superadmin_link = invite_link_service.create_invite_link(bot_user.username, None, superadmin_id, UserRole.SUPERADMIN, 30)
 
-            conn.commit()
+            session.commit()
             if superadmin_link is None:
                 logger.warning(f"Superadmin with id {superadmin_id} already exists")
             else:
-                logger.info(f"Superadmin invite link: {superadmin_link}")
                 print('Superadmin invite link:', superadmin_link)
 
 if __name__ == '__main__':

@@ -1,5 +1,6 @@
 import logging
 
+from sqlalchemy.orm.session import Session
 from telegram import Update
 from telegram.ext import CommandHandler, ContextTypes
 
@@ -17,19 +18,20 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     invite_code = context.args[0]
 
-    with engine.connect() as conn:
-        user_service = UserService(conn)
-        invite_link_service = InviteLinkService(conn)
+    with Session(engine) as session:
+        user_service = UserService(session)
+        invite_link_service = InviteLinkService(session)
 
         link = invite_link_service.get_invite_link(user_id, invite_code)
+
         if link is not None:
             # TODO: Replace with actual invited_by user ID
-            user_service.register_user(user_id, None)
+            user_service.register_superadmin(user_id)
             await context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome!")
         else:
             await context.bot.send_message(chat_id=update.effective_chat.id, text="Invalid invite link.")
 
-        conn.commit()
+        session.commit()
 
 start_handler = CommandHandler('start', start)
 
