@@ -12,6 +12,7 @@
 <!--            <column name="tg_username" type="text">
                 <constraints nullable="true" unique="true"/>
             </column>-->
+            <column name="role" type="text"/>
             <column name="invited_by" type="bigint"/>
             <column name="disabled" type="boolean" defaultValue="false">
                 <constraints nullable="false"/>

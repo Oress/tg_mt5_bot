@@ -7,9 +7,11 @@ from telegram.ext import filters, MessageHandler, ApplicationBuilder, ContextTyp
     PicklePersistence
 
 from handlers.invite import invite_handler
-from services.InviteLinkService import invite_link_service
 from tg_server.constants.UserRole import UserRole
+from tg_server.database.db import engine
 from tg_server.handlers.start import start_handler
+from tg_server.services.InviteLinkService import InviteLinkService
+from tg_server.services.UserService import UserService
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -28,8 +30,20 @@ async def generate_superadmin_invite():
     bot = Bot(tg_bot_token)
     async with bot:
         bot_user = await bot.get_me()
-        superadmin_link = invite_link_service.create_invite_link(bot_user.username, None, superadmin_id, UserRole.SUPERADMIN, 30)
-        print(superadmin_link)
+        with engine.connect() as conn:
+            user_service = UserService(conn)
+            invite_link_service = InviteLinkService(conn)
+
+            superadmin_link = None
+            if not user_service.contains_user(superadmin_id):
+                superadmin_link = invite_link_service.create_invite_link(bot_user.username, None, superadmin_id, UserRole.SUPERADMIN, 30)
+
+            conn.commit()
+            if superadmin_link is None:
+                logger.warning(f"Superadmin with id {superadmin_id} already exists")
+            else:
+                logger.info(f"Superadmin invite link: {superadmin_link}")
+                print('Superadmin invite link:', superadmin_link)
 
 if __name__ == '__main__':
     # TODO: use adequate 3rd party storage
