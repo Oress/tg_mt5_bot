@@ -2,11 +2,11 @@ import asyncio
 import logging
 import os
 
-from telegram import Update, Bot
+from sqlalchemy.orm.session import Session
+from telegram import helpers, Update, Bot
 from telegram.ext import filters, MessageHandler, ApplicationBuilder, ContextTypes, \
     PicklePersistence
 
-from sqlalchemy.orm.session import Session
 from handlers.invite import invite_handler
 from tg_server.constants.UserRole import UserRole
 from tg_server.database.db import engine
@@ -29,18 +29,18 @@ async def generate_superadmin_invite():
     superadmin_id = int(os.getenv("SUPERADMIN_ID"))
     bot = Bot(tg_bot_token)
     async with bot:
-        bot_user = await bot.get_me()
         with Session(engine) as session:
             user_service = UserService(session)
             invite_link_service = InviteLinkService(session)
 
             superadmin_link = None
             if not user_service.contains_user(superadmin_id):
-                superadmin_link = invite_link_service.create_invite_link(bot_user.username, None, superadmin_id, UserRole.SUPERADMIN, 30)
+                code = invite_link_service.create_invite_link(None, superadmin_id, UserRole.SUPERADMIN)
+                superadmin_link = helpers.create_deep_linked_url(bot.username, code)
 
             session.commit()
             if superadmin_link is None:
-                logger.warning(f"Superadmin with id {superadmin_id} already exists")
+                logger.info(f"Superadmin with id {superadmin_id} already exists")
             else:
                 print('Superadmin invite link:', superadmin_link)
 
@@ -75,18 +75,3 @@ if __name__ == '__main__':
         temp_el.close()
 
     application.run_polling()
-
-# # import the package
-# from mt5linux import MetaTrader5
-#
-# # connecto to the server
-# mt5 = MetaTrader5(
-#     # host = 'localhost' (default)
-#     # port = 18812       (default)
-#     port=8001
-# )
-# mt5.initialize()
-# print(mt5.version())
-#
-# mt5.shutdown()
-#

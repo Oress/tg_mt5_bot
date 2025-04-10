@@ -9,10 +9,12 @@
             <column name="tg_id" type="bigint">
                 <constraints primaryKey="true" nullable="true" unique="true"/>
             </column>
-<!--            <column name="tg_username" type="text">
-                <constraints nullable="true" unique="true"/>
-            </column>-->
             <column name="role" type="text"/>
+
+            <!-- Can be null for administrators -->
+            <column name="mt5_acc_number" type="text" />
+            <column name="mt5_acc_pwd_enc" type="bytea" />
+
             <column name="invited_by" type="bigint"/>
             <column name="disabled" type="boolean" defaultValue="false">
                 <constraints nullable="false"/>
@@ -40,6 +42,8 @@
             <column name="role_on_accept" type="text">
                 <constraints nullable="false"/>
             </column>
+            <column name="mt5_acc_number" type="text" />
+            <column name="mt5_acc_pwd_enc" type="bytea" />
             <column name="created_by" type="bigint" />
             <column name="created_at" type="timestamp">
                 <constraints nullable="false"/>
@@ -49,10 +53,10 @@
             </column>
         </createTable>
 
-<!--        <addForeignKeyConstraint constraintName="fk_tgb_invite_links_created_by"
+        <addForeignKeyConstraint constraintName="fk_tgb_invite_links_created_by"
                                  baseTableName="tgb_invite_links"
                                  baseColumnNames="created_by"
                                  referencedTableName="tgb_users"
-                                 referencedColumnNames="tg_id"/>-->
+                                 referencedColumnNames="tg_id"/>
     </changeSet>
 </databaseChangeLog>

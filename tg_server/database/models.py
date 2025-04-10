@@ -1,4 +1,4 @@
-from sqlalchemy import MetaData, Table, Column, Boolean, String, BigInteger, TIMESTAMP
+from sqlalchemy import MetaData, LargeBinary, Boolean, String, BigInteger, TIMESTAMP
 from sqlalchemy.orm import DeclarativeBase
 from datetime import datetime
 
@@ -10,17 +10,6 @@ from sqlalchemy.orm import mapped_column
 
 metadata_obj = MetaData()
 
-invite_links_table = Table(
-    "tgb_invite_links",
-    metadata_obj,
-    Column("code", String, primary_key=True),
-    Column("tg_userid_for", BigInteger),
-    Column("created_by", BigInteger),
-    Column("role_on_accept", String),
-    Column("created_at", TIMESTAMP),
-    Column("expires_at", TIMESTAMP),
-)
-
 class Base(DeclarativeBase):
     pass
 
@@ -30,6 +19,8 @@ class InviteLink(Base):
     tg_userid_for: Mapped[int] = mapped_column(BigInteger)
     _created_by: Mapped[Optional[int]] = mapped_column("created_by", BigInteger)
     _role_on_accept: Mapped[str] = mapped_column("role_on_accept", String)
+    mt5_acc_number: Mapped[Optional[int]] = mapped_column(BigInteger)
+    mt5_acc_pwd_enc: Mapped[Optional[bytes]] = mapped_column(LargeBinary)
     created_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP)
     expires_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP)
 
@@ -59,6 +50,8 @@ class TgUser(Base):
     disabled: Mapped[bool] = mapped_column(Boolean)
     _role: Mapped[str] = mapped_column(name="role", type_=String)
     disabled_reason: Mapped[Optional[str]] = mapped_column(String)
+    mt5_acc_number: Mapped[Optional[int]] = mapped_column(BigInteger)
+    mt5_acc_pwd_enc: Mapped[Optional[bytes]] = mapped_column(LargeBinary)
     created_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP)
     updated_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP)
 
