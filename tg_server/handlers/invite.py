@@ -5,11 +5,12 @@ from sqlalchemy.orm.session import Session
 from telegram import helpers, Update, ReplyKeyboardRemove, ReplyKeyboardMarkup, KeyboardButton, \
     KeyboardButtonRequestUsers, SharedUser
 from telegram.constants import ParseMode
-from telegram.ext import filters, MessageHandler, ConversationHandler, CommandHandler, ContextTypes
+from telegram.ext import ContextTypes
 
 from tg_server.constants.UserRole import UserRole
 from tg_server.database.db import engine
-from tg_server.handlers.filters.AuthFilter import manager_filter
+from tg_server.handlers.commons import send_main_menu
+from tg_server.handlers.states import InviteUserConvStates, ConversationStates
 from tg_server.mt5.mt5service import mt5service
 from tg_server.security.encryptor import pwd_encryptor
 from tg_server.services.InviteLinkService import InviteLinkService
@@ -21,8 +22,6 @@ UD_KEY_USER_TO_INVITE = "user_to_invite"
 
 GENERATE_INVITE_PREFIX_MD2 = "*\[Generate Invite\]*\n"
 USER_INVITE_PREFIX_MD2 = "*\[User Invite\]*\n"
-
-PROMPT_USER, PROMPT_CREDENTIALS = range(2)
 
 share_handle_msg = (GENERATE_INVITE_PREFIX_MD2
                     + helpers.escape_markdown("Please share the user using the menu", 2)
@@ -46,7 +45,7 @@ async def invite_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode=ParseMode.MARKDOWN_V2,
     )
 
-    return PROMPT_USER
+    return InviteUserConvStates.PROMPT_USER
 
 
 async def invite_users_shared_invalid(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -80,7 +79,7 @@ async def invite_users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
                 protect_content=True
             )
             await show_user_invite(update, context, link.code)
-            return PROMPT_USER
+            return InviteUserConvStates.PROMPT_USER
 
         user_service = UserService(session)
         contains_user = user_service.contains_user(shared_user.user_id)
@@ -91,7 +90,7 @@ async def invite_users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
                 parse_mode=ParseMode.MARKDOWN_V2,
                 protect_content=True
             )
-            return PROMPT_USER
+            return InviteUserConvStates.PROMPT_USER
 
     # Save the shared user in user_data
     context.user_data[UD_KEY_USER_TO_INVITE] = shared_user
@@ -102,7 +101,7 @@ async def invite_users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
         reply_markup=ReplyKeyboardRemove(),
         protect_content=True
     )
-    return PROMPT_CREDENTIALS
+    return InviteUserConvStates.PROMPT_CREDENTIALS
 
 async def invite_account_credentials(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """ Deletes credentials message from user.
@@ -126,7 +125,7 @@ async def invite_account_credentials(update: Update, context: ContextTypes.DEFAU
             parse_mode=ParseMode.MARKDOWN_V2,
             protect_content=True
         )
-        return PROMPT_CREDENTIALS
+        return InviteUserConvStates.PROMPT_CREDENTIALS
 
     await update.message.reply_text(
         GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown(f"Validating credentials...", 2),
@@ -143,7 +142,7 @@ async def invite_account_credentials(update: Update, context: ContextTypes.DEFAU
             parse_mode=ParseMode.MARKDOWN_V2,
             protect_content=True
         )
-        return PROMPT_CREDENTIALS
+        return InviteUserConvStates.PROMPT_CREDENTIALS
 
     await update.message.reply_text(
         GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown(
@@ -157,7 +156,8 @@ async def invite_account_credentials(update: Update, context: ContextTypes.DEFAU
 
     await show_user_invite(update, context, invite_code)
 
-    return ConversationHandler.END
+    await send_main_menu(update, context)
+    return ConversationStates.MAIN_MENU
 
 
 async def show_user_invite(update, context, invite_code):
@@ -181,23 +181,7 @@ async def invite_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("User %s canceled the conversation.", user.first_name)
     await update.message.reply_text(GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Canceling invite generation.", 2),
                                     reply_markup=ReplyKeyboardRemove(), parse_mode=ParseMode.MARKDOWN_V2)
-    return ConversationHandler.END
+    await send_main_menu(update, context)
+    return ConversationStates.MAIN_MENU
 
 
-# TODO: conversation_timeout and allow_reentry ?
-# TODO: check the authorization of the user before proceeding
-invite_handler = ConversationHandler(
-    entry_points=[CommandHandler("invite", invite_start, filters=manager_filter)],
-    states={
-        PROMPT_USER: [
-            CommandHandler("cancel", invite_cancel),
-            MessageHandler(filters.StatusUpdate.USERS_SHARED, invite_users_shared),
-            MessageHandler(~filters.StatusUpdate.USERS_SHARED, invite_users_shared_invalid),
-        ],
-        PROMPT_CREDENTIALS: [
-            CommandHandler("cancel", invite_cancel),
-            MessageHandler(filters.TEXT & ~filters.COMMAND, invite_account_credentials),
-        ],
-    },
-    fallbacks=[CommandHandler("cancel", invite_cancel)],
-)

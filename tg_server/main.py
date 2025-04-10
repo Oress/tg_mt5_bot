@@ -4,13 +4,17 @@ import os
 
 from sqlalchemy.orm.session import Session
 from telegram import helpers, Update, Bot
-from telegram.ext import filters, MessageHandler, ApplicationBuilder, ContextTypes, \
+from telegram.ext import filters, MessageHandler, ApplicationBuilder, ContextTypes, ConversationHandler, StringRegexHandler, CommandHandler, \
     PicklePersistence
 
-from handlers.invite import invite_handler
+from handlers.invite import invite_start, invite_cancel, invite_users_shared, \
+    invite_users_shared_invalid, invite_account_credentials
 from tg_server.constants.UserRole import UserRole
 from tg_server.database.db import engine
-from tg_server.handlers.start import start_handler
+from tg_server.handlers.balance import balance_command
+from tg_server.handlers.filters.AuthFilter import manager_filter, user_filter
+from tg_server.handlers.start import start_command
+from tg_server.handlers.states import ConversationStates, InviteUserConvStates
 from tg_server.services.InviteLinkService import InviteLinkService
 from tg_server.services.UserService import UserService
 
@@ -21,9 +25,11 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-
 async def unknown_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, I didn't understand that command.")
+
+async def unexpected_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, I don't understand what are you trying to do. Use /help to see the list of available commands.")
 
 async def generate_superadmin_invite():
     superadmin_id = int(os.getenv("SUPERADMIN_ID"))
@@ -56,8 +62,38 @@ if __name__ == '__main__':
                    .build()
                    )
 
-    application.add_handler(start_handler)
-    application.add_handler(invite_handler)
+    # TODO: conversation_timeout and allow_reentry ?
+    # TODO: check the authorization of the user before proceeding
+    invite_user_conv = ConversationHandler(
+        entry_points=[CommandHandler("invite", invite_start, filters=manager_filter)],
+        states={
+            InviteUserConvStates.PROMPT_USER: [
+                CommandHandler("cancel", invite_cancel),
+                MessageHandler(filters.StatusUpdate.USERS_SHARED, invite_users_shared),
+                MessageHandler(~filters.StatusUpdate.USERS_SHARED, invite_users_shared_invalid),
+            ],
+            InviteUserConvStates.PROMPT_CREDENTIALS: [
+                CommandHandler("cancel", invite_cancel),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, invite_account_credentials),
+            ],
+        },
+        fallbacks=[],
+    )
+
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler(["start", "menu"], start_command)],
+        states = {
+            ConversationStates.MAIN_MENU: [
+                CommandHandler(["start", "menu"], start_command),
+                CommandHandler("balance", balance_command),
+                invite_user_conv,
+            ],
+        },
+        fallbacks=[CommandHandler("stop", unknown_command)],
+    )
+
+    application.add_handler(conv_handler)
+    application.add_handler(CommandHandler("balance", balance_command, filters=user_filter))
 
     # # Sends a keyboard menu options to the user
     # menu_handler = CommandHandler('menu', menu_command)
@@ -65,6 +101,9 @@ if __name__ == '__main__':
 
     # This handler must be added last
     unknown_handler = MessageHandler(filters.COMMAND, unknown_command)
+    application.add_handler(unknown_handler)
+
+    unknown_handler = MessageHandler(filters.TEXT, unexpected_text)
     application.add_handler(unknown_handler)
 
     temp_el = asyncio.new_event_loop()

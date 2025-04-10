@@ -9,13 +9,14 @@ class UserService:
     def __init__(self, session):
         self.session = session
 
-    def create_user(self, user_id: int, role: UserRole, invited_by: int, account_number: int, account_pwd_enc: bytes):
+    def create_user(self, user_id: int, role: UserRole, invited_by: int, account_number: int, account_pwd_enc: bytes) -> TgUser:
         datetime_now = datetime.utcnow()
         if not self.contains_user(user_id):
             new_user = TgUser(tg_id=user_id, invited_by=invited_by, _role=role, disabled=False,
                               mt5_acc_number=account_number, mt5_acc_pwd_enc=account_pwd_enc,
                               disabled_reason=None, created_at=datetime_now, updated_at=datetime_now)
             self.session.add(new_user)
+            return new_user
 
     def get_user_by_id(self, user_id: int) -> TgUser:
         stmt = select(TgUser).where(TgUser.tg_id == user_id)
