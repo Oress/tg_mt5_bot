@@ -4,7 +4,6 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from mt5linux import MetaTrader5
 
-
 class MT5InvalidCreds(Exception):
     def __init__(self, message):
         super().__init__(message)
@@ -45,6 +44,50 @@ class MT5Service:
 
         return False
 
+    def place_order(self, account_number: int, pwd: str, buy: bool, symbol: str, volume: Decimal):
+        try:
+            with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
+                info_tick = session.symbol_info_tick(symbol)
+                print(info_tick)
+
+                price = info_tick.ask if buy else info_tick.bid
+                type = MetaTrader5.ORDER_TYPE_BUY if buy else MetaTrader5.ORDER_TYPE_SELL
+
+                request = {
+                    "action": MetaTrader5.TRADE_ACTION_DEAL,
+                    "symbol": symbol,
+                    "volume": float(volume),
+                    "type": type,
+                    "comment": "TG Bot order open",
+                    "price": price,
+                    # "deviation": deviation,
+                    # "type_time": MetaTrader5.ORDER_TIME_GTC,
+                    # "type_filling": MetaTrader5.ORDER_FILLING_RETURN,
+                }
+
+                order_result = session.order_send(request)
+                print(order_result)
+                return order_result
+        except MT5InvalidCreds as e:
+            print(f"Invalid credentials: {e}")
+        except ValueError as e:
+            print(f"Exception caught: {e}")
+
+        return False
+
+    def symbol_info(self, account_number: int, pwd: str, symbol: str):
+        try:
+            with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
+                sym_info = session.symbol_info(symbol)
+                print(sym_info)
+                return sym_info
+        except MT5InvalidCreds as e:
+            print(f"Invalid credentials: {e}")
+        except ValueError as e:
+            print(f"Exception caught: {e}")
+
+        return False
+
     def get_balance(self, account_number: int, pwd: str) -> AccountBalance:
         try:
             with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
@@ -74,8 +117,6 @@ class MT5Service:
             print(f"Exception caught: {e}")
 
         return False
-
-
 
 
 class MT5Session:

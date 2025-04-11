@@ -13,8 +13,10 @@ from tg_server.constants.UserRole import UserRole
 from tg_server.database.db import engine
 from tg_server.handlers.balance import balance_command
 from tg_server.handlers.filters.AuthFilter import manager_filter, user_filter
+from tg_server.handlers.hedge import hedge_start, hedge_operation_selected, hedge_instrument_selected, \
+    hedge_volume_selected, hedge_city_selected, hedge_preview_accepted
 from tg_server.handlers.start import start_command
-from tg_server.handlers.states import ConversationStates, InviteUserConvStates
+from tg_server.handlers.states import ConversationStates, InviteUserConvStates, HedgeConvStates
 from tg_server.services.InviteLinkService import InviteLinkService
 from tg_server.services.UserService import UserService
 
@@ -80,6 +82,21 @@ if __name__ == '__main__':
         fallbacks=[],
     )
 
+    hedge_conv = ConversationHandler(
+        entry_points=[CommandHandler("hedge", hedge_start, filters=user_filter)],
+        states={
+            HedgeConvStates.SELECT_OPERATION: [MessageHandler(filters.TEXT, hedge_operation_selected)],
+            HedgeConvStates.SELECT_INSTRUMENT: [MessageHandler(filters.TEXT, hedge_instrument_selected)],
+            HedgeConvStates.SELECT_VOLUME: [MessageHandler(filters.TEXT, hedge_volume_selected)],
+            HedgeConvStates.SELECT_CITY: [MessageHandler(filters.TEXT, hedge_city_selected)],
+            HedgeConvStates.PREVIEW: [MessageHandler(filters.TEXT, hedge_preview_accepted)],
+        },
+        fallbacks=[],
+        map_to_parent={
+            ConversationStates.MAIN_MENU: ConversationStates.MAIN_MENU,
+        }
+    )
+
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler(["start", "menu"], start_command)],
         states = {
@@ -87,17 +104,15 @@ if __name__ == '__main__':
                 CommandHandler(["start", "menu"], start_command),
                 CommandHandler("balance", balance_command),
                 invite_user_conv,
+                hedge_conv,
             ],
         },
         fallbacks=[CommandHandler("stop", unknown_command)],
     )
 
     application.add_handler(conv_handler)
+    application.add_handler(hedge_conv)
     application.add_handler(CommandHandler("balance", balance_command, filters=user_filter))
-
-    # # Sends a keyboard menu options to the user
-    # menu_handler = CommandHandler('menu', menu_command)
-    # application.add_handler(menu_handler)
 
     # This handler must be added last
     unknown_handler = MessageHandler(filters.COMMAND, unknown_command)
