@@ -12,9 +12,10 @@ from handlers.invite import invite_start, invite_cancel, invite_users_shared, \
 from tg_server.constants.UserRole import UserRole
 from tg_server.database.db import engine
 from tg_server.handlers.balance import balance_command
-from tg_server.handlers.filters.AuthFilter import manager_filter, user_filter
+from tg_server.handlers.filters.AuthFilter import manager_filter, user_filter, admin_filter
 from tg_server.handlers.hedge import hedge_start, hedge_operation_selected, hedge_instrument_selected, \
     hedge_volume_selected, hedge_city_selected, hedge_preview_accepted
+from tg_server.handlers.help import help_command_admin, help_command_user, help_command_unauthorized
 from tg_server.handlers.start import start_command
 from tg_server.handlers.states import ConversationStates, InviteUserConvStates, HedgeConvStates
 from tg_server.services.InviteLinkService import InviteLinkService
@@ -113,6 +114,10 @@ if __name__ == '__main__':
     application.add_handler(conv_handler)
     application.add_handler(hedge_conv)
     application.add_handler(CommandHandler("balance", balance_command, filters=user_filter))
+
+    application.add_handler(CommandHandler("help", help_command_admin, filters=admin_filter))
+    application.add_handler(CommandHandler("help", help_command_user, filters=user_filter))
+    application.add_handler(CommandHandler("help", help_command_unauthorized))
 
     # This handler must be added last
     unknown_handler = MessageHandler(filters.COMMAND, unknown_command)
