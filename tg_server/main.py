@@ -14,7 +14,9 @@ from tg_server.database.db import engine
 from tg_server.handlers.balance import balance_command
 from tg_server.handlers.filters.AuthFilter import manager_filter, user_filter, admin_filter
 from tg_server.handlers.hedge import hedge_start, hedge_operation_selected, hedge_instrument_selected, \
-    hedge_volume_selected, hedge_city_selected, hedge_preview_accepted
+    hedge_volume_selected, hedge_city_selected, hedge_preview_accepted, hedge_invalid_operation_selected, inst_list, \
+    hedge_cancel, hedge_invalid_instrument_selected, hedge_invalid_volume_selected, cities_list, \
+    hedge_invalid_city_selected, hedge_invalid_preview_choice
 from tg_server.handlers.help import help_command_admin, help_command_user, help_command_unauthorized
 from tg_server.handlers.start import start_command
 from tg_server.handlers.states import ConversationStates, InviteUserConvStates, HedgeConvStates
@@ -84,13 +86,37 @@ if __name__ == '__main__':
     )
 
     hedge_conv = ConversationHandler(
-        entry_points=[CommandHandler("hedge", hedge_start, filters=user_filter)],
+        entry_points=[
+            CommandHandler("hedge", hedge_start, filters=user_filter),
+            MessageHandler(filters.Text(["Hedge"]) & user_filter, hedge_start)
+        ],
         states={
-            HedgeConvStates.SELECT_OPERATION: [MessageHandler(filters.TEXT, hedge_operation_selected)],
-            HedgeConvStates.SELECT_INSTRUMENT: [MessageHandler(filters.TEXT, hedge_instrument_selected)],
-            HedgeConvStates.SELECT_VOLUME: [MessageHandler(filters.TEXT, hedge_volume_selected)],
-            HedgeConvStates.SELECT_CITY: [MessageHandler(filters.TEXT, hedge_city_selected)],
-            HedgeConvStates.PREVIEW: [MessageHandler(filters.TEXT, hedge_preview_accepted)],
+            HedgeConvStates.SELECT_OPERATION: [
+                CommandHandler("cancel", hedge_cancel),
+                MessageHandler(filters.Text(["Buy", "Sell"]), hedge_operation_selected),
+                MessageHandler(~filters.Text(["Buy", "Sell"]), hedge_invalid_operation_selected),
+            ],
+            HedgeConvStates.SELECT_INSTRUMENT: [
+                CommandHandler("cancel", hedge_cancel),
+                MessageHandler(filters.Text(inst_list), hedge_instrument_selected),
+                MessageHandler(~filters.Text(inst_list), hedge_invalid_instrument_selected)
+            ],
+            HedgeConvStates.SELECT_VOLUME: [
+                CommandHandler("cancel", hedge_cancel),
+                MessageHandler(filters.Regex("^[1-9]\d*(\.\d{1,2})?$|^0\.\d{1,2}$"), hedge_volume_selected),
+                MessageHandler(~filters.Regex("^[1-9]\d*(\.\d{1,2})?$|^0\.\d{1,2}$"), hedge_invalid_volume_selected)
+            ],
+            HedgeConvStates.SELECT_CITY: [
+                CommandHandler("cancel", hedge_cancel),
+                MessageHandler(filters.Text(cities_list), hedge_city_selected),
+                MessageHandler(~filters.Text(cities_list), hedge_invalid_city_selected)
+            ],
+            HedgeConvStates.PREVIEW: [
+                CommandHandler("cancel", hedge_cancel),
+                MessageHandler(filters.Text(["Place order"]), hedge_preview_accepted),
+                MessageHandler(filters.Text(["Edit"]), hedge_start),
+                MessageHandler(~filters.Text(["Place order", "Edit"]), hedge_invalid_preview_choice),
+            ],
         },
         fallbacks=[],
         map_to_parent={
@@ -102,10 +128,11 @@ if __name__ == '__main__':
         entry_points=[CommandHandler(["start", "menu"], start_command)],
         states = {
             ConversationStates.MAIN_MENU: [
-                CommandHandler(["start", "menu"], start_command),
                 CommandHandler("balance", balance_command),
+                MessageHandler(filters.Text(["Balance"]) & user_filter, balance_command),
                 invite_user_conv,
                 hedge_conv,
+                CommandHandler(["start", "menu"], start_command),
             ],
         },
         fallbacks=[CommandHandler("stop", unknown_command)],
@@ -113,7 +140,9 @@ if __name__ == '__main__':
 
     application.add_handler(conv_handler)
     application.add_handler(hedge_conv)
+
     application.add_handler(CommandHandler("balance", balance_command, filters=user_filter))
+    application.add_handler(MessageHandler(filters.Text(["Balance"]) & user_filter, hedge_start))
 
     application.add_handler(CommandHandler("help", help_command_admin, filters=admin_filter))
     application.add_handler(CommandHandler("help", help_command_user, filters=user_filter))
