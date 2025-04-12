@@ -33,6 +33,9 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+async def edit_unsupported_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Message editing is not supported. Please use the command again.")
+
 async def unknown_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, I didn't understand that command.")
 
@@ -61,6 +64,9 @@ async def generate_superadmin_invite():
 def start_session() -> scoped_session:
     return scoped_session(sessionmaker(bind=engine, autoflush=False))
 
+def disable_edited_msg(filter=None):
+    return filter & ~filters.UpdateType.EDITED_MESSAGE if filter else ~filters.UpdateType.EDITED_MESSAGE
+
 if __name__ == '__main__':
     tg_bot_token = os.getenv("TG_BOT_TOKEN")
 
@@ -76,19 +82,19 @@ if __name__ == '__main__':
         name="invite_user_conversation",
         persistent=True,
         entry_points=[
-            CommandHandler("invite", invite_start, filters=manager_filter),
-            MessageHandler(filters.Text(["Invite User"]) & manager_filter, invite_start)
+            CommandHandler("invite", invite_start, filters=disable_edited_msg(manager_filter)),
+            MessageHandler(disable_edited_msg(filters.Text(["Invite User"]) & manager_filter), invite_start)
         ],
         states={
             InviteUserConvStates.PROMPT_USER: [
-                CommandHandler("cancel", invite_cancel),
-                MessageHandler(filters.StatusUpdate.USERS_SHARED, invite_users_shared),
-                MessageHandler(~filters.StatusUpdate.USERS_SHARED, invite_users_shared_invalid),
+                CommandHandler("cancel", invite_cancel, filters=disable_edited_msg()),
+                MessageHandler(disable_edited_msg(filters.StatusUpdate.USERS_SHARED), invite_users_shared),
+                MessageHandler(disable_edited_msg(~filters.StatusUpdate.USERS_SHARED), invite_users_shared_invalid),
             ],
             InviteUserConvStates.PROMPT_CREDENTIALS: [
-                CommandHandler("cancel", invite_cancel),
-                MessageHandler(filters.Regex("^\d+ \S+$"), invite_account_credentials),
-                MessageHandler(~filters.Regex("^\d+ \S+$"), invite_invalid_account_credentials),
+                CommandHandler("cancel", invite_cancel, filters=disable_edited_msg()),
+                MessageHandler(disable_edited_msg(filters.Regex("^\d+ \S+$")), invite_account_credentials),
+                MessageHandler(disable_edited_msg(~filters.Regex("^\d+ \S+$")), invite_invalid_account_credentials),
             ],
         },
         fallbacks=[],
@@ -97,39 +103,41 @@ if __name__ == '__main__':
         }
     )
 
+    cancel_command_handler = CommandHandler("cancel", hedge_cancel, filters=disable_edited_msg())
+
     hedge_conv = ConversationHandler(
         name="hedge_conversation",
         persistent=True,
         entry_points=[
-            CommandHandler("hedge", hedge_start, filters=user_filter),
-            MessageHandler(filters.Text(["Hedge"]) & user_filter, hedge_start)
+            CommandHandler("hedge", hedge_start, filters=disable_edited_msg(user_filter)),
+            MessageHandler(disable_edited_msg(filters.Text(["Hedge"]) & user_filter), hedge_start)
         ],
         states={
             HedgeConvStates.SELECT_OPERATION: [
-                CommandHandler("cancel", hedge_cancel),
-                MessageHandler(filters.Text(["Buy", "Sell"]), hedge_operation_selected),
-                MessageHandler(~filters.Text(["Buy", "Sell"]), hedge_invalid_operation_selected),
+                cancel_command_handler,
+                MessageHandler(disable_edited_msg(filters.Text(["Buy", "Sell"])), hedge_operation_selected),
+                MessageHandler(disable_edited_msg(~filters.Text(["Buy", "Sell"])), hedge_invalid_operation_selected),
             ],
             HedgeConvStates.SELECT_INSTRUMENT: [
-                CommandHandler("cancel", hedge_cancel),
-                MessageHandler(filters.Text(inst_list), hedge_instrument_selected),
-                MessageHandler(~filters.Text(inst_list), hedge_invalid_instrument_selected)
+                cancel_command_handler,
+                MessageHandler(disable_edited_msg(filters.Text(inst_list)), hedge_instrument_selected),
+                MessageHandler(disable_edited_msg(~filters.Text(inst_list)), hedge_invalid_instrument_selected)
             ],
             HedgeConvStates.SELECT_VOLUME: [
-                CommandHandler("cancel", hedge_cancel),
-                MessageHandler(filters.Regex("^[1-9]\d*(\.\d{1,2})?$|^0\.\d{1,2}$"), hedge_volume_selected),
-                MessageHandler(~filters.Regex("^[1-9]\d*(\.\d{1,2})?$|^0\.\d{1,2}$"), hedge_invalid_volume_selected)
+                cancel_command_handler,
+                MessageHandler(disable_edited_msg(filters.Regex("^[1-9]\d*(\.\d{1,2})?$|^0\.\d{1,2}$")), hedge_volume_selected),
+                MessageHandler(disable_edited_msg(~filters.Regex("^[1-9]\d*(\.\d{1,2})?$|^0\.\d{1,2}$")), hedge_invalid_volume_selected)
             ],
             HedgeConvStates.SELECT_CITY: [
-                CommandHandler("cancel", hedge_cancel),
-                MessageHandler(filters.Text(cities_list), hedge_city_selected),
-                MessageHandler(~filters.Text(cities_list), hedge_invalid_city_selected)
+                cancel_command_handler,
+                MessageHandler(disable_edited_msg(filters.Text(cities_list)), hedge_city_selected),
+                MessageHandler(disable_edited_msg(~filters.Text(cities_list)), hedge_invalid_city_selected)
             ],
             HedgeConvStates.PREVIEW: [
-                CommandHandler("cancel", hedge_cancel),
-                MessageHandler(filters.Text(["Place order"]), hedge_preview_accepted),
-                MessageHandler(filters.Text(["Edit"]), hedge_start),
-                MessageHandler(~filters.Text(["Place order", "Edit"]), hedge_invalid_preview_choice),
+                cancel_command_handler,
+                MessageHandler(disable_edited_msg(filters.Text(["Place order"])), hedge_preview_accepted),
+                MessageHandler(disable_edited_msg(filters.Text(["Edit"])), hedge_start),
+                MessageHandler(disable_edited_msg(~filters.Text(["Place order", "Edit"])), hedge_invalid_preview_choice),
             ],
         },
         fallbacks=[],
@@ -141,35 +149,33 @@ if __name__ == '__main__':
     conv_handler = ConversationHandler(
         name="menu_conversation",
         persistent=True,
-        entry_points=[CommandHandler(["start", "menu"], start_command)],
+        entry_points=[CommandHandler(["start", "menu"], start_command, filters=disable_edited_msg())],
         states = {
             ConversationStates.MAIN_MENU: [
-                CommandHandler("balance", balance_command),
-                MessageHandler(filters.Text(["Balance"]) & user_filter, balance_command),
+                CommandHandler("balance", balance_command, filters=disable_edited_msg()),
+                MessageHandler(disable_edited_msg(filters.Text(["Balance"]) & user_filter), balance_command),
                 invite_user_conv,
                 hedge_conv,
-                CommandHandler(["start", "menu"], start_command),
+                CommandHandler(["start", "menu"], start_command, filters=disable_edited_msg()),
             ],
         },
-        fallbacks=[CommandHandler("stop", unknown_command)],
+        fallbacks=[],
     )
 
     application.add_handler(conv_handler)
     application.add_handler(hedge_conv)
 
-    application.add_handler(CommandHandler("balance", balance_command, filters=user_filter))
-    application.add_handler(MessageHandler(filters.Text(["Balance"]) & user_filter, hedge_start))
+    application.add_handler(CommandHandler("balance", balance_command, filters=disable_edited_msg(user_filter)))
+    application.add_handler(MessageHandler(disable_edited_msg(filters.Text(["Balance"]) & user_filter), hedge_start))
 
-    application.add_handler(CommandHandler("help", help_command_admin, filters=admin_filter))
-    application.add_handler(CommandHandler("help", help_command_user, filters=user_filter))
-    application.add_handler(CommandHandler("help", help_command_unauthorized))
+    application.add_handler(CommandHandler("help", help_command_admin, filters=disable_edited_msg(admin_filter)))
+    application.add_handler(CommandHandler("help", help_command_user, filters=disable_edited_msg(user_filter)))
+    application.add_handler(CommandHandler("help", help_command_unauthorized, filters=disable_edited_msg()))
 
-    # This handler must be added last
-    unknown_handler = MessageHandler(filters.COMMAND, unknown_command)
-    application.add_handler(unknown_handler)
-
-    unknown_handler = MessageHandler(filters.TEXT, unexpected_text)
-    application.add_handler(unknown_handler)
+    # These handlers must be added last
+    application.add_handler(MessageHandler(filters.UpdateType.EDITED_MESSAGE, edit_unsupported_command))
+    application.add_handler(MessageHandler(filters.COMMAND, unknown_command))
+    application.add_handler(MessageHandler(filters.TEXT, unexpected_text))
 
     temp_el = asyncio.new_event_loop()
     try:

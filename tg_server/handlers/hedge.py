@@ -1,6 +1,5 @@
 import logging
 import os
-from decimal import Decimal
 
 from sqlalchemy.orm.session import Session
 from telegram import helpers, Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
@@ -62,8 +61,8 @@ async def hedge_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def hedge_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        helpers.escape_markdown((
-            "Type?"
+        HEDGE_PREFIX_MD2 + helpers.escape_markdown((
+            "Operation?"
             "\n\nUse /cancel command to go back to main menu."
         ), 2),
         reply_markup=select_operation_menu_markup,
@@ -75,8 +74,8 @@ async def hedge_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def hedge_invalid_operation_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        helpers.escape_markdown((
-            "Invalid type. Please select either 'Buy' or 'Sell'."
+        HEDGE_PREFIX_MD2 + helpers.escape_markdown((
+            "Invalid operation type. Please select either 'Buy' or 'Sell'."
             "\n\nUse /cancel command to go back to main menu."
         ), 2),
         reply_markup=select_operation_menu_markup,
@@ -89,7 +88,7 @@ async def hedge_operation_selected(update: Update, context: ContextTypes.DEFAULT
     type_str = update.message.text
     context.user_data[UD_KEY_HEDGE_OPERATION] = type_str
     await update.message.reply_text(
-        helpers.escape_markdown((
+        HEDGE_PREFIX_MD2 + helpers.escape_markdown((
             "Instrument?"
             "\n\nUse /cancel command to go back to main menu."
         ), 2),
@@ -101,10 +100,11 @@ async def hedge_operation_selected(update: Update, context: ContextTypes.DEFAULT
 
 async def hedge_invalid_instrument_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        helpers.escape_markdown((
+        HEDGE_PREFIX_MD2 + helpers.escape_markdown((
             "Invalid instrument. Please select a valid instrument."
             "\n\nUse /cancel command to go back to main menu."
         ), 2),
+        reply_markup=select_instrument_menu_markup,
         parse_mode=ParseMode.MARKDOWN_V2,
     )
     return HedgeConvStates.SELECT_INSTRUMENT
@@ -115,7 +115,7 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
 
     if instrument_str not in inst_list:
         await update.message.reply_text(
-            helpers.escape_markdown((
+            HEDGE_PREFIX_MD2 + helpers.escape_markdown((
                 "Invalid instrument. Please select a valid instrument."
                 "\n\nUse /cancel command to go back to main menu."
             ), 2),
@@ -142,9 +142,7 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
                        "Use /cancel command to go back to main menu."
                        )
     await update.message.reply_text(
-        helpers.escape_markdown((
-            symbol_info_msg
-        ), 2),
+        HEDGE_PREFIX_MD2 + helpers.escape_markdown(symbol_info_msg, 2),
         reply_markup=ReplyKeyboardRemove(),
         parse_mode=ParseMode.MARKDOWN_V2,
     )
@@ -153,14 +151,14 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
 
 async def hedge_invalid_volume_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        helpers.escape_markdown((
+        HEDGE_PREFIX_MD2 + helpers.escape_markdown((
             "Invalid volume. Please enter a valid number."
             "\n\nUse /cancel command to go back to main menu."
         ), 2),
         reply_markup=ReplyKeyboardRemove(),
         parse_mode=ParseMode.MARKDOWN_V2,
     )
-    return HedgeConvStates.SELECT_INSTRUMENT
+    return HedgeConvStates.SELECT_VOLUME
 
 
 async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -173,7 +171,7 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
        return hedge_invalid_volume_selected(update, context)
 
     await update.message.reply_text(
-        helpers.escape_markdown((
+        HEDGE_PREFIX_MD2 + helpers.escape_markdown((
             "City?"
             "\n\nUse /cancel command to go back to main menu."
         ), 2),
@@ -184,34 +182,15 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
     return HedgeConvStates.SELECT_CITY
 
 async def hedge_invalid_city_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    city_str = update.message.text
-
-    if city_str not in cities_list:
-        await update.message.reply_text(
-            helpers.escape_markdown((
-                "Invalid city. Please select a valid city from the menu."
-                "\n\nUse /cancel command to go back to main menu."
-            ), 2),
-            reply_markup=select_city_menu_markup,
-            parse_mode=ParseMode.MARKDOWN_V2,
-        )
-        return HedgeConvStates.SELECT_CITY
-
-    context.user_data[UD_KEY_HEDGE_CITY] = city_str
-
-    preview_msg = (f"Preview: \n"
-                   f"Operation: {context.user_data.get(UD_KEY_HEDGE_OPERATION)}\n"
-                   f"Instrument: {context.user_data.get(UD_KEY_HEDGE_INSTRUMENT)}\n"
-                   f"Volume: {context.user_data.get(UD_KEY_HEDGE_VOLUME)}\n"
-                   f"Price: {context.user_data.get(UD_KEY_HEDGE_PRICE)}\n"
-                   f"City: {context.user_data.get(UD_KEY_HEDGE_CITY)}\n"
-                   )
     await update.message.reply_text(
-        helpers.escape_markdown(preview_msg, 2),
-        reply_markup=preview_action_menu_markup,
+        HEDGE_PREFIX_MD2 + helpers.escape_markdown((
+            "Invalid city. Please select a valid city from the menu."
+            "\n\nUse /cancel command to go back to main menu."
+        ), 2),
+        reply_markup=select_city_menu_markup,
         parse_mode=ParseMode.MARKDOWN_V2,
     )
-    return HedgeConvStates.PREVIEW
+    return HedgeConvStates.SELECT_CITY
 
 
 async def hedge_city_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -219,7 +198,7 @@ async def hedge_city_selected(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     if city_str not in cities_list:
         await update.message.reply_text(
-            helpers.escape_markdown((
+            HEDGE_PREFIX_MD2 + helpers.escape_markdown((
                 "Invalid city. Please select a valid city from the menu."
                 "\n\nUse /cancel command to go back to main menu."
             ), 2),
@@ -238,7 +217,7 @@ async def hedge_city_selected(update: Update, context: ContextTypes.DEFAULT_TYPE
                    f"City: {context.user_data.get(UD_KEY_HEDGE_CITY)}\n"
                    )
     await update.message.reply_text(
-        helpers.escape_markdown(preview_msg, 2),
+        HEDGE_PREFIX_MD2 + helpers.escape_markdown(preview_msg, 2),
         reply_markup=preview_action_menu_markup,
         parse_mode=ParseMode.MARKDOWN_V2,
     )
@@ -246,8 +225,8 @@ async def hedge_city_selected(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def hedge_invalid_preview_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        helpers.escape_markdown((
-            "Please select either 'Place order' or 'Edit'."
+        HEDGE_PREFIX_MD2 + helpers.escape_markdown((
+            "Invalid choice. Please select either 'Place order' or 'Edit'."
             "\n\nUse /cancel command to go back to main menu."
         ), 2),
         reply_markup=preview_action_menu_markup,
@@ -262,9 +241,7 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
     if answer == "Place order":
         # TODO: more info
         await update.message.reply_text(
-            helpers.escape_markdown((
-                "Placing order...\n"
-            ), 2),
+            HEDGE_PREFIX_MD2 + helpers.escape_markdown("Placing order...\n", 2),
             parse_mode=ParseMode.MARKDOWN_V2,
         )
 
