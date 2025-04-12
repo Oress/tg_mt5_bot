@@ -34,7 +34,7 @@ async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                  f"on {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}")
 
         await context.bot.send_message(chat_id=update.effective_chat.id,
-                                       text=f"{BALANCE_PREFIX_MD2}\n" + helpers.escape_markdown(balance_msg, 2),
+                                       text=f"{BALANCE_PREFIX_MD2}\n" + "||" + helpers.escape_markdown(balance_msg, 2) + "||",
                                        parse_mode=ParseMode.MARKDOWN_V2)
 
         await send_main_menu(update, context)
