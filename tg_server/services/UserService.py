@@ -23,6 +23,10 @@ class UserService:
         registered_user = self.session.execute(stmt).first()
         return registered_user.TgUser if registered_user else None
 
+    def get_user_by_account_num(self, account_num: int) -> TgUser:
+        stmt = select(TgUser).where(TgUser.mt5_acc_number == account_num)
+        user = self.session.execute(stmt).first()
+        return user.TgUser if user else None
+
     def contains_user(self, user_id: int) -> bool:
         return self.get_user_by_id(user_id) is not None
-

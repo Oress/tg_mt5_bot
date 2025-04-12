@@ -12,7 +12,7 @@
             <column name="role" type="text"/>
 
             <!-- Can be null for administrators -->
-            <column name="mt5_acc_number" type="text" />
+            <column name="mt5_acc_number" type="bigint" />
             <column name="mt5_acc_pwd_enc" type="bytea" />
 
             <column name="invited_by" type="bigint"/>
@@ -42,7 +42,7 @@
             <column name="role_on_accept" type="text">
                 <constraints nullable="false"/>
             </column>
-            <column name="mt5_acc_number" type="text" />
+            <column name="mt5_acc_number" type="bigint" />
             <column name="mt5_acc_pwd_enc" type="bytea" />
             <column name="created_by" type="bigint" />
             <column name="created_at" type="timestamp">

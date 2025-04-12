@@ -7,7 +7,7 @@ from telegram import helpers, Update, Bot
 from telegram.ext import filters, MessageHandler, ApplicationBuilder, ContextTypes, ConversationHandler, CommandHandler
 
 from handlers.invite import invite_start, invite_cancel, invite_users_shared, \
-    invite_users_shared_invalid, invite_account_credentials
+    invite_users_shared_invalid, invite_account_credentials, invite_invalid_account_credentials
 from tg_server.constants.UserRole import UserRole
 from tg_server.database.db import engine
 from tg_server.handlers.balance import balance_command
@@ -87,7 +87,8 @@ if __name__ == '__main__':
             ],
             InviteUserConvStates.PROMPT_CREDENTIALS: [
                 CommandHandler("cancel", invite_cancel),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, invite_account_credentials),
+                MessageHandler(filters.Regex("^\d+ \S+$"), invite_account_credentials),
+                MessageHandler(~filters.Regex("^\d+ \S+$"), invite_invalid_account_credentials),
             ],
         },
         fallbacks=[],

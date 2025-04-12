@@ -4,7 +4,7 @@ from ptbcontrib.extract_passed_user import extract_passed_user
 
 from sqlalchemy.orm.session import Session
 from telegram import helpers, Update, ReplyKeyboardRemove, ReplyKeyboardMarkup, KeyboardButton, \
-    KeyboardButtonRequestUsers, SharedUser
+    KeyboardButtonRequestUsers
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
@@ -103,6 +103,14 @@ async def invite_users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
     )
     return InviteUserConvStates.PROMPT_CREDENTIALS
 
+async def invite_invalid_account_credentials(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Invalid credentials format. Please try again.", 2),
+        parse_mode=ParseMode.MARKDOWN_V2,
+        protect_content=True
+    )
+    return InviteUserConvStates.PROMPT_CREDENTIALS
+
 async def invite_account_credentials(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """ Deletes credentials message from user.
         Checks the credentials and saves them in the user_data. In case of invalid credentials: prompts again.
@@ -117,16 +125,6 @@ async def invite_account_credentials(update: Update, context: ContextTypes.DEFAU
 
     await update.message.delete()
 
-    valid_creds_format = account_number_str.isdigit()
-
-    if not valid_creds_format:
-        await update.message.reply_text(
-            GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Invalid credentials format. Please try again.", 2),
-            parse_mode=ParseMode.MARKDOWN_V2,
-            protect_content=True
-        )
-        return InviteUserConvStates.PROMPT_CREDENTIALS
-
     await update.message.reply_text(
         GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown(f"Validating credentials...", 2),
         parse_mode=ParseMode.MARKDOWN_V2,
@@ -134,25 +132,47 @@ async def invite_account_credentials(update: Update, context: ContextTypes.DEFAU
     )
 
     account_number = int(account_number_str)
-    valid_creds = mt5service.check_credentials(account_number, account_pwd)
+    with Session(engine) as session:
+        invite_links_service = InviteLinkService(session)
+        user_service = UserService(session)
+        user_with_same_account = user_service.get_user_by_account_num(account_number)
+        if user_with_same_account:
+            await update.message.reply_text(
+                GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("User with the same account number already exists, Please choose another account.", 2),
+                parse_mode=ParseMode.MARKDOWN_V2,
+                protect_content=True
+            )
+            return InviteUserConvStates.PROMPT_CREDENTIALS
 
-    if not valid_creds:
+        link_by_account_num = invite_links_service.get_link_by_account_num(account_number)
+        if link_by_account_num:
+            await update.message.reply_text(
+                GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Invite link with the same account number already exists, Please choose another account.", 2),
+                parse_mode=ParseMode.MARKDOWN_V2,
+                protect_content=True
+            )
+            return InviteUserConvStates.PROMPT_CREDENTIALS
+
+        valid_creds = mt5service.check_credentials(account_number, account_pwd)
+        if not valid_creds:
+            await update.message.reply_text(
+                GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Credentials are not valid. Please try again.", 2),
+                parse_mode=ParseMode.MARKDOWN_V2,
+                protect_content=True
+            )
+            return InviteUserConvStates.PROMPT_CREDENTIALS
+
         await update.message.reply_text(
-            GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Credentials are not valid. Please try again.", 2),
+            GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown(
+                f"Credentials are valid.\nForward the next message to the user.\nGenerating invite link...", 2),
             parse_mode=ParseMode.MARKDOWN_V2,
             protect_content=True
         )
-        return InviteUserConvStates.PROMPT_CREDENTIALS
+        shared_user_id: int = context.user_data.get(UD_KEY_USER_ID_TO_INVITE)
+        encrypted_pwd = pwd_encryptor.encrypt(account_pwd.encode())
 
-    await update.message.reply_text(
-        GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown(
-            f"Credentials are valid.\nForward the next message to the user.\nGenerating invite link...", 2),
-        parse_mode=ParseMode.MARKDOWN_V2,
-        protect_content=True
-    )
-    shared_user_id: SharedUser = context.user_data.get(UD_KEY_USER_ID_TO_INVITE)
-    encrypted_pwd = pwd_encryptor.encrypt(account_pwd.encode())
-    invite_code = save_invite_to_db(shared_user_id, update.effective_user.id, account_number, encrypted_pwd)
+        invite_code = invite_links_service.create_invite_link(update.effective_user.id, shared_user_id, UserRole.USER, account_number, encrypted_pwd)
+        session.commit()
 
     await show_user_invite(update, context, invite_code)
 
@@ -168,12 +188,6 @@ async def show_user_invite(update, context, invite_code):
         parse_mode=ParseMode.MARKDOWN_V2,
     )
 
-def save_invite_to_db(tg_userid_for, current_user_id, account_number: int, account_pwd_enc: bytes):
-    with Session(engine) as session:
-        invite_links_service = InviteLinkService(session)
-        code = invite_links_service.create_invite_link(current_user_id, tg_userid_for, UserRole.USER, account_number, account_pwd_enc)
-        session.commit()
-        return code
 
 async def invite_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Cancels and ends the conversation."""

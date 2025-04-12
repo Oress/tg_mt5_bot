@@ -38,6 +38,11 @@ class InviteLinkService:
         valid_invite_link = self.session.execute(stmt).first()
         return valid_invite_link.InviteLink
 
+    def get_link_by_account_num(self, account_num: int) -> InviteLink:
+        stmt = select(InviteLink).where(InviteLink.mt5_acc_number == account_num)
+        user = self.session.execute(stmt).first()
+        return user.InviteLink if user else None
+
     def contains_invite_link(self, user_id: int) -> bool:
         return self.get_invite_link_by_id(user_id) is not None
 
