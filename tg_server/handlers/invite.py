@@ -19,7 +19,7 @@ from tg_server.services.UserService import UserService
 
 logger = logging.getLogger(__name__)
 
-UD_KEY_USER_TO_INVITE = "user_to_invite"
+UD_KEY_USER_ID_TO_INVITE = "user_id_to_invite"
 
 GENERATE_INVITE_PREFIX_MD2 = "*\[Generate Invite\]*\n"
 USER_INVITE_PREFIX_MD2 = "*\[User Invite\]*\n"
@@ -93,7 +93,7 @@ async def invite_users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
             return InviteUserConvStates.PROMPT_USER
 
     # Save the shared user in user_data
-    context.user_data[UD_KEY_USER_TO_INVITE] = shared_user
+    context.user_data[UD_KEY_USER_ID_TO_INVITE] = shared_user.user_id
 
     await update.message.reply_text(
         prompt_creds_msg,
@@ -150,9 +150,9 @@ async def invite_account_credentials(update: Update, context: ContextTypes.DEFAU
         parse_mode=ParseMode.MARKDOWN_V2,
         protect_content=True
     )
-    shared_user: SharedUser = context.user_data.get(UD_KEY_USER_TO_INVITE)
+    shared_user_id: SharedUser = context.user_data.get(UD_KEY_USER_ID_TO_INVITE)
     encrypted_pwd = pwd_encryptor.encrypt(account_pwd.encode())
-    invite_code = save_invite_to_db(shared_user.user_id, update.effective_user.id, account_number, encrypted_pwd)
+    invite_code = save_invite_to_db(shared_user_id, update.effective_user.id, account_number, encrypted_pwd)
 
     await show_user_invite(update, context, invite_code)
 

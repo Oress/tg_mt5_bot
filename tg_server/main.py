@@ -4,8 +4,7 @@ import os
 
 from sqlalchemy.orm.session import Session
 from telegram import helpers, Update, Bot
-from telegram.ext import filters, MessageHandler, ApplicationBuilder, ContextTypes, ConversationHandler, StringRegexHandler, CommandHandler, \
-    PicklePersistence
+from telegram.ext import filters, MessageHandler, ApplicationBuilder, ContextTypes, ConversationHandler, CommandHandler
 
 from handlers.invite import invite_start, invite_cancel, invite_users_shared, \
     invite_users_shared_invalid, invite_account_credentials
@@ -22,6 +21,10 @@ from tg_server.handlers.start import start_command
 from tg_server.handlers.states import ConversationStates, InviteUserConvStates, HedgeConvStates
 from tg_server.services.InviteLinkService import InviteLinkService
 from tg_server.services.UserService import UserService
+
+from sqlalchemy.orm import sessionmaker, scoped_session
+
+from ptbcontrib.postgres_persistence import PostgresPersistence
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -55,21 +58,23 @@ async def generate_superadmin_invite():
             else:
                 print('Superadmin invite link:', superadmin_link)
 
-if __name__ == '__main__':
-    # TODO: use adequate 3rd party storage
-    pickle_persistence = PicklePersistence(filepath='persistence.pickle')
+def start_session() -> scoped_session:
+    return scoped_session(sessionmaker(bind=engine, autoflush=False))
 
+if __name__ == '__main__':
     tg_bot_token = os.getenv("TG_BOT_TOKEN")
 
     application = (ApplicationBuilder()
                    .token(tg_bot_token)
-                   # .persistence(persistence=pickle_persistence)
+                   .persistence(PostgresPersistence(session=start_session()))
                    .build()
                    )
 
     # TODO: conversation_timeout and allow_reentry ?
     # TODO: check the authorization of the user before proceeding
     invite_user_conv = ConversationHandler(
+        name="invite_user_conversation",
+        persistent=True,
         entry_points=[
             CommandHandler("invite", invite_start, filters=manager_filter),
             MessageHandler(filters.Text(["Invite User"]) & manager_filter, invite_start)
@@ -86,9 +91,14 @@ if __name__ == '__main__':
             ],
         },
         fallbacks=[],
+        map_to_parent={
+            ConversationStates.MAIN_MENU: ConversationStates.MAIN_MENU,
+        }
     )
 
     hedge_conv = ConversationHandler(
+        name="hedge_conversation",
+        persistent=True,
         entry_points=[
             CommandHandler("hedge", hedge_start, filters=user_filter),
             MessageHandler(filters.Text(["Hedge"]) & user_filter, hedge_start)
@@ -128,6 +138,8 @@ if __name__ == '__main__':
     )
 
     conv_handler = ConversationHandler(
+        name="menu_conversation",
+        persistent=True,
         entry_points=[CommandHandler(["start", "menu"], start_command)],
         states = {
             ConversationStates.MAIN_MENU: [

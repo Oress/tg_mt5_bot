@@ -59,4 +59,13 @@
                                  referencedTableName="tgb_users"
                                  referencedColumnNames="tg_id"/>
     </changeSet>
+
+    <!-- This table is used for conversation persistence-->
+    <changeSet id="create table persistence" author="oress">
+        <createTable tableName="persistence">
+            <column name="data" type="json">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
 </databaseChangeLog>
