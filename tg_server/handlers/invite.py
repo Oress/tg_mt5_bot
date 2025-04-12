@@ -147,7 +147,7 @@ async def invite_account_credentials(update: Update, context: ContextTypes.DEFAU
         link_by_account_num = invite_links_service.get_link_by_account_num(account_number)
         if link_by_account_num:
             await update.message.reply_text(
-                GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Invite link with the same account number already exists, Please choose another account.", 2),
+                GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Invite link with the same account number already exists, Please enter credentials to another trade account.", 2),
                 parse_mode=ParseMode.MARKDOWN_V2,
                 protect_content=True
             )

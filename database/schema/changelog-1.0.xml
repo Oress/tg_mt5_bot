@@ -31,6 +31,12 @@
                                  referencedColumnNames="tg_id"/>
     </changeSet>
 
+    <changeSet id="create indexes for tgb_users" author="oress">
+        <createIndex indexName="idx_tgb_users_mt5_acc_number" tableName="tgb_users">
+            <column name="mt5_acc_number"/>
+        </createIndex>
+    </changeSet>
+
     <changeSet id="create table tgb_invite_links" author="oress">
         <createTable tableName="tgb_invite_links">
             <column name="code" type="text">
@@ -60,6 +66,15 @@
                                  referencedColumnNames="tg_id"/>
     </changeSet>
 
+    <changeSet id="create indexes for tgb_invite_links" author="oress">
+        <createIndex indexName="idx_tgb_invite_links_mt5_acc_number" tableName="tgb_invite_links">
+            <column name="mt5_acc_number"/>
+        </createIndex>
+        <createIndex indexName="idx_tgb_invite_links_tg_userid_for" tableName="tgb_invite_links">
+            <column name="tg_userid_for"/>
+        </createIndex>
+    </changeSet>
+
     <!-- This table is used for conversation persistence-->
     <changeSet id="create table persistence" author="oress">
         <createTable tableName="persistence">
@@ -68,4 +83,6 @@
             </column>
         </createTable>
     </changeSet>
+
+
 </databaseChangeLog>
