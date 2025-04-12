@@ -70,7 +70,10 @@ if __name__ == '__main__':
     # TODO: conversation_timeout and allow_reentry ?
     # TODO: check the authorization of the user before proceeding
     invite_user_conv = ConversationHandler(
-        entry_points=[CommandHandler("invite", invite_start, filters=manager_filter)],
+        entry_points=[
+            CommandHandler("invite", invite_start, filters=manager_filter),
+            MessageHandler(filters.Text(["Invite User"]) & manager_filter, invite_start)
+        ],
         states={
             InviteUserConvStates.PROMPT_USER: [
                 CommandHandler("cancel", invite_cancel),

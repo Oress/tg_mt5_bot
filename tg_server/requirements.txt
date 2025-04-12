@@ -24,6 +24,7 @@ plumbum==1.7.0
 psycopg==3.2.6
 psycopg-binary==3.2.6
 psycopg-pool==3.2.6
+ptbcontrib @ git+https://github.com/python-telegram-bot/ptbcontrib.git@88329f645f1568aac52f230ff540972f51bd3956
 pycparser==2.21
 Pygments==2.10.0
 pyparsing==2.4.7

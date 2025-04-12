@@ -1,5 +1,6 @@
 import logging
 from typing import List
+from ptbcontrib.extract_passed_user import extract_passed_user
 
 from sqlalchemy.orm.session import Session
 from telegram import helpers, Update, ReplyKeyboardRemove, ReplyKeyboardMarkup, KeyboardButton, \
@@ -62,11 +63,10 @@ prompt_creds_msg = (GENERATE_INVITE_PREFIX_MD2
 
 async def invite_users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Saves shared tg users in user_data. Moves to the next state."""
-    shared = update.message.users_shared
-    if shared is None or len(shared.users) != 1:
-        return await invite_start(update, context)
+    shared_user = await extract_passed_user(message=update.message)
 
-    shared_user = shared.users[0]
+    if shared_user is None:
+        return await invite_start(update, context)
 
     with Session(engine) as session:
         invite_link_service = InviteLinkService(session)
