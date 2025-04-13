@@ -29,7 +29,7 @@ services:
       - /liquibase/docker-entrypoint.sh
       - --search-path=/liquibase/changelog/
       - update
-      - --url=jdbc:postgresql://${MIGRATION_DB_HOST}:${MIGRATION_DB_PORT}/${POSTGRES_DB}
+      - --url=jdbc:postgresql://${POSTGRES_DB_HOST}:${POSTGRES_DB_PORT}/${POSTGRES_DB}
       - --driver=org.postgresql.Driver
       - --changelog-file=changelog-root.xml
       - --username=${POSTGRES_USER}

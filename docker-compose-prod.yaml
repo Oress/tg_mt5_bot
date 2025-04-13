@@ -1,0 +1,64 @@
+services:
+  # It's still required to expose 3000 to enable AlgoTrading manually through the VNC. (I don't know how to do it automatically.)
+  # After that, Block the 3000 port in the firewall.
+  mt5:
+    extends:
+      file: docker-compose-base.yaml
+      service: mt5service
+    ports:
+      - 3000:3000
+
+  postgres:
+    extends:
+      file: docker-compose-base.yaml
+      service: postgresservice
+
+  migration:
+    extends:
+      file: docker-compose-base.yaml
+      service: migrationservice
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: true
+
+  server:
+    image: oress/tg_bot
+    build: ./tg_server
+    depends_on:
+      - migration
+      - postgres
+    volumes:
+      - appLogs:${LOGS_FOLDER}
+    environment:
+      - PYTHONPATH=/
+      - LOGS_FOLDER
+      - ENCRYPTION_KEY
+      - POSTGRES_DB
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB_HOST
+      - POSTGRES_DB_PORT
+      - MT5_HOST
+      - MT5_PORT
+      - MT5_SERVER
+      - HEDGE_CITIES
+      - HEDGE_INSTRUMENTS
+      - SUPERADMIN_ID
+      - TG_BOT_TOKEN
+
+  alloy:
+    image: grafana/alloy:latest
+    depends_on:
+      - server
+    environment:
+      - ALLOY_USERNAME
+      - GRAFANA_TOKEN
+    volumes:
+      - ./config.alloy:/etc/alloy/config.alloy
+      - appLogs:${LOGS_FOLDER}
+    command: 'run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy'
+
+volumes:
+  appLogs: { }
+  data1: { }

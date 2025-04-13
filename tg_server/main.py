@@ -29,24 +29,14 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 
 from ptbcontrib.postgres_persistence import PostgresPersistence
 
-logging.basicConfig(
-    format="[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s",
-    datefmt='%Y-%m-%dT%H:%M:%S',
-    level=logging.INFO,
-    handlers=[
-        logging.StreamHandler(),
-        RotatingFileHandler("app.log", maxBytes=5 * 1024 * 1024, backupCount=5)
-    ],
-)
-
-logger = logging.getLogger(__name__)
-
 def check_env_variables():
     required_env_vars = [
+        "LOGS_FOLDER",
+
         "ENCRYPTION_KEY",
 
-        "MIGRATION_DB_HOST",
-        "MIGRATION_DB_PORT",
+        "POSTGRES_DB_HOST",
+        "POSTGRES_DB_PORT",
         "POSTGRES_USER",
         "POSTGRES_PASSWORD",
         "POSTGRES_DB",
@@ -63,8 +53,23 @@ def check_env_variables():
     ]
     missing_vars = [var for var in required_env_vars if os.getenv(var) is None or os.getenv(var) == '']
     if missing_vars:
-        logger.error(f"[Env. Validation]Missing environment variables: {', '.join(missing_vars)}")
         raise EnvironmentError(f"Missing environment variables: {', '.join(missing_vars)}")
+
+check_env_variables()
+
+logs_folder = os.getenv("LOGS_FOLDER")
+os.makedirs(logs_folder, exist_ok=True)
+logging.basicConfig(
+    format="[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s",
+    datefmt='%Y-%m-%dT%H:%M:%S',
+    level=logging.INFO,
+    handlers=[
+        logging.StreamHandler(),
+        RotatingFileHandler(logs_folder + "/app.log", maxBytes=5 * 1024 * 1024, backupCount=5)
+    ],
+)
+
+logger = logging.getLogger(__name__)
 
 async def remove_expired_links(context: ContextTypes.DEFAULT_TYPE):
     logger.info("[Job|Remove Expired Links] Removing expired invite links")
@@ -112,7 +117,6 @@ def disable_edited_msg(filter=None):
     return filter & ~filters.UpdateType.EDITED_MESSAGE if filter else ~filters.UpdateType.EDITED_MESSAGE
 
 if __name__ == '__main__':
-    check_env_variables()
     tg_bot_token = os.getenv("TG_BOT_TOKEN")
 
     application = (ApplicationBuilder()

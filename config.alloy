@@ -1,0 +1,24 @@
+// Collection: mount a local directory with a certain path spec
+local.file_match "applogs" {
+    path_targets = [{"__path__" = "/apps/logs/app.log"}]
+}
+
+// Collection: Take the file match as input, and scrape those mounted log files
+loki.source.file "local_files" {
+    targets    = local.file_match.applogs.targets
+
+    // forward_to = [loki.process.add_new_labels.receiver]
+    forward_to = [loki.write.grafanacloud.receiver]
+}
+
+// Anything that comes into this component gets written to the loki remote API
+loki.write "grafanacloud" {
+  endpoint {
+    url = "https://logs-prod-025.grafana.net/loki/api/v1/push"
+
+    basic_auth {
+      username = sys.env("ALLOY_USERNAME")
+      password = sys.env("GRAFANA_TOKEN")
+    }
+  }
+}
