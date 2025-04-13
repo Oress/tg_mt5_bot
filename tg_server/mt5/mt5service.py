@@ -26,6 +26,25 @@ class AccountBalance:
     liabilities: Decimal
     commission_blocked: Decimal
 
+@dataclass
+class SymbolInfo:
+    description: str
+    volume_min: float
+    volume_step: float
+    volume_max: float
+    volume_limit: float
+    trade_contract_size: float
+
+    def to_dict(self):
+        return {
+            "description": self.description,
+            "volume_min": self.volume_min,
+            "volume_step": self.volume_step,
+            "volume_max": self.volume_max,
+            "volume_limit": self.volume_limit,
+            "trade_contract_size": self.trade_contract_size
+        }
+
 # Note: Use initialize with login, password and server to connect to the terminal, login() have weird behavior
 class MT5Service:
     def __init__(self, server: str, host: str, port: int):
@@ -37,6 +56,21 @@ class MT5Service:
         try:
             with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
                 return True
+        except MT5InvalidCreds as e:
+            print(f"Invalid credentials: {e}")
+        except ValueError as e:
+            print(f"Exception caught: {e}")
+
+        return False
+
+    def get_price(self, account_number: int, pwd: str, symbol: str, buy: bool) -> bool:
+        try:
+            with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
+                info_tick = session.symbol_info_tick(symbol)
+                print(info_tick)
+
+                price = info_tick.ask if buy else info_tick.bid
+                return price
         except MT5InvalidCreds as e:
             print(f"Invalid credentials: {e}")
         except ValueError as e:
@@ -80,7 +114,16 @@ class MT5Service:
             with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
                 sym_info = session.symbol_info(symbol)
                 print(sym_info)
-                return sym_info
+
+                sym_info_model = SymbolInfo(
+                    description=sym_info.description,
+                    volume_min=sym_info.volume_min,
+                    volume_step=sym_info.volume_step,
+                    volume_max=sym_info.volume_max,
+                    volume_limit=sym_info.volume_limit,
+                    trade_contract_size=sym_info.trade_contract_size
+                )
+                return sym_info_model
         except MT5InvalidCreds as e:
             print(f"Invalid credentials: {e}")
         except ValueError as e:

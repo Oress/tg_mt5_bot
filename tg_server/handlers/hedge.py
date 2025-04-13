@@ -31,6 +31,8 @@ UD_KEY_HEDGE_VOLUME = "UD_KEY_HEDGE_VOLUME"
 UD_KEY_HEDGE_PRICE = "UD_KEY_HEDGE_PRICE"
 UD_KEY_HEDGE_CITY = "UD_KEY_HEDGE_CITY"
 
+UD_KEY_HEDGE_SYM_INFO_CONTRACT_SIZE = "hedge_sym_info_contract_size"
+
 select_operation_menu_markup = ReplyKeyboardMarkup(
     [[KeyboardButton("Buy"), KeyboardButton("Sell")]],
     one_time_keyboard=True,
@@ -132,8 +134,9 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
 
         pwd_decrypted_bytes = pwd_encryptor.decrypt(user.mt5_acc_pwd_enc)
         sym_info = mt5service.symbol_info(user.mt5_acc_number, pwd_decrypted_bytes.decode(), instrument_str)
+    context.user_data[UD_KEY_HEDGE_SYM_INFO_CONTRACT_SIZE] = sym_info.trade_contract_size
 
-    symbol_info_msg = (f"Volume? \n\n"
+    symbol_info_msg = (f"Volume(lots)? \n\n"
                        f"Instrument: {sym_info.description}\n"
                        f"Contract size: {sym_info.trade_contract_size}\n"
                        f"Min volume: {sym_info.volume_min}\n"
@@ -208,11 +211,29 @@ async def hedge_city_selected(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     context.user_data[UD_KEY_HEDGE_CITY] = city_str
 
+    volume = context.user_data[UD_KEY_HEDGE_VOLUME]
+    trade_contract_size = context.user_data[UD_KEY_HEDGE_SYM_INFO_CONTRACT_SIZE]
+
+    with Session(engine) as session:
+        user_service = UserService(session)
+        user_id = update.effective_user.id
+        user = user_service.get_user_by_id(user_id)
+        pwd_decrypted_bytes = pwd_encryptor.decrypt(user.mt5_acc_pwd_enc)
+
+        price_per_unit = mt5service.get_price(
+            user.mt5_acc_number,
+            pwd_decrypted_bytes.decode(),
+            context.user_data.get(UD_KEY_HEDGE_INSTRUMENT),
+            context.user_data.get(UD_KEY_HEDGE_OPERATION) == "Buy"
+        )
+
+        money_equivalent = volume * trade_contract_size * price_per_unit
+
     preview_msg = (f"Preview: \n"
                    f"Operation: {context.user_data.get(UD_KEY_HEDGE_OPERATION)}\n"
                    f"Instrument: {context.user_data.get(UD_KEY_HEDGE_INSTRUMENT)}\n"
                    f"Volume: {context.user_data.get(UD_KEY_HEDGE_VOLUME)}\n"
-                   f"Price: {context.user_data.get(UD_KEY_HEDGE_PRICE)}\n"
+                   f"Price (approx.): {money_equivalent}\n"
                    f"City: {context.user_data.get(UD_KEY_HEDGE_CITY)}\n"
                    )
     await update.message.reply_text(
