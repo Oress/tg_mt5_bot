@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 UD_KEY_USER_ID_TO_INVITE = "user_id_to_invite"
 
 GENERATE_INVITE_PREFIX_MD2 = "*\[Generate Invite\]*\n"
-USER_INVITE_PREFIX_MD2 = "*\[User Invite\]*\n"
+USER_INVITE_PREFIX_MD2 = "*\[Invite\]*\n"
 
 share_handle_msg = (GENERATE_INVITE_PREFIX_MD2
                     + helpers.escape_markdown("Please share the user using the menu", 2)
@@ -30,14 +30,14 @@ share_handle_msg = (GENERATE_INVITE_PREFIX_MD2
 
 
 # TODO: request_id ????
-choose_user_keyboard = [[
-    KeyboardButton("Choose user",
-                   request_users=KeyboardButtonRequestUsers(1, user_is_bot=False, request_username=True)),
-]]
+choose_user_markup = ReplyKeyboardMarkup(
+    [[
+        KeyboardButton("Choose user",
+                       request_users=KeyboardButtonRequestUsers(1, user_is_bot=False, request_username=True)),
+    ]],
+    one_time_keyboard=True, resize_keyboard=True)
 
-choose_user_markup = ReplyKeyboardMarkup(choose_user_keyboard, one_time_keyboard=True, resize_keyboard=True)
-
-async def invite_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def invite_user_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Starts the client invite process."""
 
     await update.message.reply_text(
@@ -51,7 +51,7 @@ async def invite_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def invite_users_shared_invalid(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle unexpected input from the user."""
-    return await invite_start(update, context)
+    return await invite_user_start(update, context)
 
 
 prompt_creds_msg = (GENERATE_INVITE_PREFIX_MD2
@@ -66,7 +66,7 @@ async def invite_users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
     shared_user = await extract_passed_user(message=update.message)
 
     if shared_user is None:
-        return await invite_start(update, context)
+        return await invite_user_start(update, context)
 
     with Session(engine) as session:
         invite_link_service = InviteLinkService(session)

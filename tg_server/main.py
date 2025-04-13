@@ -6,7 +6,7 @@ from sqlalchemy.orm.session import Session
 from telegram import helpers, Update, Bot
 from telegram.ext import filters, MessageHandler, ApplicationBuilder, ContextTypes, ConversationHandler, CommandHandler
 
-from handlers.invite import invite_start, invite_cancel, invite_users_shared, \
+from handlers.invite import invite_user_start, invite_cancel, invite_users_shared, \
     invite_users_shared_invalid, invite_account_credentials, invite_invalid_account_credentials
 from tg_server.constants.UserRole import UserRole
 from tg_server.database.db import engine
@@ -17,8 +17,10 @@ from tg_server.handlers.hedge import hedge_start, hedge_operation_selected, hedg
     hedge_cancel, hedge_invalid_instrument_selected, hedge_invalid_volume_selected, cities_list, \
     hedge_invalid_city_selected, hedge_invalid_preview_choice
 from tg_server.handlers.help import help_command_admin, help_command_user, help_command_unauthorized
+from tg_server.handlers.invite_admin import invite_admin_start, invite_admin_cancel, invite_admin_shared, \
+    invite_admin_shared_invalid
 from tg_server.handlers.start import start_command
-from tg_server.handlers.states import ConversationStates, InviteUserConvStates, HedgeConvStates
+from tg_server.handlers.states import ConversationStates, InviteUserConvStates, HedgeConvStates, InviteAdminConvStates
 from tg_server.services.InviteLinkService import InviteLinkService
 from tg_server.services.UserService import UserService
 
@@ -77,13 +79,12 @@ if __name__ == '__main__':
                    )
 
     # TODO: conversation_timeout and allow_reentry ?
-    # TODO: check the authorization of the user before proceeding
     invite_user_conv = ConversationHandler(
         name="invite_user_conversation",
         persistent=True,
         entry_points=[
-            CommandHandler("invite", invite_start, filters=disable_edited_msg(manager_filter)),
-            MessageHandler(disable_edited_msg(filters.Text(["Invite User"]) & manager_filter), invite_start)
+            CommandHandler("inviteuser", invite_user_start, filters=disable_edited_msg(manager_filter)),
+            MessageHandler(disable_edited_msg(filters.Text(["Invite User"]) & manager_filter), invite_user_start)
         ],
         states={
             InviteUserConvStates.PROMPT_USER: [
@@ -95,6 +96,26 @@ if __name__ == '__main__':
                 CommandHandler("cancel", invite_cancel, filters=disable_edited_msg()),
                 MessageHandler(disable_edited_msg(filters.Regex("^\d+ \S+$")), invite_account_credentials),
                 MessageHandler(disable_edited_msg(~filters.Regex("^\d+ \S+$")), invite_invalid_account_credentials),
+            ],
+        },
+        fallbacks=[],
+        map_to_parent={
+            ConversationStates.MAIN_MENU: ConversationStates.MAIN_MENU,
+        }
+    )
+
+    invite_admin_conv = ConversationHandler(
+        name="invite_admin_conversation",
+        persistent=True,
+        entry_points=[
+            CommandHandler("inviteadmin", invite_admin_start, filters=disable_edited_msg(admin_filter)),
+            MessageHandler(disable_edited_msg(filters.Text(["Invite Admin"]) & admin_filter), invite_admin_start)
+        ],
+        states={
+            InviteAdminConvStates.PROMPT_USER: [
+                CommandHandler("cancel", invite_admin_cancel, filters=disable_edited_msg()),
+                MessageHandler(disable_edited_msg(filters.StatusUpdate.USERS_SHARED), invite_admin_shared),
+                MessageHandler(disable_edited_msg(~filters.StatusUpdate.USERS_SHARED), invite_admin_shared_invalid),
             ],
         },
         fallbacks=[],
@@ -155,6 +176,7 @@ if __name__ == '__main__':
                 CommandHandler("balance", balance_command, filters=disable_edited_msg()),
                 MessageHandler(disable_edited_msg(filters.Text(["Balance"]) & user_filter), balance_command),
                 invite_user_conv,
+                invite_admin_conv,
                 hedge_conv,
                 CommandHandler(["start", "menu"], start_command, filters=disable_edited_msg()),
             ],

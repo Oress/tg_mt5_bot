@@ -36,7 +36,7 @@ class InviteLinkService:
                 .where(InviteLink.code == code)
                 )
         valid_invite_link = self.session.execute(stmt).first()
-        return valid_invite_link.InviteLink
+        return valid_invite_link.InviteLink if valid_invite_link else None
 
     def get_link_by_account_num(self, account_num: int) -> InviteLink:
         stmt = select(InviteLink).where(InviteLink.mt5_acc_number == account_num)

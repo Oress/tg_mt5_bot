@@ -28,7 +28,8 @@ async def help_command_admin(update: Update, context: ContextTypes.DEFAULT_TYPE)
         (
                 help_msg
                 + "\nAdmin commands:\n"
-                  "/invite - Invite a new user\n"
+                  "/inviteuser - Invite a new user\n"
+                  "/inviteadmin - Invite a new admin\n"
         )
     await update.message.reply_text(admin_help_msg)
     await send_main_menu(update, context)

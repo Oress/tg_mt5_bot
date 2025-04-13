@@ -7,6 +7,10 @@ class InviteUserConvStates(str, Enum):
     PROMPT_USER = 'PROMPT_USER'
     PROMPT_CREDENTIALS = 'PROMPT_CREDENTIALS'
 
+class InviteAdminConvStates(str, Enum):
+    PROMPT_USER = 'PROMPT_USER'
+
+
 class HedgeConvStates(str, Enum):
     SELECT_OPERATION = 'SELECT_OPERATION'
     SELECT_INSTRUMENT = 'SELECT_INSTRUMENT'
