@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Union
 from uuid import uuid4
-from sqlalchemy import text, select
+from sqlalchemy import delete, select
 
 from tg_server.constants.UserRole import UserRole
 from tg_server.database.models import InviteLink
@@ -50,3 +50,8 @@ class InviteLinkService:
         stmt = select(InviteLink).where(InviteLink.tg_userid_for == user_id)
         valid_invite_link = self.session.execute(stmt).first()
         return valid_invite_link.InviteLink if valid_invite_link else None
+
+    def remove_expired_links(self):
+        now = datetime.utcnow()
+        stmt = delete(InviteLink).where(InviteLink.expires_at < now)
+        self.session.execute(stmt)

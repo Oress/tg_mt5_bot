@@ -59,6 +59,12 @@ def check_env_variables():
     if missing_vars:
         raise EnvironmentError(f"Missing environment variables: {', '.join(missing_vars)}")
 
+async def remove_expired_links(context: ContextTypes.DEFAULT_TYPE):
+    with Session(engine) as session:
+        invite_link_service = InviteLinkService(session)
+        invite_link_service.remove_expired_links()
+        session.commit()
+
 
 async def edit_unsupported_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Message editing is not supported. Please use the command again.")
@@ -103,6 +109,9 @@ if __name__ == '__main__':
                    .persistence(PostgresPersistence(session=start_session()))
                    .build()
                    )
+
+    job_queue = application.job_queue
+    job_minute = job_queue.run_repeating(remove_expired_links, interval=30 * 60, first=10)
 
     # TODO: conversation_timeout and allow_reentry ?
     invite_user_conv = ConversationHandler(

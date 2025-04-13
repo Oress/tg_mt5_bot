@@ -146,7 +146,6 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
         reply_markup=ReplyKeyboardRemove(),
         parse_mode=ParseMode.MARKDOWN_V2,
     )
-    # TODO: send message about lot size, min volume, max volume, step
     return HedgeConvStates.SELECT_VOLUME
 
 async def hedge_invalid_volume_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
