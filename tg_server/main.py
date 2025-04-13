@@ -35,6 +35,31 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+def check_env_variables():
+    required_env_vars = [
+        "ENCRYPTION_KEY",
+
+        "MIGRATION_DB_HOST",
+        "MIGRATION_DB_PORT",
+        "POSTGRES_USER",
+        "POSTGRES_PASSWORD",
+        "POSTGRES_DB",
+
+        "MT5_HOST",
+        "MT5_PORT",
+        "MT5_SERVER",
+
+        "HEDGE_INSTRUMENTS",
+        "HEDGE_CITIES",
+
+        "TG_BOT_TOKEN",
+        "SUPERADMIN_ID"
+    ]
+    missing_vars = [var for var in required_env_vars if os.getenv(var) is None or os.getenv(var) == '']
+    if missing_vars:
+        raise EnvironmentError(f"Missing environment variables: {', '.join(missing_vars)}")
+
+
 async def edit_unsupported_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Message editing is not supported. Please use the command again.")
 
@@ -70,6 +95,7 @@ def disable_edited_msg(filter=None):
     return filter & ~filters.UpdateType.EDITED_MESSAGE if filter else ~filters.UpdateType.EDITED_MESSAGE
 
 if __name__ == '__main__':
+    check_env_variables()
     tg_bot_token = os.getenv("TG_BOT_TOKEN")
 
     application = (ApplicationBuilder()
