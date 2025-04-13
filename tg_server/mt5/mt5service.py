@@ -1,8 +1,11 @@
+import logging
 import os
 from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
 
 from mt5linux import MetaTrader5
+
+logger = logging.getLogger(__name__)
 
 class MT5InvalidCreds(Exception):
     def __init__(self, message):
@@ -57,8 +60,10 @@ class MT5Service:
             with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
                 return True
         except MT5InvalidCreds as e:
+            logger.error(f"[MT5 Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Invalid credentials: {e}")
-        except ValueError as e:
+        except Exception as e:
+            logger.error(f"[MT5 Unknown Exception], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Exception caught: {e}")
 
         return False
@@ -72,8 +77,10 @@ class MT5Service:
                 price = info_tick.ask if buy else info_tick.bid
                 return price
         except MT5InvalidCreds as e:
+            logger.error(f"[MT5 Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Invalid credentials: {e}")
-        except ValueError as e:
+        except Exception as e:
+            logger.error(f"[MT5 Unknown Exception], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Exception caught: {e}")
 
         return False
@@ -103,8 +110,10 @@ class MT5Service:
                 print(order_result)
                 return order_result
         except MT5InvalidCreds as e:
+            logger.error(f"[MT5 Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Invalid credentials: {e}")
-        except ValueError as e:
+        except Exception as e:
+            logger.error(f"[MT5 Unknown Exception], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Exception caught: {e}")
 
         return False
@@ -125,8 +134,10 @@ class MT5Service:
                 )
                 return sym_info_model
         except MT5InvalidCreds as e:
+            logger.error(f"[MT5 Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Invalid credentials: {e}")
-        except ValueError as e:
+        except Exception as e:
+            logger.error(f"[MT5 Unknown Exception], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Exception caught: {e}")
 
         return False
@@ -155,8 +166,10 @@ class MT5Service:
                                          )
                 return balance
         except MT5InvalidCreds as e:
+            logger.error(f"[MT5 Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Invalid credentials: {e}")
-        except ValueError as e:
+        except Exception as e:
+            logger.error(f"[MT5 Unknown Exception], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Exception caught: {e}")
 
         return False

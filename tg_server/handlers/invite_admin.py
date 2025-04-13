@@ -28,6 +28,7 @@ share_handle_msg = (GENERATE_ADMIN_INVITE_PREFIX_MD2
                     )
 
 async def invite_admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.warning(f"[Invite Admin Start], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
     await update.message.reply_text(
         share_handle_msg + "\n\nUse /cancel command to go back to main menu\.",
         reply_markup=choose_user_markup,
@@ -38,10 +39,11 @@ async def invite_admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 async def invite_admin_shared_invalid(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.warning(f"[Invite Admin invalid user], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
     return await invite_admin_start(update, context)
 
-
 async def invite_admin_shared(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.warning(f"[Invite Admin user shared], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
     shared_user = await extract_passed_user(message=update.message)
 
     if shared_user is None:

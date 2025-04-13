@@ -38,7 +38,7 @@ choose_user_markup = ReplyKeyboardMarkup(
     one_time_keyboard=True, resize_keyboard=True)
 
 async def invite_user_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Starts the client invite process."""
+    logger.info(f"[Invite start], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
 
     await update.message.reply_text(
         share_handle_msg + "\n\nUse /cancel command to go back to main menu\.",
@@ -50,7 +50,7 @@ async def invite_user_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def invite_users_shared_invalid(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle unexpected input from the user."""
+    logger.info(f"[Invite invalid user], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
     return await invite_user_start(update, context)
 
 
@@ -62,7 +62,7 @@ prompt_creds_msg = (GENERATE_INVITE_PREFIX_MD2
 
 
 async def invite_users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Saves shared tg users in user_data. Moves to the next state."""
+    logger.info(f"[Invite user shared], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
     shared_user = await extract_passed_user(message=update.message)
 
     if shared_user is None:
@@ -72,6 +72,7 @@ async def invite_users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
         invite_link_service = InviteLinkService(session)
         link = invite_link_service.get_invite_link_by_id(shared_user.user_id)
         if link is not None:
+            logger.warning(f"[Invite link exists], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
             await update.message.reply_text(
                 GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("This user already has a pending invite link (see below). Please select another user.", 2),
                 reply_markup=choose_user_markup,
@@ -84,6 +85,7 @@ async def invite_users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
         user_service = UserService(session)
         contains_user = user_service.contains_user(shared_user.user_id)
         if contains_user:
+            logger.warning(f"[Invite user exists], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
             await update.message.reply_text(
                 GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("This user is already registered. Please select another user.", 2),
                 reply_markup=choose_user_markup,
@@ -104,6 +106,7 @@ async def invite_users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
     return InviteUserConvStates.PROMPT_CREDENTIALS
 
 async def invite_invalid_account_credentials(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.warning(f"[Invite invalid creds], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
     await update.message.reply_text(
         GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Invalid credentials format. Please try again.", 2),
         parse_mode=ParseMode.MARKDOWN_V2,
@@ -112,11 +115,7 @@ async def invite_invalid_account_credentials(update: Update, context: ContextTyp
     return InviteUserConvStates.PROMPT_CREDENTIALS
 
 async def invite_account_credentials(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """ Deletes credentials message from user.
-        Checks the credentials and saves them in the user_data. In case of invalid credentials: prompts again.
-        Generates the invite link.
-        Ends the conversation.
-    """
+    logger.info(f"[Invite creds entered], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
 
     credentials_arr: List[str] = update.message.text.split(' ')
 
@@ -137,6 +136,7 @@ async def invite_account_credentials(update: Update, context: ContextTypes.DEFAU
         user_service = UserService(session)
         user_with_same_account = user_service.get_user_by_account_num(account_number)
         if user_with_same_account:
+            logger.warning(f"[Invite user with same account#], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
             await update.message.reply_text(
                 GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("User with the same account number already exists, Please choose another account.", 2),
                 parse_mode=ParseMode.MARKDOWN_V2,
@@ -146,6 +146,7 @@ async def invite_account_credentials(update: Update, context: ContextTypes.DEFAU
 
         link_by_account_num = invite_links_service.get_link_by_account_num(account_number)
         if link_by_account_num:
+            logger.warning(f"[Invite link with same account#], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
             await update.message.reply_text(
                 GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Invite link with the same account number already exists, Please enter credentials to another trade account.", 2),
                 parse_mode=ParseMode.MARKDOWN_V2,
@@ -155,6 +156,7 @@ async def invite_account_credentials(update: Update, context: ContextTypes.DEFAU
 
         valid_creds = mt5service.check_credentials(account_number, account_pwd)
         if not valid_creds:
+            logger.warning(f"[Invite invalid creds], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
             await update.message.reply_text(
                 GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Credentials are not valid. Please try again.", 2),
                 parse_mode=ParseMode.MARKDOWN_V2,
@@ -190,7 +192,7 @@ async def show_user_invite(update, context, invite_code):
 
 
 async def invite_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Cancels and ends the conversation."""
+    logger.warning(f"[Invite cancel], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
     user = update.message.from_user
     logger.info("User %s canceled the conversation.", user.first_name)
     await update.message.reply_text(GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Canceling invite generation.", 2),

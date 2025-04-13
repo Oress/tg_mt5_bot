@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 BALANCE_PREFIX_MD2 = "*\[Balance\]*\n"
 
 async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info(f"[Balance], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
     with Session(engine) as session:
         user_service = UserService(session)
         user_id = update.effective_user.id

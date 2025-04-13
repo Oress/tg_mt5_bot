@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+from logging.handlers import RotatingFileHandler
 
 from sqlalchemy.orm.session import Session
 from telegram import helpers, Update, Bot
@@ -29,8 +30,13 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from ptbcontrib.postgres_persistence import PostgresPersistence
 
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+    format="[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s",
+    datefmt='%Y-%m-%dT%H:%M:%S',
+    level=logging.INFO,
+    handlers=[
+        logging.StreamHandler(),
+        RotatingFileHandler("app.log", maxBytes=5 * 1024 * 1024, backupCount=5)
+    ],
 )
 
 logger = logging.getLogger(__name__)
@@ -57,9 +63,11 @@ def check_env_variables():
     ]
     missing_vars = [var for var in required_env_vars if os.getenv(var) is None or os.getenv(var) == '']
     if missing_vars:
+        logger.error(f"[Env. Validation]Missing environment variables: {', '.join(missing_vars)}")
         raise EnvironmentError(f"Missing environment variables: {', '.join(missing_vars)}")
 
 async def remove_expired_links(context: ContextTypes.DEFAULT_TYPE):
+    logger.info("[Job|Remove Expired Links] Removing expired invite links")
     with Session(engine) as session:
         invite_link_service = InviteLinkService(session)
         invite_link_service.remove_expired_links()
@@ -67,12 +75,15 @@ async def remove_expired_links(context: ContextTypes.DEFAULT_TYPE):
 
 
 async def edit_unsupported_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.warning(f"[Msg edit], ignoring it, chat_id: {update.effective_chat.id}, message: {update.effective_message.text}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Message editing is not supported. Please use the command again.")
 
 async def unknown_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.warning(f"[Unknown command], ignoring it, chat_id: {update.effective_chat.id}, message: {update.effective_message.text}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, I didn't understand that command.")
 
 async def unexpected_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.warning(f"[Unknown text], ignoring it, chat_id: {update.effective_chat.id}, message: {update.effective_message.text}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, I don't understand what are you trying to do. Use /help to see the list of available commands.")
 
 async def generate_superadmin_invite():
@@ -90,7 +101,7 @@ async def generate_superadmin_invite():
 
             session.commit()
             if superadmin_link is None:
-                logger.info(f"Superadmin with id {superadmin_id} already exists")
+                logger.info(f"[Superadmin init]Superadmin with id {superadmin_id} already exists")
             else:
                 print('Superadmin invite link:', superadmin_link)
 
