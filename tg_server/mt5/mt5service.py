@@ -63,7 +63,7 @@ class MT5Service:
             logger.error(f"[MT5 Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Invalid credentials: {e}")
         except Exception as e:
-            logger.error(f"[MT5 Unknown Exception], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
+            logger.error(f"[MT5 Unknown Exception], last_error: {session.last_error()}")
             print(f"Exception caught: {e}")
 
         return False
@@ -81,7 +81,7 @@ class MT5Service:
             logger.error(f"[MT5 Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Invalid credentials: {e}")
         except Exception as e:
-            logger.error(f"[MT5 Unknown Exception], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
+            logger.error(f"[MT5 Unknown Exception], last_error: {session.last_error()}")
             print(f"Exception caught: {e}")
 
         return False
@@ -115,7 +115,7 @@ class MT5Service:
             logger.error(f"[MT5 Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Invalid credentials: {e}")
         except Exception as e:
-            logger.error(f"[MT5 Unknown Exception], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
+            logger.error(f"[MT5 Unknown Exception], last_error: {session.last_error()}")
             print(f"Exception caught: {e}")
 
         return False
@@ -172,7 +172,7 @@ class MT5Service:
             logger.error(f"[MT5 Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Invalid credentials: {e}")
         except Exception as e:
-            logger.error(f"[MT5 Unknown Exception], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
+            logger.error(f"[MT5 Unknown Exception], last_error: {session.last_error()}")
             print(f"Exception caught: {e}")
 
         return False
