@@ -1,5 +1,6 @@
 import logging
 import os
+from decimal import Decimal, ROUND_HALF_UP
 
 from sqlalchemy.orm.session import Session
 from telegram import helpers, Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
@@ -130,6 +131,16 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
 
         pwd_decrypted_bytes = pwd_encryptor.decrypt(user.mt5_acc_pwd_enc)
         sym_info = mt5service.symbol_info(user.mt5_acc_number, pwd_decrypted_bytes.decode(), instrument_str)
+
+        # To enable symbol in the MT5 terminal and get the price in the next step, otherwise it will return 0
+        mt5service.get_price(
+            user.mt5_acc_number,
+            pwd_decrypted_bytes.decode(),
+            context.user_data.get(UD_KEY_HEDGE_INSTRUMENT),
+            context.user_data.get(UD_KEY_HEDGE_OPERATION) == "Buy"
+        )
+
+
     context.user_data[UD_KEY_HEDGE_SYM_INFO_CONTRACT_SIZE] = sym_info.trade_contract_size
 
     symbol_info_msg = (f"Volume(lots)? \n\n"
@@ -228,12 +239,12 @@ async def hedge_city_selected(update: Update, context: ContextTypes.DEFAULT_TYPE
         )
 
         money_equivalent = volume * trade_contract_size * price_per_unit
-
+        money_equivalent_dcm = Decimal(money_equivalent).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     preview_msg = (f"Preview: \n"
                    f"Operation: {context.user_data.get(UD_KEY_HEDGE_OPERATION)}\n"
                    f"Instrument: {context.user_data.get(UD_KEY_HEDGE_INSTRUMENT)}\n"
                    f"Volume: {context.user_data.get(UD_KEY_HEDGE_VOLUME)}\n"
-                   f"Price (approx.): {money_equivalent}\n"
+                   f"Price (approx.): {money_equivalent_dcm}\n"
                    f"City: {context.user_data.get(UD_KEY_HEDGE_CITY)}\n"
                    )
     await update.message.reply_text(
