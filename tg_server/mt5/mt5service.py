@@ -72,11 +72,17 @@ class MT5Service:
         logger.info(f"[get_price] account_number: {account_number}, symbol: {symbol}, buy: {buy}")
         try:
             with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
-                info_tick = session.symbol_info_tick(symbol)
-                print(info_tick)
+                session.symbol_select(symbol)
+                selected=session.symbol_select(symbol,True)
+                if not selected:
+                    logger.error(f"[MT5 Symbol Select Failed], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
+                    print("Failed to select symbol, error code =",session.last_error())
+                else:
+                    info_tick = session.symbol_info_tick(symbol)
+                    print(info_tick)
 
-                price = info_tick.ask if buy else info_tick.bid
-                return price
+                    price = info_tick.ask if buy else info_tick.bid
+                    return price
         except MT5InvalidCreds as e:
             logger.error(f"[MT5 Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Invalid credentials: {e}")
