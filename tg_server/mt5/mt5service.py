@@ -69,6 +69,7 @@ class MT5Service:
         return False
 
     def get_price(self, account_number: int, pwd: str, symbol: str, buy: bool) -> bool:
+        logger.info(f"[get_price] account_number: {account_number}, symbol: {symbol}, buy: {buy}")
         try:
             with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
                 info_tick = session.symbol_info_tick(symbol)
@@ -86,6 +87,7 @@ class MT5Service:
         return False
 
     def place_order(self, account_number: int, pwd: str, buy: bool, symbol: str, volume: Decimal):
+        logger.info(f"[place_order] account_number: {account_number}, symbol: {symbol}, buy: {buy}, volume: {volume}")
         try:
             with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
                 info_tick = session.symbol_info_tick(symbol)
@@ -119,6 +121,7 @@ class MT5Service:
         return False
 
     def symbol_info(self, account_number: int, pwd: str, symbol: str):
+        logger.info(f"[symbol_info] account_number: {account_number}, symbol: {symbol}")
         try:
             with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
                 sym_info = session.symbol_info(symbol)
