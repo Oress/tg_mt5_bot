@@ -299,6 +299,7 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
             order_msg = (
                 f"order #: {new_order.id}\n"
                 f"price: {new_order.price}\n"
+                f"city: {new_order.city}\n"
                 f"date: {new_order.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
                         )
 
