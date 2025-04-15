@@ -8,10 +8,12 @@ from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
 from tg_server.database.db import engine
+from tg_server.database.models import Order
 from tg_server.handlers.commons import send_main_menu
 from tg_server.handlers.states import ConversationStates, HedgeConvStates
 from tg_server.mt5.mt5service import mt5service
 from tg_server.security.encryptor import pwd_encryptor
+from tg_server.services.OrderService import OrderService
 from tg_server.services.UserService import UserService
 
 logger = logging.getLogger(__name__)
@@ -279,6 +281,7 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
         )
 
         with Session(engine) as session:
+            order_service = OrderService(session)
             user_service = UserService(session)
             user_id = update.effective_user.id
             user = user_service.get_user_by_id(user_id)
@@ -289,9 +292,20 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
                                                   context.user_data.get(UD_KEY_HEDGE_OPERATION) == "Buy",
                                                   context.user_data.get(UD_KEY_HEDGE_INSTRUMENT),
                                                   context.user_data.get(UD_KEY_HEDGE_VOLUME))
+            new_order: Order = order_service.save_order_to_db(user_id,
+                                                              context.user_data.get(UD_KEY_HEDGE_CITY),
+                                                              order_result)
+            session.commit()
+            order_msg = (
+                f"order #: {new_order.id}\n"
+                f"price: {new_order.price}\n"
+                f"date: {new_order.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
+                        )
 
         await update.message.reply_text(
-            HEDGE_PREFIX_MD2 + helpers.escape_markdown(report_on_order_send(order_result), 2),
+            HEDGE_PREFIX_MD2 + helpers.escape_markdown(report_on_order_send(order_result), 2)
+            + "\n\n"
+            + helpers.escape_markdown(order_msg, 2),
             reply_markup=select_operation_menu_markup,
             parse_mode=ParseMode.MARKDOWN_V2,
         )

@@ -1,4 +1,6 @@
-from sqlalchemy import MetaData, LargeBinary, Boolean, String, BigInteger, TIMESTAMP
+import uuid
+
+from sqlalchemy import MetaData, LargeBinary, Boolean, String, BigInteger, TIMESTAMP, Float, Uuid
 from sqlalchemy.orm import DeclarativeBase
 from datetime import datetime
 
@@ -66,3 +68,15 @@ class TgUser(Base):
     def __repr__(self):
         return f"TgUser(tg_id={self.tg_id}, invited_by={self.invited_by}, role={self._role})"
 
+class Order(Base):
+    __tablename__ = "tgb_orders"
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    deal: Mapped[str] = mapped_column(String)
+    city: Mapped[str] = mapped_column(String)
+    order: Mapped[str] = mapped_column(String)
+    volume: Mapped[float] = mapped_column(Float)
+    price: Mapped[float] = mapped_column(Float)
+    bid: Mapped[float] = mapped_column(Float)
+    ask: Mapped[float] = mapped_column(Float)
+    created_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP)

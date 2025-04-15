@@ -75,4 +75,27 @@
         </createIndex>
     </changeSet>
 
+    <changeSet id="create table tgb_orders" author="oress">
+        <createTable tableName="tgb_orders">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="bigint" />
+            <column name="city" type="text" />
+            <column name="deal" type="text" />
+            <column name="order" type="text" />
+            <column name="volume" type="decimal(19,6)" />
+            <column name="price" type="decimal(19,6)" />
+            <column name="bid" type="decimal(19,6)" />
+            <column name="ask" type="decimal(19,6)" />
+            <column name="created_at" type="TIMESTAMP"/>
+        </createTable>
+
+        <addForeignKeyConstraint constraintName="fk_tgb_orders_user_id"
+                                 baseTableName="tgb_orders"
+                                 baseColumnNames="user_id"
+                                 referencedTableName="tgb_users"
+                                 referencedColumnNames="tg_id"/>
+    </changeSet>
+
 </databaseChangeLog>
