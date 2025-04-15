@@ -5,10 +5,12 @@ services:
     extends:
       file: docker-compose-base.yaml
       service: mt5service
+    restart: unless-stopped
     ports:
       - 3000:3000
 
   postgres:
+    restart: unless-stopped
     extends:
       file: docker-compose-base.yaml
       service: postgresservice
@@ -23,6 +25,7 @@ services:
         required: true
 
   server:
+    restart: unless-stopped
     image: oress/tg_bot
     build: ./tg_server
     depends_on:
@@ -49,6 +52,7 @@ services:
       - TG_BOT_TOKEN
 
   alloy:
+    restart: unless-stopped
     image: grafana/alloy:latest
     depends_on:
       - server
