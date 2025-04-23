@@ -15,7 +15,7 @@ from tg_server.services.UserService import UserService
 
 logger = logging.getLogger(__name__)
 
-BALANCE_PREFIX_MD2 = "*\[Balance\]*\n"
+BALANCE_PREFIX_MD2 = "*\[Баланс\]*\n"
 
 async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"[Balance], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
@@ -27,12 +27,12 @@ async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         pwd_decrypted_bytes = pwd_encryptor.decrypt(user.mt5_acc_pwd_enc)
         acc_balance = mt5service.get_balance(user.mt5_acc_number, pwd_decrypted_bytes.decode())
 
-        balance_msg = (f"Currency: {acc_balance.currency}\n"
-                 f"Balance: {acc_balance.balance}\n"
-                 f"Equity: {acc_balance.equity}\n"
-                 f"Profit: {acc_balance.profit}\n"
-                 f"Margin: {acc_balance.margin}\n\n"
-                 f"on {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}")
+        balance_msg = (f"Валюта: {acc_balance.currency}\n"
+                 f"Баланс: {acc_balance.balance}\n"
+                 f"Капитал: {acc_balance.equity}\n"
+                 f"Прибыль: {acc_balance.profit}\n"
+                 f"Маржа: {acc_balance.margin}\n\n"
+                 f"на {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}")
 
         await context.bot.send_message(chat_id=update.effective_chat.id,
                                        text=f"{BALANCE_PREFIX_MD2}\n" + "||" + helpers.escape_markdown(balance_msg, 2) + "||",

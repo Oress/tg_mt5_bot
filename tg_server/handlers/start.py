@@ -37,13 +37,13 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.info(f"[Start User Joined], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
             user = user_service.create_user(user_id, link.role_on_accept, link.created_by, link.mt5_acc_number, link.mt5_acc_pwd_enc)
             await context.bot.send_message(chat_id=update.effective_chat.id,
-                                           text="Welcome!")
+                                           text="Добро пожаловать!")
             session.commit()
             await send_main_menu(update, context)
             return ConversationStates.MAIN_MENU
         else:
             logger.warning(f"[Start Invalid Link], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="Invalid invite link.")
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="Недействительное приглашение.")
             return ConversationHandler.END
 
 

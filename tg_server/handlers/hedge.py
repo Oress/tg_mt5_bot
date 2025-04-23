@@ -9,7 +9,7 @@ from telegram.ext import ContextTypes
 
 from tg_server.database.db import engine
 from tg_server.database.models import Order
-from tg_server.handlers.commons import send_main_menu
+from tg_server.handlers.commons import send_main_menu, KeyboardButtons
 from tg_server.handlers.states import ConversationStates, HedgeConvStates
 from tg_server.mt5.mt5service import mt5service
 from tg_server.security.encryptor import pwd_encryptor
@@ -18,7 +18,7 @@ from tg_server.services.UserService import UserService
 
 logger = logging.getLogger(__name__)
 
-HEDGE_PREFIX_MD2 = "*\[Hedge\]*\n"
+HEDGE_PREFIX_MD2 = "*\[Хедж\]*\n"
 
 # TODO: maybe add them to the DB tables instead.
 inst_env_str = os.getenv("HEDGE_INSTRUMENTS")
@@ -37,7 +37,7 @@ UD_KEY_HEDGE_CITY = "UD_KEY_HEDGE_CITY"
 UD_KEY_HEDGE_SYM_INFO_CONTRACT_SIZE = "hedge_sym_info_contract_size"
 
 select_operation_menu_markup = ReplyKeyboardMarkup(
-    [[KeyboardButton("Buy"), KeyboardButton("Sell")]],
+    [[KeyboardButton(KeyboardButtons.BUY), KeyboardButton(KeyboardButtons.SELL)]],
     one_time_keyboard=True,
     resize_keyboard=True
 )
@@ -55,10 +55,12 @@ select_city_menu_markup = ReplyKeyboardMarkup(
 )
 
 preview_action_menu_markup = ReplyKeyboardMarkup(
-    [[KeyboardButton("Place order"), KeyboardButton("Edit")]],
+    [[KeyboardButton(KeyboardButtons.PLACE_ORDER), KeyboardButton(KeyboardButtons.PREVIEW_EDIT)]],
     one_time_keyboard=True,
     resize_keyboard=True
 )
+
+use_cancel_msg = "\n\nИспользуйте /cancel, чтобы вернуться в главное меню."
 
 async def hedge_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"[Cancel Hedge], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
@@ -69,8 +71,8 @@ async def hedge_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"[Hedge Start], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
     await update.message.reply_text(
         HEDGE_PREFIX_MD2 + helpers.escape_markdown((
-            "Operation?"
-            "\n\nUse /cancel command to go back to main menu."
+            "Операция?"
+            + use_cancel_msg
         ), 2),
         reply_markup=select_operation_menu_markup,
         parse_mode=ParseMode.MARKDOWN_V2,
@@ -83,8 +85,8 @@ async def hedge_invalid_operation_selected(update: Update, context: ContextTypes
     logger.warning(f"[Hedge Invalid Operation], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text} ")
     await update.message.reply_text(
         HEDGE_PREFIX_MD2 + helpers.escape_markdown((
-            "Invalid operation type. Please select either 'Buy' or 'Sell'."
-            "\n\nUse /cancel command to go back to main menu."
+            f"Неверный тип операции. Выберите «{KeyboardButtons.BUY}» или «{KeyboardButtons.SELL}»."
+            + use_cancel_msg
         ), 2),
         reply_markup=select_operation_menu_markup,
         parse_mode=ParseMode.MARKDOWN_V2,
@@ -98,8 +100,8 @@ async def hedge_operation_selected(update: Update, context: ContextTypes.DEFAULT
     context.user_data[UD_KEY_HEDGE_OPERATION] = type_str
     await update.message.reply_text(
         HEDGE_PREFIX_MD2 + helpers.escape_markdown((
-            "Instrument?"
-            "\n\nUse /cancel command to go back to main menu."
+            "Инструмент?"
+            + use_cancel_msg
         ), 2),
         reply_markup=select_instrument_menu_markup,
         parse_mode=ParseMode.MARKDOWN_V2,
@@ -111,8 +113,8 @@ async def hedge_invalid_instrument_selected(update: Update, context: ContextType
     logger.warning(f"[Hedge Invalid Instrument], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
     await update.message.reply_text(
         HEDGE_PREFIX_MD2 + helpers.escape_markdown((
-            "Invalid instrument. Please select a valid instrument."
-            "\n\nUse /cancel command to go back to main menu."
+            "Недействительный инструмент. Выберите действительный инструмент из меню."
+            + use_cancel_msg
         ), 2),
         reply_markup=select_instrument_menu_markup,
         parse_mode=ParseMode.MARKDOWN_V2,
@@ -139,19 +141,19 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
             user.mt5_acc_number,
             pwd_decrypted_bytes.decode(),
             context.user_data.get(UD_KEY_HEDGE_INSTRUMENT),
-            context.user_data.get(UD_KEY_HEDGE_OPERATION) == "Buy"
+            context.user_data.get(UD_KEY_HEDGE_OPERATION) == KeyboardButtons.BUY
         )
 
 
     context.user_data[UD_KEY_HEDGE_SYM_INFO_CONTRACT_SIZE] = sym_info.trade_contract_size
 
-    symbol_info_msg = (f"Volume(lots)? \n\n"
-                       f"Instrument: {sym_info.description}\n"
-                       f"Contract size: {sym_info.trade_contract_size}\n"
-                       f"Min volume: {sym_info.volume_min}\n"
-                       f"Max volume: {sym_info.volume_max}\n"
-                       f"Step: {sym_info.volume_step}\n\n"
-                       "Use /cancel command to go back to main menu."
+    symbol_info_msg = (f"Объем(лоты)? \n\n"
+                       f"Инструмент: {sym_info.description}\n"
+                       f"Размер контракта: {sym_info.trade_contract_size}\n"
+                       f"Мин. объем: {sym_info.volume_min}\n"
+                       f"Макс. объем: {sym_info.volume_max}\n"
+                       f"Шаг: {sym_info.volume_step}\n\n"
+                       + use_cancel_msg
                        )
     await update.message.reply_text(
         HEDGE_PREFIX_MD2 + helpers.escape_markdown(symbol_info_msg, 2),
@@ -164,8 +166,8 @@ async def hedge_invalid_volume_selected(update: Update, context: ContextTypes.DE
     logger.warning(f"[Hedge Invalid Volume], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
     await update.message.reply_text(
         HEDGE_PREFIX_MD2 + helpers.escape_markdown((
-            "Invalid volume. Please enter a valid number."
-            "\n\nUse /cancel command to go back to main menu."
+            "Неверный объем. Введите допустимое число."
+            + use_cancel_msg
         ), 2),
         reply_markup=ReplyKeyboardRemove(),
         parse_mode=ParseMode.MARKDOWN_V2,
@@ -185,8 +187,8 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
 
     await update.message.reply_text(
         HEDGE_PREFIX_MD2 + helpers.escape_markdown((
-            "City?"
-            "\n\nUse /cancel command to go back to main menu."
+            "Город?"
+            + use_cancel_msg
         ), 2),
         reply_markup=select_city_menu_markup,
         parse_mode=ParseMode.MARKDOWN_V2,
@@ -198,8 +200,8 @@ async def hedge_invalid_city_selected(update: Update, context: ContextTypes.DEFA
     logger.warning(f"[Hedge Invalid City], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
     await update.message.reply_text(
         HEDGE_PREFIX_MD2 + helpers.escape_markdown((
-            "Invalid city. Please select a valid city from the menu."
-            "\n\nUse /cancel command to go back to main menu."
+            "Неверный город. Выберите допустимый город из меню."
+            + use_cancel_msg
         ), 2),
         reply_markup=select_city_menu_markup,
         parse_mode=ParseMode.MARKDOWN_V2,
@@ -214,8 +216,8 @@ async def hedge_city_selected(update: Update, context: ContextTypes.DEFAULT_TYPE
     if city_str not in cities_list:
         await update.message.reply_text(
             HEDGE_PREFIX_MD2 + helpers.escape_markdown((
-                "Invalid city. Please select a valid city from the menu."
-                "\n\nUse /cancel command to go back to main menu."
+                "Неверный город. Выберите допустимый город из меню."
+                + use_cancel_msg
             ), 2),
             reply_markup=select_city_menu_markup,
             parse_mode=ParseMode.MARKDOWN_V2,
@@ -237,17 +239,17 @@ async def hedge_city_selected(update: Update, context: ContextTypes.DEFAULT_TYPE
             user.mt5_acc_number,
             pwd_decrypted_bytes.decode(),
             context.user_data.get(UD_KEY_HEDGE_INSTRUMENT),
-            context.user_data.get(UD_KEY_HEDGE_OPERATION) == "Buy"
+            context.user_data.get(UD_KEY_HEDGE_OPERATION) == KeyboardButtons.BUY
         )
 
         money_equivalent = volume * trade_contract_size * price_per_unit
         money_equivalent_dcm = Decimal(money_equivalent).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-    preview_msg = (f"Preview: \n"
-                   f"Operation: {context.user_data.get(UD_KEY_HEDGE_OPERATION)}\n"
-                   f"Instrument: {context.user_data.get(UD_KEY_HEDGE_INSTRUMENT)}\n"
-                   f"Volume: {context.user_data.get(UD_KEY_HEDGE_VOLUME)}\n"
-                   f"Price (approx.): {money_equivalent_dcm}\n"
-                   f"City: {context.user_data.get(UD_KEY_HEDGE_CITY)}\n"
+    preview_msg = (f"Предварительный просмотр: \n"
+                   f"Операция: {context.user_data.get(UD_KEY_HEDGE_OPERATION)}\n"
+                   f"Инструмент: {context.user_data.get(UD_KEY_HEDGE_INSTRUMENT)}\n"
+                   f"Объем: {context.user_data.get(UD_KEY_HEDGE_VOLUME)}\n"
+                   f"Цена (приблизительно): {money_equivalent_dcm}\n"
+                   f"Город: {context.user_data.get(UD_KEY_HEDGE_CITY)}\n"
                    )
     await update.message.reply_text(
         HEDGE_PREFIX_MD2 + helpers.escape_markdown(preview_msg, 2),
@@ -260,8 +262,8 @@ async def hedge_invalid_preview_choice(update: Update, context: ContextTypes.DEF
     logger.warning(f"[Hedge Invalid Preview], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
     await update.message.reply_text(
         HEDGE_PREFIX_MD2 + helpers.escape_markdown((
-            "Invalid choice. Please select either 'Place order' or 'Edit'."
-            "\n\nUse /cancel command to go back to main menu."
+            "Неверный выбор. Выберите «Размесить ордер» или «Изменить»."
+            + use_cancel_msg
         ), 2),
         reply_markup=preview_action_menu_markup,
         parse_mode=ParseMode.MARKDOWN_V2,
@@ -273,10 +275,10 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
     logger.info(f"[Hedge Place Order], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
     answer = update.message.text
 
-    if answer == "Place order":
+    if answer == KeyboardButtons.PLACE_ORDER:
         # TODO: more info
         await update.message.reply_text(
-            HEDGE_PREFIX_MD2 + helpers.escape_markdown("Placing order...\n", 2),
+            HEDGE_PREFIX_MD2 + helpers.escape_markdown("Размещаю ордер...\n", 2),
             parse_mode=ParseMode.MARKDOWN_V2,
         )
 
@@ -289,7 +291,7 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
             pwd_decrypted_bytes = pwd_encryptor.decrypt(user.mt5_acc_pwd_enc)
             order_result = mt5service.place_order(user.mt5_acc_number,
                                                   pwd_decrypted_bytes.decode(),
-                                                  context.user_data.get(UD_KEY_HEDGE_OPERATION) == "Buy",
+                                                  context.user_data.get(UD_KEY_HEDGE_OPERATION) == KeyboardButtons.BUY,
                                                   context.user_data.get(UD_KEY_HEDGE_INSTRUMENT),
                                                   context.user_data.get(UD_KEY_HEDGE_VOLUME))
             new_order: Order = order_service.save_order_to_db(user_id,
@@ -297,10 +299,10 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
                                                               order_result)
             session.commit()
             order_msg = (
-                f"order #: {new_order.id}\n"
-                f"price: {new_order.price}\n"
-                f"city: {new_order.city}\n"
-                f"date: {new_order.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
+                f"Ордер #: {new_order.id}\n"
+                f"Цена: {new_order.price}\n"
+                f"Город: {new_order.city}\n"
+                f"Дата: {new_order.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
                         )
 
         await update.message.reply_text(
@@ -314,11 +316,11 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
 
         await send_main_menu(update, context)
         return ConversationStates.MAIN_MENU
-    elif answer == "Edit":
+    elif answer == KeyboardButtons.PREVIEW_EDIT:
         await update.message.reply_text(
             helpers.escape_markdown((
-                "Type?"
-                "\n\nUse /cancel command to go back to main menu."
+                "Тип?"
+                + use_cancel_msg
             ), 2),
             reply_markup=select_operation_menu_markup,
             parse_mode=ParseMode.MARKDOWN_V2,
@@ -329,47 +331,47 @@ def report_on_order_send(order_result) -> str:
     """Returns a user-friendly message based on the MT5 return code."""
     messages = {
         10004: "Requote",
-        10006: "Request rejected",
-        10007: "Request canceled by trader",
-        10008: "Order placed",
-        10009: "Request completed",
-        10010: "Only part of the request was completed",
-        10011: "Request processing error",
-        10012: "Request canceled by timeout",
-        10013: "Invalid request",
-        10014: "Invalid volume in the request",
-        10015: "Invalid price in the request",
-        10016: "Invalid stops in the request",
-        10017: "Trade is disabled",
-        10018: "Market is closed",
-        10019: "There is not enough money to complete the request",
-        10020: "Prices changed",
-        10021: "There are no quotes to process the request",
-        10022: "Invalid order expiration date in the request",
-        10023: "Order state changed",
-        10024: "Too frequent requests",
-        10025: "No changes in request",
-        10026: "Autotrading disabled by server",
-        10027: "Autotrading disabled by client terminal",
-        10028: "Request locked for processing",
-        10029: "Order or position frozen",
-        10030: "Invalid order filling type",
-        10031: "No connection with the trade server",
-        10032: "Operation is allowed only for live accounts",
-        10033: "The number of pending orders has reached the limit",
-        10034: "The volume of orders and positions for the symbol has reached the limit",
-        10035: "Incorrect or prohibited order type",
-        10036: "Position with the specified POSITION_IDENTIFIER has already been closed",
-        10038: "A close volume exceeds the current position volume",
-        10039: "A close order already exists for a specified position. This may happen when working in the hedging system:",
+        10006: "Запрос отклонен",
+        10007: "Запрос отменен трейдером",
+        10008: "Ордер размещен",
+        10009: "Запрос выполнен",
+        10010: "Была выполнена только часть запроса",
+        10011: "Ошибка обработки запроса",
+        10012: "Запрос отменен из-за тайм-аута",
+        10013: "Неверный запрос",
+        10014: "Неверный объем в запросе",
+        10015: "Неверная цена в запросе",
+        10016: "Неверные остановки в запросе",
+        10017: "Торговля отключена",
+        10018: "Рынок закрыт.",
+        10019: "Недостаточно денег для выполнения запроса",
+        10020: "Цены изменены",
+        10021: "Нет котировок для обработки запроса",
+        10022: "Неверная дата окончания срока действия ордера в запросе",
+        10023: "Состояние ордера изменено",
+        10024: "Слишком частые запросы",
+        10025: "Никаких изменений в запросе.",
+        10026: "Автоторговля отключена сервером",
+        10027: "Автоторговля отключена клиентским терминалом",
+        10028: "Запрос заблокирован для обработки",
+        10029: "Ордер или позиция заморожены",
+        10030: "Неверный тип заполнения ордера",
+        10031: "Нет соединения с торговым сервером",
+        10032: "Операция разрешена только для реальных счетов.",
+        10033: "Количество ожидающих ордеров достигло предела",
+        10034: "Объем ордеров и позиций по символу достиг предела",
+        10035: "Неправильный или запрещенный тип ордера",
+        10036: "Позиция с указанным POSITION_IDENTIFIER уже закрыта",
+        10038: "Объем закрытия превышает объем текущей позиции",
+        10039: "Для указанной позиции уже существует ордер на закрытие.",
     }
 
     if order_result.retcode in [10008, 10009, 10010]:
-        logger.error(f"[Hedge Place Order Success] {order_result}")
-        return f"Order placed successfully."
+        logger.info(f"[Hedge Place Order Success] {order_result}")
+        return f"Ордер успешно размещен"
     elif order_result.retcode in messages:
         logger.error(f"[Hedge Place Order Error] {order_result.retcode}, {order_result}")
-        return f"Order failed. Reason: {messages[order_result.retcode]}"
+        return f"Ошибка. Причина: {messages[order_result.retcode]}"
     else:
         logger.error(f"[Hedge Place Order Error] {order_result.retcode}, {order_result}")
-        return f"Order failed. Unknown error code {order_result.retcode}."
+        return f"Ошибка. Неизвестный код ошибки {order_result.retcode}."

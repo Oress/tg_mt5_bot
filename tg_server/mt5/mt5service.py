@@ -60,21 +60,21 @@ class MT5Service:
             with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
                 return True
         except MT5InvalidCreds as e:
-            logger.error(f"[MT5 Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
+            logger.error(f"[MT5|Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Invalid credentials: {e}")
         except Exception as e:
-            logger.error(f"[MT5 Unknown Exception], last_error: {session.last_error()}")
+            logger.error(f"[MT5|Unknown Exception], last_error: {session.last_error()}")
             print(f"Exception caught: {e}")
 
         return False
 
     def get_price(self, account_number: int, pwd: str, symbol: str, buy: bool) -> bool:
-        logger.info(f"[get_price] account_number: {account_number}, symbol: {symbol}, buy: {buy}")
+        logger.info(f"[MT5|get_price] account_number: {account_number}, symbol: {symbol}, buy: {buy}")
         try:
             with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
                 selected=session.symbol_select(symbol, True)
                 if not selected:
-                    logger.error(f"[MT5 Symbol Select Failed], account_number: {account_number}, ")
+                    logger.error(f"[MT5|Symbol Select Failed], account_number: {account_number}, ")
                     print("Failed to select symbol, error code =",session.last_error())
                 else:
                     info_tick = session.symbol_info_tick(symbol)
@@ -83,16 +83,16 @@ class MT5Service:
                     price = info_tick.ask if buy else info_tick.bid
                     return price
         except MT5InvalidCreds as e:
-            logger.error(f"[MT5 Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
+            logger.error(f"[MT5|Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Invalid credentials: {e}")
         except Exception as e:
-            logger.error(f"[MT5 Unknown Exception], last_error: {session.last_error()}")
+            logger.error(f"[MT5|Unknown Exception], last_error: {session.last_error()}")
             print(f"Exception caught: {e}")
 
         return False
 
     def place_order(self, account_number: int, pwd: str, buy: bool, symbol: str, volume: Decimal):
-        logger.info(f"[place_order] account_number: {account_number}, symbol: {symbol}, buy: {buy}, volume: {volume}")
+        logger.info(f"[MT5|place_order] account_number: {account_number}, symbol: {symbol}, buy: {buy}, volume: {volume}")
         try:
             with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
                 info_tick = session.symbol_info_tick(symbol)
@@ -106,7 +106,7 @@ class MT5Service:
                     "symbol": symbol,
                     "volume": float(volume),
                     "type": type,
-                    "comment": "TG Bot order open",
+                    "comment": f"TG Bot order open for ACC#:{account_number} SYM:{symbol} VOL:{volume} Buy:{buy}",
                     "price": price,
                     # "deviation": deviation,
                     # "type_time": MetaTrader5.ORDER_TIME_GTC,
@@ -117,16 +117,16 @@ class MT5Service:
                 print(order_result)
                 return order_result
         except MT5InvalidCreds as e:
-            logger.error(f"[MT5 Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
+            logger.error(f"[MT5|Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Invalid credentials: {e}")
         except Exception as e:
-            logger.error(f"[MT5 Unknown Exception], last_error: {session.last_error()}")
+            logger.error(f"[MT5|Unknown Exception], last_error: {session.last_error()}")
             print(f"Exception caught: {e}")
 
         return False
 
     def symbol_info(self, account_number: int, pwd: str, symbol: str):
-        logger.info(f"[symbol_info] account_number: {account_number}, symbol: {symbol}")
+        logger.info(f"[MT5|symbol_info] account_number: {account_number}, symbol: {symbol}")
         try:
             with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
                 sym_info = session.symbol_info(symbol)
@@ -142,10 +142,10 @@ class MT5Service:
                 )
                 return sym_info_model
         except MT5InvalidCreds as e:
-            logger.error(f"[MT5 Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
+            logger.error(f"[MT5|Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Invalid credentials: {e}")
         except Exception as e:
-            logger.error(f"[MT5 Unknown Exception], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
+            logger.error(f"[MT5|Unknown Exception], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Exception caught: {e}")
 
         return False
@@ -174,10 +174,10 @@ class MT5Service:
                                          )
                 return balance
         except MT5InvalidCreds as e:
-            logger.error(f"[MT5 Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
+            logger.error(f"[MT5|Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Invalid credentials: {e}")
         except Exception as e:
-            logger.error(f"[MT5 Unknown Exception], last_error: {session.last_error()}")
+            logger.error(f"[MT5|Unknown Exception], last_error: {session.last_error()}")
             print(f"Exception caught: {e}")
 
         return False

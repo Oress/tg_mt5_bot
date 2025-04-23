@@ -10,8 +10,19 @@ from tg_server.services.UserService import UserService
 from telegram import ReplyKeyboardMarkup, KeyboardButton
 
 class KeyboardButtons(str, Enum):
-    HEDGE = 'Hedge'
-    BALANCE = 'Balance'
+    BUY = "Купить"
+    SELL = "Продать"
+
+    PREVIEW_EDIT = "Изменить"
+    PLACE_ORDER = "Разместить ордер"
+
+    HEDGE = 'Хежд'
+    BALANCE = 'Баланс'
+
+    INVITE_USER= 'Пригласить пользователя'
+    INVITE_ADMIN= 'Пригласить админа'
+
+
 
 user_main_menu_keyboard = [
     [KeyboardButton(KeyboardButtons.HEDGE), KeyboardButton(KeyboardButtons.BALANCE)]
@@ -19,7 +30,7 @@ user_main_menu_keyboard = [
 
 admin_main_menu_keyboard = [
     user_main_menu_keyboard[0],
-    [KeyboardButton("Invite User"), KeyboardButton("Invite Admin")]
+    [KeyboardButton(KeyboardButtons.INVITE_USER), KeyboardButton(KeyboardButtons.INVITE_ADMIN)],
 ]
 
 user_main_menu_markup = ReplyKeyboardMarkup(user_main_menu_keyboard, one_time_keyboard=True, resize_keyboard=True)
@@ -34,6 +45,6 @@ async def send_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_role = user.role
 
     await context.bot.send_message(chat_id=update.effective_chat.id,
-                                   text="Main menu:",
+                                   text="Главное меню:",
                                    reply_markup=user_main_menu_markup if user_role == UserRole.USER else admin_main_menu_markup)
 

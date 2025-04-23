@@ -12,6 +12,7 @@ from handlers.invite import invite_user_start, invite_cancel, invite_users_share
 from tg_server.constants.UserRole import UserRole
 from tg_server.database.db import engine
 from tg_server.handlers.balance import balance_command
+from tg_server.handlers.commons import KeyboardButtons
 from tg_server.handlers.filters.AuthFilter import manager_filter, user_filter, admin_filter
 from tg_server.handlers.hedge import hedge_start, hedge_operation_selected, hedge_instrument_selected, \
     hedge_volume_selected, hedge_city_selected, hedge_preview_accepted, hedge_invalid_operation_selected, inst_list, \
@@ -81,15 +82,15 @@ async def remove_expired_links(context: ContextTypes.DEFAULT_TYPE):
 
 async def edit_unsupported_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.warning(f"[Msg edit], ignoring it, chat_id: {update.effective_chat.id}, message: {update.effective_message.text}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Message editing is not supported. Please use the command again.")
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Редактирование сообщений не поддерживается. Пожалуйста, используйте команду еще раз.")
 
 async def unknown_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.warning(f"[Unknown command], ignoring it, chat_id: {update.effective_chat.id}, message: {update.effective_message.text}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, I didn't understand that command.")
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Извините, я не понял эту команду.")
 
 async def unexpected_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.warning(f"[Unknown text], ignoring it, chat_id: {update.effective_chat.id}, message: {update.effective_message.text}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, I don't understand what are you trying to do. Use /help to see the list of available commands.")
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Извините, я не понимаю что вы пытаетесь сделать. Используйте /help, чтобы увидеть список доступных команд.")
 
 async def generate_superadmin_invite():
     superadmin_id = int(os.getenv("SUPERADMIN_ID"))
@@ -108,7 +109,7 @@ async def generate_superadmin_invite():
             if superadmin_link is None:
                 logger.info(f"[Superadmin init]Superadmin with id {superadmin_id} already exists")
             else:
-                print('Superadmin invite link:', superadmin_link)
+                print('[Superadmin init] Superadmin invite link:', superadmin_link)
 
 def start_session() -> scoped_session:
     return scoped_session(sessionmaker(bind=engine, autoflush=False))
@@ -134,7 +135,7 @@ if __name__ == '__main__':
         persistent=True,
         entry_points=[
             CommandHandler("inviteuser", invite_user_start, filters=disable_edited_msg(manager_filter)),
-            MessageHandler(disable_edited_msg(filters.Text(["Invite User"]) & manager_filter), invite_user_start)
+            MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.INVITE_USER]) & manager_filter), invite_user_start)
         ],
         states={
             InviteUserConvStates.PROMPT_USER: [
@@ -159,7 +160,7 @@ if __name__ == '__main__':
         persistent=True,
         entry_points=[
             CommandHandler("inviteadmin", invite_admin_start, filters=disable_edited_msg(admin_filter)),
-            MessageHandler(disable_edited_msg(filters.Text(["Invite Admin"]) & admin_filter), invite_admin_start)
+            MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.INVITE_ADMIN]) & admin_filter), invite_admin_start)
         ],
         states={
             InviteAdminConvStates.PROMPT_USER: [
@@ -181,13 +182,13 @@ if __name__ == '__main__':
         persistent=True,
         entry_points=[
             CommandHandler("hedge", hedge_start, filters=disable_edited_msg(user_filter)),
-            MessageHandler(disable_edited_msg(filters.Text(["Hedge"]) & user_filter), hedge_start)
+            MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.HEDGE]) & user_filter), hedge_start)
         ],
         states={
             HedgeConvStates.SELECT_OPERATION: [
                 cancel_command_handler,
-                MessageHandler(disable_edited_msg(filters.Text(["Buy", "Sell"])), hedge_operation_selected),
-                MessageHandler(disable_edited_msg(~filters.Text(["Buy", "Sell"])), hedge_invalid_operation_selected),
+                MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.BUY, KeyboardButtons.SELL])), hedge_operation_selected),
+                MessageHandler(disable_edited_msg(~filters.Text([KeyboardButtons.BUY, KeyboardButtons.SELL])), hedge_invalid_operation_selected),
             ],
             HedgeConvStates.SELECT_INSTRUMENT: [
                 cancel_command_handler,
@@ -206,9 +207,9 @@ if __name__ == '__main__':
             ],
             HedgeConvStates.PREVIEW: [
                 cancel_command_handler,
-                MessageHandler(disable_edited_msg(filters.Text(["Place order"])), hedge_preview_accepted),
-                MessageHandler(disable_edited_msg(filters.Text(["Edit"])), hedge_start),
-                MessageHandler(disable_edited_msg(~filters.Text(["Place order", "Edit"])), hedge_invalid_preview_choice),
+                MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.PLACE_ORDER])), hedge_preview_accepted),
+                MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.PREVIEW_EDIT])), hedge_start),
+                MessageHandler(disable_edited_msg(~filters.Text([KeyboardButtons.PLACE_ORDER, KeyboardButtons.PREVIEW_EDIT])), hedge_invalid_preview_choice),
             ],
         },
         fallbacks=[],
@@ -224,7 +225,7 @@ if __name__ == '__main__':
         states = {
             ConversationStates.MAIN_MENU: [
                 CommandHandler("balance", balance_command, filters=disable_edited_msg()),
-                MessageHandler(disable_edited_msg(filters.Text(["Balance"]) & user_filter), balance_command),
+                MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.BALANCE]) & user_filter), balance_command),
                 invite_user_conv,
                 invite_admin_conv,
                 hedge_conv,
@@ -238,7 +239,10 @@ if __name__ == '__main__':
     application.add_handler(hedge_conv)
 
     application.add_handler(CommandHandler("balance", balance_command, filters=disable_edited_msg(user_filter)))
-    application.add_handler(MessageHandler(disable_edited_msg(filters.Text(["Balance"]) & user_filter), hedge_start))
+    application.add_handler(MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.BALANCE]) & user_filter), balance_command))
+
+    application.add_handler(CommandHandler("hedge", hedge_start, filters=disable_edited_msg(user_filter)),)
+    application.add_handler(MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.HEDGE]) & user_filter), hedge_start))
 
     application.add_handler(CommandHandler("help", help_command_admin, filters=disable_edited_msg(admin_filter)))
     application.add_handler(CommandHandler("help", help_command_user, filters=disable_edited_msg(user_filter)))
