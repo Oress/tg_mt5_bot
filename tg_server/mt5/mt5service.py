@@ -96,7 +96,7 @@ class MT5Service:
         try:
             with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
                 info_tick = session.symbol_info_tick(symbol)
-                print(info_tick)
+                logger.info(f"[MT5|place_order] info_tick: {info_tick}")
 
                 price = info_tick.ask if buy else info_tick.bid
                 type = MetaTrader5.ORDER_TYPE_BUY if buy else MetaTrader5.ORDER_TYPE_SELL
@@ -114,7 +114,8 @@ class MT5Service:
                 }
 
                 order_result = session.order_send(request)
-                print(order_result)
+                logger.info(f"[MT5|place_order] order_result: {order_result}")
+                logger.info(f"[MT5|place_order] error: {session.last_error()}")
                 return order_result
         except MT5InvalidCreds as e:
             logger.error(f"[MT5|Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
