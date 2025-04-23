@@ -106,7 +106,7 @@ class MT5Service:
                     "symbol": symbol,
                     "volume": float(volume),
                     "type": type,
-                    "comment": f"TG Bot order open for ACC#:{account_number} SYM:{symbol} VOL:{volume} Buy:{buy}",
+                    "comment": f"TG Bot order open",
                     "price": price,
                     # "deviation": deviation,
                     # "type_time": MetaTrader5.ORDER_TIME_GTC,
