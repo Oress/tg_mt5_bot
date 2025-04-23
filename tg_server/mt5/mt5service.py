@@ -63,7 +63,7 @@ class MT5Service:
             logger.error(f"[MT5|Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Invalid credentials: {e}")
         except Exception as e:
-            logger.error(f"[MT5|Unknown Exception], last_error: {session.last_error()}")
+            logger.error(f"[MT5|Unknown Exception]")
             print(f"Exception caught: {e}")
 
         return False
@@ -86,7 +86,7 @@ class MT5Service:
             logger.error(f"[MT5|Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Invalid credentials: {e}")
         except Exception as e:
-            logger.error(f"[MT5|Unknown Exception], last_error: {session.last_error()}")
+            logger.error(f"[MT5|Unknown Exception]")
             print(f"Exception caught: {e}")
 
         return False
@@ -121,7 +121,7 @@ class MT5Service:
             logger.error(f"[MT5|Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Invalid credentials: {e}")
         except Exception as e:
-            logger.error(f"[MT5|Unknown Exception], last_error: {session.last_error()}")
+            logger.error(f"[MT5|Unknown Exception]")
             print(f"Exception caught: {e}")
 
         return False
@@ -178,7 +178,7 @@ class MT5Service:
             logger.error(f"[MT5|Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Invalid credentials: {e}")
         except Exception as e:
-            logger.error(f"[MT5|Unknown Exception], last_error: {session.last_error()}")
+            logger.error(f"[MT5|Unknown Exception]")
             print(f"Exception caught: {e}")
 
         return False
@@ -205,6 +205,9 @@ class MT5Session:
         return self.mt5
 
     def __exit__(self, exc_type, exc_value, exc_tb):
+        if exc_type is not None:
+            logger.error(f"[MT5|Exception], last_error: {self.mt5.last_error()}")
+            print(f"Exception caught: {exc_value}")
         self.mt5.shutdown()
 
 server_env = os.getenv("MT5_SERVER")
