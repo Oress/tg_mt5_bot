@@ -9,7 +9,7 @@ from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
 from tg_server.database.db import engine
-from tg_server.handlers.commons import send_main_menu, use_cancel_msg
+from tg_server.handlers.commons import send_main_menu, main_menu_decorator
 from tg_server.handlers.states import ChangeCredsConvStates, ConversationStates
 from tg_server.mt5.mt5service import mt5service
 from tg_server.security.encryptor import pwd_encryptor
@@ -23,10 +23,10 @@ UD_KEY_CHANGE_CREDS_USER_ID = "UD_KEY_CHANGE_CREDS_USER_ID"
 GENERATE_INVITE_PREFIX_MD2 = "*\[Изменение учетных данных пользователя\]*\n"
 
 choose_user_markup = ReplyKeyboardMarkup(
-    [[
+    main_menu_decorator([[
         KeyboardButton("Выбрать пользователя",
                        request_users=KeyboardButtonRequestUsers(1, user_is_bot=False, request_username=True)),
-    ]],
+    ]]),
     one_time_keyboard=True, resize_keyboard=True)
 
 async def change_creds_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -34,9 +34,7 @@ async def change_creds_start(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     await update.message.reply_text(
         (GENERATE_INVITE_PREFIX_MD2
-         + helpers.escape_markdown("Пожалуйста, выберете пользователя, используя меню"
-                                   + use_cancel_msg
-                                   , 2)) ,
+         + helpers.escape_markdown("Пожалуйста, выберете пользователя, используя меню", 2)) ,
         reply_markup=choose_user_markup,
         parse_mode=ParseMode.MARKDOWN_V2,
     )

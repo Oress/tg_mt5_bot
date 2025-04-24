@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 
 from sqlalchemy.orm.session import Session
 from telegram import helpers, Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
@@ -12,7 +12,7 @@ from tg_server.constants.Instruments import available_instruments, get_instrumen
 from tg_server.database.db import engine
 from tg_server.database.models import Order
 from tg_server.handlers.commons import send_main_menu, KeyboardButtons, remove_exponent, round_flt_to_4_decimal, \
-    use_cancel_msg
+    main_menu_decorator
 from tg_server.handlers.states import ConversationStates, HedgeConvStates
 from tg_server.mt5.mt5service import mt5service
 from tg_server.security.encryptor import pwd_encryptor
@@ -20,8 +20,6 @@ from tg_server.services.OrderService import OrderService
 from tg_server.services.UserService import UserService
 
 logger = logging.getLogger(__name__)
-
-HEDGE_PREFIX_MD2 = "*\[Хедж\]*\n"
 
 # TODO: maybe add them to the DB tables instead.
 inst_list = [x.label for x in available_instruments]
@@ -38,25 +36,25 @@ UD_KEY_HEDGE_PRICE = "UD_KEY_HEDGE_PRICE"
 UD_KEY_HEDGE_CITY = "UD_KEY_HEDGE_CITY"
 
 select_operation_menu_markup = ReplyKeyboardMarkup(
-    [[KeyboardButton(KeyboardButtons.SELL), KeyboardButton(KeyboardButtons.BUY)]],
+    main_menu_decorator([[KeyboardButton(KeyboardButtons.SELL), KeyboardButton(KeyboardButtons.BUY)]]),
     one_time_keyboard=True,
     resize_keyboard=True
 )
 
 select_instrument_menu_markup = ReplyKeyboardMarkup(
-    [inst_list[i:i+3] for i in range(0, len(inst_list), 3)],
+    main_menu_decorator([inst_list[i:i+3] for i in range(0, len(inst_list), 3)]),
     one_time_keyboard=True,
     resize_keyboard=True
 )
 
 select_city_menu_markup = ReplyKeyboardMarkup(
-    [cities_list[i:i+3] for i in range(0, len(cities_list), 3)],
+    main_menu_decorator([cities_list[i:i+3] for i in range(0, len(cities_list), 3)]),
     one_time_keyboard=True,
     resize_keyboard=True
 )
 
 preview_action_menu_markup = ReplyKeyboardMarkup(
-    [[KeyboardButton(KeyboardButtons.PLACE_ORDER), KeyboardButton(KeyboardButtons.PREVIEW_EDIT)]],
+    main_menu_decorator([[KeyboardButton(KeyboardButtons.PLACE_ORDER), KeyboardButton(KeyboardButtons.PREVIEW_EDIT)]]),
     one_time_keyboard=True,
     resize_keyboard=True
 )
@@ -70,10 +68,7 @@ async def hedge_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def hedge_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"[Hedge Start], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
     await update.message.reply_text(
-        HEDGE_PREFIX_MD2 + helpers.escape_markdown((
-            "Операция?"
-            + use_cancel_msg
-        ), 2),
+        helpers.escape_markdown("Операция?", 2),
         reply_markup=select_operation_menu_markup,
         parse_mode=ParseMode.MARKDOWN_V2,
     )
@@ -84,10 +79,7 @@ async def hedge_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def hedge_invalid_operation_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.warning(f"[Hedge Invalid Operation], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text} ")
     await update.message.reply_text(
-        HEDGE_PREFIX_MD2 + helpers.escape_markdown((
-            f"Неверный тип операции. Выберите «{KeyboardButtons.BUY}» или «{KeyboardButtons.SELL}»."
-            + use_cancel_msg
-        ), 2),
+        helpers.escape_markdown(f"Неверный тип операции. Выберите «{KeyboardButtons.BUY}» или «{KeyboardButtons.SELL}».", 2),
         reply_markup=select_operation_menu_markup,
         parse_mode=ParseMode.MARKDOWN_V2,
     )
@@ -99,10 +91,7 @@ async def hedge_operation_selected(update: Update, context: ContextTypes.DEFAULT
     type_str = update.message.text
     context.user_data[UD_KEY_HEDGE_OPERATION] = type_str
     await update.message.reply_text(
-        HEDGE_PREFIX_MD2 + helpers.escape_markdown((
-            "Инструмент?"
-            + use_cancel_msg
-        ), 2),
+        helpers.escape_markdown("Инструмент?", 2),
         reply_markup=select_instrument_menu_markup,
         parse_mode=ParseMode.MARKDOWN_V2,
     )
@@ -112,10 +101,8 @@ async def hedge_operation_selected(update: Update, context: ContextTypes.DEFAULT
 async def hedge_invalid_instrument_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.warning(f"[Hedge Invalid Instrument], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
     await update.message.reply_text(
-        HEDGE_PREFIX_MD2 + helpers.escape_markdown((
-            "Недействительный инструмент. Выберите действительный инструмент из меню."
-            + use_cancel_msg
-        ), 2),
+        helpers.escape_markdown((
+            "Недействительный инструмент. Выберите действительный инструмент из меню."), 2),
         reply_markup=select_instrument_menu_markup,
         parse_mode=ParseMode.MARKDOWN_V2,
     )
@@ -143,7 +130,7 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
             open_positions = mt5service.positions_get(user.mt5_acc_number, pwd_decrypted_bytes.decode(), instrument_str)
             if len(open_positions) == 0:
                 await update.message.reply_text(
-                    HEDGE_PREFIX_MD2 + helpers.escape_markdown("Нет активных ордеров, пожалуйста начните сначала.", 2),
+                    helpers.escape_markdown("Нет активных ордеров, пожалуйста начните сначала.", 2),
                     reply_markup=ReplyKeyboardRemove(),
                     parse_mode=ParseMode.MARKDOWN_V2,
                     )
@@ -158,7 +145,6 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
                                # f"Мин. объем: {sym_info.volume_min}\n"
                                # f"Макс. объем: {sym_info.volume_max}\n"
                                # f"Шаг: {sym_info.volume_step}"
-                               + use_cancel_msg
                                )
         elif operation == KeyboardButtons.SELL:
             symbol_info_msg = (f"Сколько ({instrument.base})?\n"
@@ -166,7 +152,6 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
                                # f"Мин. объем: {sym_info.volume_min}\n"
                                # f"Макс. объем: {sym_info.volume_max}\n"
                                # f"Шаг: {sym_info.volume_step}"
-                               + use_cancel_msg
                                )
         context.user_data[UD_KEY_HEDGE_INSTRUMENT] = instrument_str
 
@@ -179,7 +164,7 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
 
 
     await update.message.reply_text(
-        HEDGE_PREFIX_MD2 + helpers.escape_markdown(symbol_info_msg, 2),
+        helpers.escape_markdown(symbol_info_msg, 2),
         reply_markup=ReplyKeyboardRemove(),
         parse_mode=ParseMode.MARKDOWN_V2,
     )
@@ -188,10 +173,8 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
 async def hedge_invalid_volume_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.warning(f"[Hedge Invalid Volume], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
     await update.message.reply_text(
-        HEDGE_PREFIX_MD2 + helpers.escape_markdown((
-            "Неверная сумма. Введите допустимое число."
-            + use_cancel_msg
-        ), 2),
+        helpers.escape_markdown((
+            "Неверная сумма. Введите допустимое число."), 2),
         reply_markup=ReplyKeyboardRemove(),
         parse_mode=ParseMode.MARKDOWN_V2,
     )
@@ -225,7 +208,7 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
         min_amount_eur = sym_info.volume_min * sym_info.trade_contract_size
         if eur_dcm < min_amount_eur:
             await update.message.reply_text(
-                HEDGE_PREFIX_MD2 + helpers.escape_markdown(f"Минимальная сумма: {remove_exponent(min_amount_eur.normalize())}", 2),
+                helpers.escape_markdown(f"Минимальная сумма: {remove_exponent(min_amount_eur.normalize())}", 2),
                 reply_markup=ReplyKeyboardRemove(),
                 parse_mode=ParseMode.MARKDOWN_V2,
                 )
@@ -235,7 +218,7 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
         max_amount_eur = sym_info.volume_max * sym_info.trade_contract_size
         if eur_dcm > max_amount_eur:
             await update.message.reply_text(
-                HEDGE_PREFIX_MD2 + helpers.escape_markdown(f"Максимальная сумма: {remove_exponent(max_amount_eur.normalize())}", 2),
+                helpers.escape_markdown(f"Максимальная сумма: {remove_exponent(max_amount_eur.normalize())}", 2),
                 reply_markup=ReplyKeyboardRemove(),
                 parse_mode=ParseMode.MARKDOWN_V2,
                 )
@@ -245,7 +228,7 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
         step_eur = sym_info.volume_step * sym_info.trade_contract_size
         if eur_dcm % step_eur != 0:
             await update.message.reply_text(
-                HEDGE_PREFIX_MD2 + helpers.escape_markdown(f"Сумма должна быть кратна: {remove_exponent(step_eur.normalize())}", 2),
+                helpers.escape_markdown(f"Сумма должна быть кратна: {remove_exponent(step_eur.normalize())}", 2),
                 reply_markup=ReplyKeyboardRemove(),
                 parse_mode=ParseMode.MARKDOWN_V2,
                 )
@@ -255,7 +238,7 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
         if operation == KeyboardButtons.BUY and avail_to_spend:
             if eur_dcm > avail_to_spend:
                 await update.message.reply_text(
-                    HEDGE_PREFIX_MD2 + helpers.escape_markdown(f"Максимальная сумма: {remove_exponent(avail_to_spend.normalize())}", 2),
+                    helpers.escape_markdown(f"Максимальная сумма: {remove_exponent(avail_to_spend.normalize())}", 2),
                     reply_markup=ReplyKeyboardRemove(),
                     parse_mode=ParseMode.MARKDOWN_V2,
                     )
@@ -289,7 +272,7 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
                    f"Цена (на {now_dt_utc}): {price_per_unit}\n"
                    )
     await update.message.reply_text(
-        HEDGE_PREFIX_MD2 + helpers.escape_markdown(preview_msg, 2),
+        helpers.escape_markdown(preview_msg, 2),
         reply_markup=preview_action_menu_markup,
         parse_mode=ParseMode.MARKDOWN_V2,
         )
@@ -310,10 +293,8 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
 async def hedge_invalid_city_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.warning(f"[Hedge Invalid City], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
     await update.message.reply_text(
-        HEDGE_PREFIX_MD2 + helpers.escape_markdown((
-            "Неверный город. Выберите допустимый город из меню."
-            + use_cancel_msg
-        ), 2),
+        helpers.escape_markdown((
+            "Неверный город. Выберите допустимый город из меню."), 2),
         reply_markup=select_city_menu_markup,
         parse_mode=ParseMode.MARKDOWN_V2,
     )
@@ -349,7 +330,7 @@ async def hedge_city_selected(update: Update, context: ContextTypes.DEFAULT_TYPE
                    # f"Город: {context.user_data.get(UD_KEY_HEDGE_CITY)}\n"
                    )
     await update.message.reply_text(
-        HEDGE_PREFIX_MD2 + helpers.escape_markdown(preview_msg, 2),
+        helpers.escape_markdown(preview_msg, 2),
         reply_markup=preview_action_menu_markup,
         parse_mode=ParseMode.MARKDOWN_V2,
     )
@@ -358,10 +339,8 @@ async def hedge_city_selected(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def hedge_invalid_preview_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.warning(f"[Hedge Invalid Preview], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
     await update.message.reply_text(
-        HEDGE_PREFIX_MD2 + helpers.escape_markdown((
-            "Неверный выбор. Выберите «Размесить ордер» или «Изменить»."
-            + use_cancel_msg
-        ), 2),
+        helpers.escape_markdown((
+            "Неверный выбор. Выберите «Размесить ордер» или «Изменить»."), 2),
         reply_markup=preview_action_menu_markup,
         parse_mode=ParseMode.MARKDOWN_V2,
     )
@@ -375,7 +354,7 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
     if answer == KeyboardButtons.PLACE_ORDER:
         # TODO: more info
         await update.message.reply_text(
-            HEDGE_PREFIX_MD2 + helpers.escape_markdown("Размещаю ордер...\n", 2),
+            helpers.escape_markdown("Размещаю ордер...\n", 2),
             parse_mode=ParseMode.MARKDOWN_V2,
         )
 
@@ -403,7 +382,7 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
                     elif order_result.retcode not in [10008, 10009, 10010]:
                         logger.error(f"[Hedge Place Order Error] No recent order found for user_id: {user_id}")
                         await update.message.reply_text(
-                            HEDGE_PREFIX_MD2 + helpers.escape_markdown(report_on_order_send(order_result), 2),
+                            helpers.escape_markdown(report_on_order_send(order_result), 2),
                             parse_mode=ParseMode.MARKDOWN_V2)
                         await send_main_menu(update, context)
                         return ConversationStates.MAIN_MENU
@@ -442,17 +421,14 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
                             )
             else:
                 await update.message.reply_text(
-                    HEDGE_PREFIX_MD2 + helpers.escape_markdown((
-                        "Неверный тип операции."
-                        + use_cancel_msg
-                    ), 2),
+                    helpers.escape_markdown("Неверный тип операции.", 2),
                     reply_markup=select_operation_menu_markup,
                     parse_mode=ParseMode.MARKDOWN_V2,
                 )
                 return HedgeConvStates.SELECT_OPERATION
 
         await update.message.reply_text(
-            HEDGE_PREFIX_MD2 + helpers.escape_markdown(report_on_order_send(order_result), 2)
+            helpers.escape_markdown(report_on_order_send(order_result), 2)
             + "\n\n"
             + helpers.escape_markdown(order_msg, 2),
             reply_markup=select_operation_menu_markup,
@@ -463,10 +439,7 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
         return ConversationStates.MAIN_MENU
     elif answer == KeyboardButtons.PREVIEW_EDIT:
         await update.message.reply_text(
-            helpers.escape_markdown((
-                "Тип?"
-                + use_cancel_msg
-            ), 2),
+            helpers.escape_markdown("Тип?", 2),
             reply_markup=select_operation_menu_markup,
             parse_mode=ParseMode.MARKDOWN_V2,
         )

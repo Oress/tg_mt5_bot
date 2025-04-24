@@ -1,5 +1,6 @@
 from enum import Enum
 from decimal import Decimal, ROUND_HALF_UP
+from typing import Union, Sequence, List
 
 from sqlalchemy.orm.session import Session
 from telegram import Update
@@ -9,8 +10,6 @@ from tg_server.constants.UserRole import UserRole
 from tg_server.database.db import engine
 from tg_server.services.UserService import UserService
 from telegram import ReplyKeyboardMarkup, KeyboardButton
-
-use_cancel_msg = "\n\nИспользуйте /cancel, чтобы вернуться в главное меню."
 
 
 class KeyboardButtons(str, Enum):
@@ -27,6 +26,8 @@ class KeyboardButtons(str, Enum):
     INVITE_USER= 'Пригласить пользователя'
     INVITE_ADMIN= 'Пригласить админа'
 
+    MAIN_MENU = "Главное меню"
+
 
 
 user_main_menu_keyboard = [
@@ -42,6 +43,10 @@ admin_main_menu_keyboard = [
 user_main_menu_markup = ReplyKeyboardMarkup(user_main_menu_keyboard, one_time_keyboard=True, resize_keyboard=True)
 admin_main_menu_markup = ReplyKeyboardMarkup(admin_main_menu_keyboard, one_time_keyboard=True, resize_keyboard=True)
 
+
+def main_menu_decorator(menu: List[Sequence[Union[str, KeyboardButton]]]):
+    menu.append([KeyboardButton(KeyboardButtons.MAIN_MENU)])
+    return menu
 
 async def send_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id

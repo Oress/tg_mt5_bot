@@ -10,7 +10,7 @@ from telegram.ext import ContextTypes
 
 from tg_server.constants.UserRole import UserRole
 from tg_server.database.db import engine
-from tg_server.handlers.commons import send_main_menu
+from tg_server.handlers.commons import send_main_menu, main_menu_decorator
 from tg_server.handlers.states import InviteUserConvStates, ConversationStates
 from tg_server.mt5.mt5service import mt5service
 from tg_server.security.encryptor import pwd_encryptor
@@ -31,17 +31,17 @@ share_handle_msg = (GENERATE_INVITE_PREFIX_MD2
 
 # TODO: request_id ????
 choose_user_markup = ReplyKeyboardMarkup(
-    [[
+    main_menu_decorator([[
         KeyboardButton("Выбрать пользователя",
                        request_users=KeyboardButtonRequestUsers(1, user_is_bot=False, request_username=True)),
-    ]],
+    ]]),
     one_time_keyboard=True, resize_keyboard=True)
 
 async def invite_user_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"[Invite start], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
 
     await update.message.reply_text(
-        share_handle_msg + "\n\nИспользуйте /cancel, чтобы вернуться в главное меню\.",
+        share_handle_msg,
         reply_markup=choose_user_markup,
         parse_mode=ParseMode.MARKDOWN_V2,
     )

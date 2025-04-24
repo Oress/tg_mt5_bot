@@ -138,6 +138,8 @@ if __name__ == '__main__':
     job_minute = job_queue.run_repeating(remove_expired_links, interval=30 * 60, first=10)
 
 
+    main_menu_text_filter = filters.Text([KeyboardButtons.MAIN_MENU])
+
     change_creds_conv = ConversationHandler(
         name="change_creds_conversation",
         persistent=True,
@@ -147,12 +149,12 @@ if __name__ == '__main__':
         ],
         states={
             ChangeCredsConvStates.PROMPT_USER: [
-                CommandHandler("cancel", change_creds_cancel, filters=disable_edited_msg()),
+                MessageHandler(disable_edited_msg(main_menu_text_filter), change_creds_cancel),
                 MessageHandler(disable_edited_msg(filters.StatusUpdate.USERS_SHARED), change_creds_shared),
                 MessageHandler(disable_edited_msg(~filters.StatusUpdate.USERS_SHARED), change_creds_shared_invalid),
             ],
             ChangeCredsConvStates.PROMPT_CREDENTIALS: [
-                CommandHandler("cancel", invite_cancel, filters=disable_edited_msg()),
+                MessageHandler(disable_edited_msg(main_menu_text_filter), invite_cancel),
                 MessageHandler(disable_edited_msg(filters.Regex("^\d+ \S+$")), change_creds_account_credentials),
                 MessageHandler(disable_edited_msg(~filters.Regex("^\d+ \S+$")), change_creds_invalid_account_credentials),
             ],
@@ -173,12 +175,12 @@ if __name__ == '__main__':
         ],
         states={
             InviteUserConvStates.PROMPT_USER: [
-                CommandHandler("cancel", invite_cancel, filters=disable_edited_msg()),
+                MessageHandler(disable_edited_msg(main_menu_text_filter), invite_cancel),
                 MessageHandler(disable_edited_msg(filters.StatusUpdate.USERS_SHARED), invite_users_shared),
                 MessageHandler(disable_edited_msg(~filters.StatusUpdate.USERS_SHARED), invite_users_shared_invalid),
             ],
             InviteUserConvStates.PROMPT_CREDENTIALS: [
-                CommandHandler("cancel", invite_cancel, filters=disable_edited_msg()),
+                MessageHandler(disable_edited_msg(main_menu_text_filter), invite_cancel),
                 MessageHandler(disable_edited_msg(filters.Regex("^\d+ \S+$")), invite_account_credentials),
                 MessageHandler(disable_edited_msg(~filters.Regex("^\d+ \S+$")), invite_invalid_account_credentials),
             ],
@@ -198,7 +200,7 @@ if __name__ == '__main__':
         ],
         states={
             InviteAdminConvStates.PROMPT_USER: [
-                CommandHandler("cancel", invite_admin_cancel, filters=disable_edited_msg()),
+                MessageHandler(disable_edited_msg(main_menu_text_filter), invite_admin_cancel),
                 MessageHandler(disable_edited_msg(filters.StatusUpdate.USERS_SHARED), invite_admin_shared),
                 MessageHandler(disable_edited_msg(~filters.StatusUpdate.USERS_SHARED), invite_admin_shared_invalid),
             ],
@@ -209,7 +211,7 @@ if __name__ == '__main__':
         }
     )
 
-    cancel_command_handler = CommandHandler("cancel", hedge_cancel, filters=disable_edited_msg())
+    cancel_command_handler = MessageHandler(disable_edited_msg(main_menu_text_filter), hedge_cancel)
 
     hedge_conv = ConversationHandler(
         name="hedge_conversation",

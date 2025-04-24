@@ -30,7 +30,7 @@ share_handle_msg = (GENERATE_ADMIN_INVITE_PREFIX_MD2
 async def invite_admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.warning(f"[Invite Admin Start], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
     await update.message.reply_text(
-        share_handle_msg + "\n\nИспользуйте /cancel, чтобы вернуться в главное меню\.",
+        share_handle_msg,
         reply_markup=choose_user_markup,
         parse_mode=ParseMode.MARKDOWN_V2,
     )

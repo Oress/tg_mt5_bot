@@ -70,7 +70,7 @@ class MT5Service:
 
         return False
 
-    def get_price_for_short(self, account_number: int, pwd: str, symbol: str) -> bool:
+    def get_price_for_short(self, account_number: int, pwd: str, symbol: str) -> Decimal:
         logger.info(f"[MT5|get_price_for_short] account_number: {account_number}, symbol: {symbol}")
         try:
             with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
@@ -83,7 +83,7 @@ class MT5Service:
                     print('info_tick', info_tick)
 
                     price = info_tick.bid
-                    return price
+                    return round_flt_to_4_decimal(price)
         except MT5InvalidCreds as e:
             logger.error(f"[MT5|Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Invalid credentials: {e}")
