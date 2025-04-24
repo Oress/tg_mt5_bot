@@ -8,6 +8,7 @@ from telegram import helpers, Update, ReplyKeyboardMarkup, KeyboardButton, Reply
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
+from tg_server.constants.Instruments import available_instruments, get_instrument_by_label, get_instrument_by_symbol
 from tg_server.database.db import engine
 from tg_server.database.models import Order
 from tg_server.handlers.commons import send_main_menu, KeyboardButtons, remove_exponent, round_flt_to_4_decimal
@@ -22,8 +23,7 @@ logger = logging.getLogger(__name__)
 HEDGE_PREFIX_MD2 = "*\[Хедж\]*\n"
 
 # TODO: maybe add them to the DB tables instead.
-inst_env_str = os.getenv("HEDGE_INSTRUMENTS")
-inst_list = inst_env_str.split(";") if inst_env_str else []
+inst_list = [x.label for x in available_instruments]
 
 cities_env_str = os.getenv("HEDGE_CITIES")
 cities_list = cities_env_str.split(";") if cities_env_str else []
@@ -124,7 +124,8 @@ async def hedge_invalid_instrument_selected(update: Update, context: ContextType
 
 async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"[Hedge Instrument Selected], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
-    instrument_str = update.message.text
+    instrument = get_instrument_by_label(update.message.text)
+    instrument_str = instrument.symbol
 
     sym_info = None
     with Session(engine) as session:
@@ -137,8 +138,8 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
         operation = context.user_data[UD_KEY_HEDGE_OPERATION]
         sym_info = mt5service.symbol_info(user.mt5_acc_number, pwd_decrypted_bytes.decode(), instrument_str)
 
-        avail_to_spend_dcm = Decimal(0)
         if operation == KeyboardButtons.BUY:
+            avail_to_spend_dcm = Decimal(0)
             open_positions = mt5service.positions_get(user.mt5_acc_number, pwd_decrypted_bytes.decode(), instrument_str)
             if len(open_positions) == 0:
                 await update.message.reply_text(
@@ -151,17 +152,17 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
                 print(open_positions)
                 avail_to_spend_dcm = round_flt_to_4_decimal(open_positions[0].volume) * Decimal(sym_info.trade_contract_size)
 
-            symbol_info_msg = (f"Сколько (евро)?\n"
+            symbol_info_msg = (f"Сколько ({instrument.base})?\n"
                                f"Инструмент: {sym_info.description}\n"
-                               f"Доступно для покупки: {remove_exponent(avail_to_spend_dcm)}\n"
+                               f"Доступно для покупки: {remove_exponent(avail_to_spend_dcm)} {instrument.base}"
                                # f"Мин. объем: {sym_info.volume_min}\n"
                                # f"Макс. объем: {sym_info.volume_max}\n"
                                # f"Шаг: {sym_info.volume_step}"
                                + use_cancel_msg
                                )
         elif operation == KeyboardButtons.SELL:
-            symbol_info_msg = (f"Сколько (евро)?\n"
-                               f"Инструмент: {sym_info.description}\n"
+            symbol_info_msg = (f"Сколько ({instrument.base})?\n"
+                               f"Инструмент: {sym_info.description}"
                                # f"Мин. объем: {sym_info.volume_min}\n"
                                # f"Макс. объем: {sym_info.volume_max}\n"
                                # f"Шаг: {sym_info.volume_step}"
@@ -319,11 +320,13 @@ async def hedge_city_selected(update: Update, context: ContextTypes.DEFAULT_TYPE
             context.user_data.get(UD_KEY_HEDGE_INSTRUMENT),
         )
 
+
+    instrument = get_instrument_by_symbol(context.user_data.get(UD_KEY_HEDGE_INSTRUMENT))
     now_dt_utc = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
     preview_msg = (f"Предварительный просмотр: \n"
                    f"Операция: {context.user_data.get(UD_KEY_HEDGE_OPERATION)}\n"
-                   f"Инструмент: {context.user_data.get(UD_KEY_HEDGE_INSTRUMENT)}\n"
-                   f"Сколько: {context.user_data.get(UD_KEY_HEDGE_EURO)}\n"
+                   f"Инструмент: {instrument.label}\n"
+                   f"Сколько: {context.user_data.get(UD_KEY_HEDGE_EURO)} {instrument.base}\n"
                    f"Цена (на {now_dt_utc}): {price_per_unit}\n"
                    f"Город: {context.user_data.get(UD_KEY_HEDGE_CITY)}\n"
                    )

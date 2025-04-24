@@ -46,7 +46,6 @@ def check_env_variables():
         "MT5_PORT",
         "MT5_SERVER",
 
-        "HEDGE_INSTRUMENTS",
         "HEDGE_CITIES",
 
         "TG_BOT_TOKEN",
