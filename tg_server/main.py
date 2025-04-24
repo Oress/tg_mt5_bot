@@ -119,6 +119,10 @@ def start_session() -> scoped_session:
 def disable_edited_msg(filter=None):
     return filter & ~filters.UpdateType.EDITED_MESSAGE if filter else ~filters.UpdateType.EDITED_MESSAGE
 
+async def global_error_handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.error(f"[Global error handler] Error: {context.error}, chat_id: {update.effective_chat.id}, message: {update.effective_message.text}, username: {update.effective_user.username}, user_id {update.effective_user.id}" , exc_info=context.error)
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Произошла ошибка. Пожалуйста, попробуйте позже.")
+
 if __name__ == '__main__':
     tg_bot_token = os.getenv("TG_BOT_TOKEN")
 
@@ -127,6 +131,8 @@ if __name__ == '__main__':
                    .persistence(PostgresPersistence(session=start_session()))
                    .build()
                    )
+
+    application.add_error_handler(global_error_handle)
 
     job_queue = application.job_queue
     job_minute = job_queue.run_repeating(remove_expired_links, interval=30 * 60, first=10)
