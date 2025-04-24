@@ -98,4 +98,13 @@
                                  referencedColumnNames="tg_id"/>
     </changeSet>
 
+    <changeSet id="add type and euro_amount columns to tgb_orders" author="oress">
+        <addColumn tableName="tgb_orders">
+            <column name="type" type="text"/>
+            <column name="instrument" type="text"/>
+            <column name="acc_number" type="bigint"/>
+            <column name="euro_amount" type="decimal(19,6)"/>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

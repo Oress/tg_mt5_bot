@@ -31,7 +31,7 @@ async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                  f"Баланс: {acc_balance.balance}\n"
                  f"Капитал: {acc_balance.equity}\n"
                  f"Прибыль: {acc_balance.profit}\n"
-                 f"Маржа: {acc_balance.margin}\n\n"
+                 # f"Маржа: {acc_balance.margin}\n\n"
                  f"на {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}")
 
         await context.bot.send_message(chat_id=update.effective_chat.id,

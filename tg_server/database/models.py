@@ -71,11 +71,15 @@ class TgUser(Base):
 class Order(Base):
     __tablename__ = "tgb_orders"
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
-    user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    user_id: Mapped[int] = mapped_column(BigInteger)
     deal: Mapped[str] = mapped_column(String)
     city: Mapped[str] = mapped_column(String)
+    acc_number: Mapped[int] = mapped_column(BigInteger)
+    instrument: Mapped[str] = mapped_column(String)
     order: Mapped[str] = mapped_column(String)
     volume: Mapped[float] = mapped_column(Float)
+    type: Mapped[str] = mapped_column(String)
+    euro_amount: Mapped[float] = mapped_column(Float)
     price: Mapped[float] = mapped_column(Float)
     bid: Mapped[float] = mapped_column(Float)
     ask: Mapped[float] = mapped_column(Float)

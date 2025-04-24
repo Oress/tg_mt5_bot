@@ -1,5 +1,6 @@
 import logging
 import os
+from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 
 from sqlalchemy.orm.session import Session
@@ -9,7 +10,7 @@ from telegram.ext import ContextTypes
 
 from tg_server.database.db import engine
 from tg_server.database.models import Order
-from tg_server.handlers.commons import send_main_menu, KeyboardButtons
+from tg_server.handlers.commons import send_main_menu, KeyboardButtons, remove_exponent, round_flt_to_4_decimal
 from tg_server.handlers.states import ConversationStates, HedgeConvStates
 from tg_server.mt5.mt5service import mt5service
 from tg_server.security.encryptor import pwd_encryptor
@@ -31,10 +32,9 @@ cities_list.sort()
 UD_KEY_HEDGE_OPERATION = "UD_KEY_HEDGE_OPERATION"
 UD_KEY_HEDGE_INSTRUMENT = "UD_KEY_HEDGE_INSTRUMENT"
 UD_KEY_HEDGE_VOLUME = "UD_KEY_HEDGE_VOLUME"
+UD_KEY_HEDGE_EURO = "UD_KEY_HEDGE_EURO"
 UD_KEY_HEDGE_PRICE = "UD_KEY_HEDGE_PRICE"
 UD_KEY_HEDGE_CITY = "UD_KEY_HEDGE_CITY"
-
-UD_KEY_HEDGE_SYM_INFO_CONTRACT_SIZE = "hedge_sym_info_contract_size"
 
 select_operation_menu_markup = ReplyKeyboardMarkup(
     [[KeyboardButton(KeyboardButtons.BUY), KeyboardButton(KeyboardButtons.SELL)]],
@@ -126,7 +126,6 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
     logger.info(f"[Hedge Instrument Selected], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
     instrument_str = update.message.text
 
-    context.user_data[UD_KEY_HEDGE_INSTRUMENT] = instrument_str
     sym_info = None
     with Session(engine) as session:
         user_service = UserService(session)
@@ -134,27 +133,50 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
         user = user_service.get_user_by_id(user_id)
 
         pwd_decrypted_bytes = pwd_encryptor.decrypt(user.mt5_acc_pwd_enc)
+
+        operation = context.user_data[UD_KEY_HEDGE_OPERATION]
         sym_info = mt5service.symbol_info(user.mt5_acc_number, pwd_decrypted_bytes.decode(), instrument_str)
 
+        avail_to_spend_dcm = Decimal(0)
+        if operation == KeyboardButtons.BUY:
+            open_positions = mt5service.positions_get(user.mt5_acc_number, pwd_decrypted_bytes.decode(), instrument_str)
+            if len(open_positions) == 0:
+                await update.message.reply_text(
+                    HEDGE_PREFIX_MD2 + helpers.escape_markdown("Нет активных ордеров, пожалуйста начните сначала.", 2),
+                    reply_markup=ReplyKeyboardRemove(),
+                    parse_mode=ParseMode.MARKDOWN_V2,
+                    )
+                return await hedge_start(update, context)
+            else:
+                print(open_positions)
+                avail_to_spend_dcm = round_flt_to_4_decimal(open_positions[0].volume) * Decimal(sym_info.trade_contract_size)
+
+            symbol_info_msg = (f"Сколько (евро)?\n"
+                               f"Инструмент: {sym_info.description}\n"
+                               f"Доступно для покупки: {remove_exponent(avail_to_spend_dcm)}\n"
+                               # f"Мин. объем: {sym_info.volume_min}\n"
+                               # f"Макс. объем: {sym_info.volume_max}\n"
+                               # f"Шаг: {sym_info.volume_step}"
+                               + use_cancel_msg
+                               )
+        elif operation == KeyboardButtons.SELL:
+            symbol_info_msg = (f"Сколько (евро)?\n"
+                               f"Инструмент: {sym_info.description}\n"
+                               # f"Мин. объем: {sym_info.volume_min}\n"
+                               # f"Макс. объем: {sym_info.volume_max}\n"
+                               # f"Шаг: {sym_info.volume_step}"
+                               + use_cancel_msg
+                               )
+        context.user_data[UD_KEY_HEDGE_INSTRUMENT] = instrument_str
+
         # To enable symbol in the MT5 terminal and get the price in the next step, otherwise it will return 0
-        mt5service.get_price(
+        mt5service.get_price_for_short(
             user.mt5_acc_number,
             pwd_decrypted_bytes.decode(),
-            context.user_data.get(UD_KEY_HEDGE_INSTRUMENT),
-            context.user_data.get(UD_KEY_HEDGE_OPERATION) == KeyboardButtons.BUY
+            context.user_data.get(UD_KEY_HEDGE_INSTRUMENT)
         )
 
 
-    context.user_data[UD_KEY_HEDGE_SYM_INFO_CONTRACT_SIZE] = sym_info.trade_contract_size
-
-    symbol_info_msg = (f"Объем(лоты)? \n\n"
-                       f"Инструмент: {sym_info.description}\n"
-                       f"Размер контракта: {sym_info.trade_contract_size}\n"
-                       f"Мин. объем: {sym_info.volume_min}\n"
-                       f"Макс. объем: {sym_info.volume_max}\n"
-                       f"Шаг: {sym_info.volume_step}\n\n"
-                       + use_cancel_msg
-                       )
     await update.message.reply_text(
         HEDGE_PREFIX_MD2 + helpers.escape_markdown(symbol_info_msg, 2),
         reply_markup=ReplyKeyboardRemove(),
@@ -166,7 +188,7 @@ async def hedge_invalid_volume_selected(update: Update, context: ContextTypes.DE
     logger.warning(f"[Hedge Invalid Volume], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
     await update.message.reply_text(
         HEDGE_PREFIX_MD2 + helpers.escape_markdown((
-            "Неверный объем. Введите допустимое число."
+            "Неверная сумма. Введите допустимое число."
             + use_cancel_msg
         ), 2),
         reply_markup=ReplyKeyboardRemove(),
@@ -177,11 +199,69 @@ async def hedge_invalid_volume_selected(update: Update, context: ContextTypes.DE
 
 async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"[Hedge Volume Selected], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id} message: {update.effective_message.text}")
-    volume_str = update.message.text
+    eur_str = update.message.text
 
     try:
-        volume_flt = float(volume_str)
-        context.user_data[UD_KEY_HEDGE_VOLUME] = volume_flt
+        eur_dcm = Decimal(eur_str)
+        sym_info = None
+        with Session(engine) as session:
+            user_service = UserService(session)
+            user_id = update.effective_user.id
+            user = user_service.get_user_by_id(user_id)
+
+            pwd_decrypted_bytes = pwd_encryptor.decrypt(user.mt5_acc_pwd_enc)
+
+            instrument_str = context.user_data.get(UD_KEY_HEDGE_INSTRUMENT)
+            sym_info = mt5service.symbol_info(user.mt5_acc_number, pwd_decrypted_bytes.decode(), instrument_str)
+
+            operation = context.user_data[UD_KEY_HEDGE_OPERATION]
+
+            if operation == KeyboardButtons.BUY:
+                open_positions = mt5service.positions_get(user.mt5_acc_number, pwd_decrypted_bytes.decode(), instrument_str)
+                avail_to_spend = round_flt_to_4_decimal(open_positions[0].volume) * Decimal(sym_info.trade_contract_size)
+
+        # Check the euro amnt is more than the min amount
+        min_amount_eur = sym_info.volume_min * sym_info.trade_contract_size
+        if eur_dcm < min_amount_eur:
+            await update.message.reply_text(
+                HEDGE_PREFIX_MD2 + helpers.escape_markdown(f"Минимальная сумма: {remove_exponent(min_amount_eur.normalize())}", 2),
+                reply_markup=ReplyKeyboardRemove(),
+                parse_mode=ParseMode.MARKDOWN_V2,
+                )
+            return await hedge_invalid_volume_selected(update, context)
+
+        # Check the euro amnt is less than the available amount
+        max_amount_eur = sym_info.volume_max * sym_info.trade_contract_size
+        if eur_dcm > max_amount_eur:
+            await update.message.reply_text(
+                HEDGE_PREFIX_MD2 + helpers.escape_markdown(f"Максимальная сумма: {remove_exponent(max_amount_eur.normalize())}", 2),
+                reply_markup=ReplyKeyboardRemove(),
+                parse_mode=ParseMode.MARKDOWN_V2,
+                )
+            return await hedge_invalid_volume_selected(update, context)
+
+        # Check the euro amnt is divisible by the step
+        step_eur = sym_info.volume_step * sym_info.trade_contract_size
+        if eur_dcm % step_eur != 0:
+            await update.message.reply_text(
+                HEDGE_PREFIX_MD2 + helpers.escape_markdown(f"Сумма должна быть кратна: {remove_exponent(step_eur.normalize())}", 2),
+                reply_markup=ReplyKeyboardRemove(),
+                parse_mode=ParseMode.MARKDOWN_V2,
+                )
+            return await hedge_invalid_volume_selected(update, context)
+
+        # In case of buying, check the euro amnt is less than the available amount
+        if operation == KeyboardButtons.BUY and avail_to_spend:
+            if eur_dcm > avail_to_spend:
+                await update.message.reply_text(
+                    HEDGE_PREFIX_MD2 + helpers.escape_markdown(f"Максимальная сумма: {remove_exponent(avail_to_spend.normalize())}", 2),
+                    reply_markup=ReplyKeyboardRemove(),
+                    parse_mode=ParseMode.MARKDOWN_V2,
+                    )
+                return await hedge_invalid_volume_selected(update, context)
+
+        context.user_data[UD_KEY_HEDGE_VOLUME] = str(eur_dcm / sym_info.trade_contract_size)
+        context.user_data[UD_KEY_HEDGE_EURO] = str(eur_dcm)
     except (ValueError, TypeError):
        return hedge_invalid_volume_selected(update, context)
 
@@ -195,6 +275,7 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
     )
 
     return HedgeConvStates.SELECT_CITY
+
 
 async def hedge_invalid_city_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.warning(f"[Hedge Invalid City], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
@@ -226,29 +307,24 @@ async def hedge_city_selected(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     context.user_data[UD_KEY_HEDGE_CITY] = city_str
 
-    volume = context.user_data[UD_KEY_HEDGE_VOLUME]
-    trade_contract_size = context.user_data[UD_KEY_HEDGE_SYM_INFO_CONTRACT_SIZE]
-
     with Session(engine) as session:
         user_service = UserService(session)
         user_id = update.effective_user.id
         user = user_service.get_user_by_id(user_id)
         pwd_decrypted_bytes = pwd_encryptor.decrypt(user.mt5_acc_pwd_enc)
 
-        price_per_unit = mt5service.get_price(
+        price_per_unit = mt5service.get_price_for_short(
             user.mt5_acc_number,
             pwd_decrypted_bytes.decode(),
             context.user_data.get(UD_KEY_HEDGE_INSTRUMENT),
-            context.user_data.get(UD_KEY_HEDGE_OPERATION) == KeyboardButtons.BUY
         )
 
-        money_equivalent = volume * trade_contract_size * price_per_unit
-        money_equivalent_dcm = Decimal(money_equivalent).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    now_dt_utc = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
     preview_msg = (f"Предварительный просмотр: \n"
                    f"Операция: {context.user_data.get(UD_KEY_HEDGE_OPERATION)}\n"
                    f"Инструмент: {context.user_data.get(UD_KEY_HEDGE_INSTRUMENT)}\n"
-                   f"Объем: {context.user_data.get(UD_KEY_HEDGE_VOLUME)}\n"
-                   f"Цена (приблизительно): {money_equivalent_dcm}\n"
+                   f"Сколько: {context.user_data.get(UD_KEY_HEDGE_EURO)}\n"
+                   f"Цена (на {now_dt_utc}): {price_per_unit}\n"
                    f"Город: {context.user_data.get(UD_KEY_HEDGE_CITY)}\n"
                    )
     await update.message.reply_text(
@@ -289,21 +365,70 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
             user = user_service.get_user_by_id(user_id)
 
             pwd_decrypted_bytes = pwd_encryptor.decrypt(user.mt5_acc_pwd_enc)
-            order_result = mt5service.place_order(user.mt5_acc_number,
-                                                  pwd_decrypted_bytes.decode(),
-                                                  context.user_data.get(UD_KEY_HEDGE_OPERATION) == KeyboardButtons.BUY,
-                                                  context.user_data.get(UD_KEY_HEDGE_INSTRUMENT),
-                                                  context.user_data.get(UD_KEY_HEDGE_VOLUME))
-            new_order: Order = order_service.save_order_to_db(user_id,
-                                                              context.user_data.get(UD_KEY_HEDGE_CITY),
-                                                              order_result)
-            session.commit()
-            order_msg = (
-                f"Ордер #: {new_order.id}\n"
-                f"Цена: {new_order.price}\n"
-                f"Город: {new_order.city}\n"
-                f"Дата: {new_order.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
-                        )
+
+            symbol = context.user_data.get(UD_KEY_HEDGE_INSTRUMENT)
+
+            operation = context.user_data[UD_KEY_HEDGE_OPERATION]
+            if operation == KeyboardButtons.BUY:
+                positions = mt5service.positions_get(user.mt5_acc_number, pwd_decrypted_bytes.decode(), symbol)
+                if len(positions) != 0:
+                    order_result = mt5service.close_short_order(user.mt5_acc_number,
+                                                                pwd_decrypted_bytes.decode(),
+                                                                positions[0].ticket,
+                                                                context.user_data.get(UD_KEY_HEDGE_INSTRUMENT),
+                                                                Decimal(context.user_data.get(UD_KEY_HEDGE_VOLUME)))
+                    if order_result is None:
+                        raise RuntimeError(f"Something went wrong")
+                    elif order_result.retcode not in [10008, 10009, 10010]:
+                        logger.error(f"[Hedge Place Order Error] No recent order found for user_id: {user_id}")
+                        await update.message.reply_text(
+                            HEDGE_PREFIX_MD2 + helpers.escape_markdown(report_on_order_send(order_result), 2),
+                            parse_mode=ParseMode.MARKDOWN_V2)
+                        await send_main_menu(update, context)
+                        return ConversationStates.MAIN_MENU
+
+                    new_order: Order = order_service.save_close_order_to_db(user_id,
+                                                                            context.user_data.get(UD_KEY_HEDGE_CITY),
+                                                                            user.mt5_acc_number,
+                                                                            context.user_data.get(UD_KEY_HEDGE_EURO),
+                                                                            order_result)
+                    session.commit()
+                    order_msg = (
+                        f"Ордер #: {new_order.id}\n"
+                        f"Цена: {new_order.price}\n"
+                        f"Город: {new_order.city}\n"
+                        f"Дата: {new_order.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
+                    )
+                else:
+                    logger.error(f"[Hedge Place Order Error] No recent order found for user_id: {user_id}")
+                    raise RuntimeError(f"Incorrect trade account credentials")
+            elif operation == KeyboardButtons.SELL:
+                order_result = mt5service.place_short_order(user.mt5_acc_number,
+                                                            pwd_decrypted_bytes.decode(),
+                                                            context.user_data.get(UD_KEY_HEDGE_INSTRUMENT),
+                                                            Decimal(context.user_data.get(UD_KEY_HEDGE_VOLUME)))
+                new_order: Order = order_service.save_short_order_to_db(user_id,
+                                                                        context.user_data.get(UD_KEY_HEDGE_CITY),
+                                                                        user.mt5_acc_number,
+                                                                        context.user_data.get(UD_KEY_HEDGE_EURO),
+                                                                        order_result)
+                session.commit()
+                order_msg = (
+                    f"Ордер #: {new_order.id}\n"
+                    f"Цена: {new_order.price}\n"
+                    f"Город: {new_order.city}\n"
+                    f"Дата: {new_order.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
+                            )
+            else:
+                await update.message.reply_text(
+                    HEDGE_PREFIX_MD2 + helpers.escape_markdown((
+                        "Неверный тип операции."
+                        + use_cancel_msg
+                    ), 2),
+                    reply_markup=select_operation_menu_markup,
+                    parse_mode=ParseMode.MARKDOWN_V2,
+                )
+                return HedgeConvStates.SELECT_OPERATION
 
         await update.message.reply_text(
             HEDGE_PREFIX_MD2 + helpers.escape_markdown(report_on_order_send(order_result), 2)
@@ -312,7 +437,6 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
             reply_markup=select_operation_menu_markup,
             parse_mode=ParseMode.MARKDOWN_V2,
         )
-
 
         await send_main_menu(update, context)
         return ConversationStates.MAIN_MENU

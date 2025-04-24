@@ -197,8 +197,8 @@ if __name__ == '__main__':
             ],
             HedgeConvStates.SELECT_VOLUME: [
                 cancel_command_handler,
-                MessageHandler(disable_edited_msg(filters.Regex("^[1-9]\d*(\.\d{1,2})?$|^0\.\d{1,2}$")), hedge_volume_selected),
-                MessageHandler(disable_edited_msg(~filters.Regex("^[1-9]\d*(\.\d{1,2})?$|^0\.\d{1,2}$")), hedge_invalid_volume_selected)
+                MessageHandler(disable_edited_msg(filters.Regex("^[1-9]\d*$")), hedge_volume_selected),
+                MessageHandler(disable_edited_msg(~filters.Regex("^[1-9]\d*$")), hedge_invalid_volume_selected)
             ],
             HedgeConvStates.SELECT_CITY: [
                 cancel_command_handler,

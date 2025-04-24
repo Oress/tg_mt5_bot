@@ -1,4 +1,5 @@
 from enum import Enum
+from decimal import Decimal, ROUND_HALF_UP
 
 from sqlalchemy.orm.session import Session
 from telegram import Update
@@ -16,7 +17,7 @@ class KeyboardButtons(str, Enum):
     PREVIEW_EDIT = "Изменить"
     PLACE_ORDER = "Разместить ордер"
 
-    HEDGE = 'Хежд'
+    HEDGE = 'Хедж'
     BALANCE = 'Баланс'
 
     INVITE_USER= 'Пригласить пользователя'
@@ -48,3 +49,9 @@ async def send_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                    text="Главное меню:",
                                    reply_markup=user_main_menu_markup if user_role == UserRole.USER else admin_main_menu_markup)
 
+def remove_exponent(d):
+    return d.quantize(Decimal(1)) if d == d.to_integral() else d.normalize()
+
+reference = Decimal("0.0001")
+def round_flt_to_4_decimal(flt: float) -> Decimal:
+    return Decimal(flt).quantize(reference, rounding=ROUND_HALF_UP)

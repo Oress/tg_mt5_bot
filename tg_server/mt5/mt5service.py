@@ -32,11 +32,11 @@ class AccountBalance:
 @dataclass
 class SymbolInfo:
     description: str
-    volume_min: float
-    volume_step: float
-    volume_max: float
-    volume_limit: float
-    trade_contract_size: float
+    volume_min: Decimal
+    volume_step: Decimal
+    volume_max: Decimal
+    volume_limit: Decimal
+    trade_contract_size: Decimal
 
     def to_dict(self):
         return {
@@ -68,8 +68,8 @@ class MT5Service:
 
         return False
 
-    def get_price(self, account_number: int, pwd: str, symbol: str, buy: bool) -> bool:
-        logger.info(f"[MT5|get_price] account_number: {account_number}, symbol: {symbol}, buy: {buy}")
+    def get_price_for_short(self, account_number: int, pwd: str, symbol: str) -> bool:
+        logger.info(f"[MT5|get_price_for_short] account_number: {account_number}, symbol: {symbol}")
         try:
             with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
                 selected=session.symbol_select(symbol, True)
@@ -78,9 +78,9 @@ class MT5Service:
                     print("Failed to select symbol, error code =",session.last_error())
                 else:
                     info_tick = session.symbol_info_tick(symbol)
-                    print(info_tick)
+                    print('info_tick', info_tick)
 
-                    price = info_tick.ask if buy else info_tick.bid
+                    price = info_tick.bid
                     return price
         except MT5InvalidCreds as e:
             logger.error(f"[MT5|Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
@@ -91,31 +91,47 @@ class MT5Service:
 
         return False
 
-    def place_order(self, account_number: int, pwd: str, buy: bool, symbol: str, volume: Decimal):
-        logger.info(f"[MT5|place_order] account_number: {account_number}, symbol: {symbol}, buy: {buy}, volume: {volume}")
+    def positions_get(self, account_number: int, pwd: str, symbol: str) -> bool:
+        logger.info(f"[MT5|orders_get] account_number: {account_number}, symbol: {symbol}")
+        selected = []
+        try:
+            with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
+                selected = session.positions_get(symbol=symbol)
+                if selected is None:
+                    logger.warning(f"[MT5|orders_get], No orders for the account_number: {account_number}, symbol: {symbol}")
+                    selected = []
+
+        except MT5InvalidCreds as e:
+            logger.error(f"[MT5|Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
+            print(f"Invalid credentials: {e}")
+        except Exception as e:
+            logger.error(f"[MT5|Unknown Exception]")
+            print(f"Exception caught: {e}")
+
+        return selected
+
+    def place_short_order(self, account_number: int, pwd: str, symbol: str, volume: Decimal):
+        logger.info(f"[MT5|place_short_order] account_number: {account_number}, symbol: {symbol}, volume: {volume}")
         try:
             with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
                 info_tick = session.symbol_info_tick(symbol)
-                logger.info(f"[MT5|place_order] info_tick: {info_tick}")
-
-                price = info_tick.ask if buy else info_tick.bid
-                type = MetaTrader5.ORDER_TYPE_BUY if buy else MetaTrader5.ORDER_TYPE_SELL
+                logger.info(f"[MT5|place_short_order] info_tick: {info_tick}")
 
                 request = {
                     "action": MetaTrader5.TRADE_ACTION_DEAL,
                     "symbol": symbol,
                     "volume": float(volume),
-                    "type": type,
+                    "type": MetaTrader5.ORDER_TYPE_SELL,
                     "comment": f"TG Bot order open",
-                    "price": price,
+                    "price": info_tick.bid,
                     # "deviation": deviation,
                     # "type_time": MetaTrader5.ORDER_TIME_GTC,
                     # "type_filling": MetaTrader5.ORDER_FILLING_RETURN,
                 }
 
                 order_result = session.order_send(request)
-                logger.info(f"[MT5|place_order] order_result: {order_result}")
-                logger.info(f"[MT5|place_order] error: {session.last_error()}")
+                logger.info(f"[MT5|place_short_order] order_result: {order_result}")
+                logger.info(f"[MT5|place_short_order] error: {session.last_error()}")
                 return order_result
         except MT5InvalidCreds as e:
             logger.error(f"[MT5|Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
@@ -126,6 +142,41 @@ class MT5Service:
 
         return False
 
+    def close_short_order(self, account_number: int, pwd: str, position_id: int, symbol: str, volume: Decimal):
+        logger.info(f"[MT5|close_short_order] account_number: {account_number}, symbol: {symbol}, volume: {volume}")
+        try:
+            with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
+                info_tick = session.symbol_info_tick(symbol)
+                logger.info(f"[MT5|close_short_order] info_tick: {info_tick}")
+
+                close_request={
+                    "action": MetaTrader5.TRADE_ACTION_DEAL,
+                    "symbol": symbol,
+                    "volume": float(volume),
+                    "type": MetaTrader5.ORDER_TYPE_BUY,
+                    "position": position_id,
+                    "price": info_tick.ask,
+                    # "deviation": deviation,
+                    # "magic": ea_magic_number,
+                    "comment": "TG Bot order close",
+                    "type_time": MetaTrader5.ORDER_TIME_GTC,
+                    "type_filling": MetaTrader5.ORDER_FILLING_FOK,
+                }
+
+                order_result = session.order_send(close_request)
+                logger.info(f"[MT5|close_short_order] order_result: {order_result}")
+                logger.info(f"[MT5|close_short_order] error: {session.last_error()}")
+                return order_result
+        except MT5InvalidCreds as e:
+            logger.error(f"[MT5|Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
+            print(f"Invalid credentials: {e}")
+        except Exception as e:
+            logger.error(f"[MT5|Unknown Exception]")
+            print(f"Exception caught: {e}")
+
+        return False
+
+
     def symbol_info(self, account_number: int, pwd: str, symbol: str):
         logger.info(f"[MT5|symbol_info] account_number: {account_number}, symbol: {symbol}")
         try:
@@ -133,13 +184,14 @@ class MT5Service:
                 sym_info = session.symbol_info(symbol)
                 print(sym_info)
 
+                reference = Decimal("0.0001")
                 sym_info_model = SymbolInfo(
                     description=sym_info.description,
-                    volume_min=sym_info.volume_min,
-                    volume_step=sym_info.volume_step,
-                    volume_max=sym_info.volume_max,
-                    volume_limit=sym_info.volume_limit,
-                    trade_contract_size=sym_info.trade_contract_size
+                    volume_min=Decimal(sym_info.volume_min).quantize(reference, rounding=ROUND_HALF_UP),
+                    volume_step=Decimal(sym_info.volume_step).quantize(reference, rounding=ROUND_HALF_UP),
+                    volume_max=Decimal(sym_info.volume_max).quantize(reference, rounding=ROUND_HALF_UP),
+                    volume_limit=Decimal(sym_info.volume_limit).quantize(reference, rounding=ROUND_HALF_UP),
+                    trade_contract_size=Decimal(sym_info.trade_contract_size).quantize(reference, rounding=ROUND_HALF_UP)
                 )
                 return sym_info_model
         except MT5InvalidCreds as e:
