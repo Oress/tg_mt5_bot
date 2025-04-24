@@ -9,7 +9,7 @@ from telegram.ext import ContextTypes
 from tg_server.constants.UserRole import UserRole
 from tg_server.database.db import engine
 from tg_server.handlers.commons import send_main_menu
-from tg_server.handlers.invite import share_handle_msg, choose_user_markup
+from tg_server.handlers.invite import choose_user_markup
 from tg_server.handlers.states import InviteUserConvStates, ConversationStates, InviteAdminConvStates
 from tg_server.services.InviteLinkService import InviteLinkService
 from tg_server.services.UserService import UserService
@@ -19,18 +19,13 @@ logger = logging.getLogger(__name__)
 UD_KEY_ROLE_ON_ACCEPT = "role_on_accept"
 UD_KEY_USER_ID_TO_INVITE = "user_id_to_invite"
 
-GENERATE_ADMIN_INVITE_PREFIX_MD2 = "*\[Генерация приглашения (админ)\]*\n"
-ADMIN_INVITE_PREFIX_MD2 = "*\[Приглашение\]*\n"
+ADMIN_INVITE_PREFIX_MD2 = "*\[Приглашение \(админ\)\]*\n"
 
-
-share_handle_msg = (GENERATE_ADMIN_INVITE_PREFIX_MD2
-                    + helpers.escape_markdown("Пожалуйста, выберете пользователя, используя меню", 2)
-                    )
 
 async def invite_admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.warning(f"[Invite Admin Start], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
     await update.message.reply_text(
-        share_handle_msg,
+        helpers.escape_markdown("Пожалуйста, выберете пользователя, используя меню", 2),
         reply_markup=choose_user_markup,
         parse_mode=ParseMode.MARKDOWN_V2,
     )
@@ -54,7 +49,7 @@ async def invite_admin_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
         link = invite_link_service.get_invite_link_by_id(shared_user.user_id)
         if link is not None:
             await update.message.reply_text(
-                GENERATE_ADMIN_INVITE_PREFIX_MD2 + helpers.escape_markdown("У этого пользователя уже есть ожидающие приглашение (см. ниже). Выберите другого пользователя.", 2),
+                helpers.escape_markdown("У этого пользователя уже есть ожидающие приглашение (см. ниже). Выберите другого пользователя.", 2),
                 reply_markup=choose_user_markup,
                 parse_mode=ParseMode.MARKDOWN_V2,
                 protect_content=True
@@ -66,7 +61,7 @@ async def invite_admin_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
         contains_user = user_service.contains_user(shared_user.user_id)
         if contains_user:
             await update.message.reply_text(
-                GENERATE_ADMIN_INVITE_PREFIX_MD2 + helpers.escape_markdown("Этот пользователь уже зарегистрирован. Выберите другого пользователя.", 2),
+                helpers.escape_markdown("Этот пользователь уже зарегистрирован. Выберите другого пользователя.", 2),
                 reply_markup=choose_user_markup,
                 parse_mode=ParseMode.MARKDOWN_V2,
                 protect_content=True
@@ -74,7 +69,7 @@ async def invite_admin_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
             return InviteAdminConvStates.PROMPT_USER
 
         await update.message.reply_text(
-            GENERATE_ADMIN_INVITE_PREFIX_MD2 + helpers.escape_markdown(
+            helpers.escape_markdown(
                 f"Перешлите следующее сообщение пользователю.\nГенерация приглашения...", 2),
             parse_mode=ParseMode.MARKDOWN_V2,
             protect_content=True
@@ -88,9 +83,9 @@ async def invite_admin_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def show_admin_invite(update, context, invite_code):
     deep_link = helpers.create_deep_linked_url(context.bot.username, invite_code)
-    invite_link = f"[Нажмите здесь, чтобы присоединиться]{deep_link})"
+    invite_link = f"[Нажмите здесь, чтобы присоединиться]({deep_link})"
     await update.message.reply_text(
-        f"{ADMIN_INVITE_PREFIX_MD2}{invite_link}",
+        f"{ADMIN_INVITE_PREFIX_MD2} {invite_link}",
         parse_mode=ParseMode.MARKDOWN_V2,
     )
 
@@ -98,7 +93,7 @@ async def invite_admin_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE
     """Cancels and ends the conversation."""
     user = update.message.from_user
     logger.info("User %s canceled the conversation.", user.first_name)
-    await update.message.reply_text(GENERATE_ADMIN_INVITE_PREFIX_MD2 + helpers.escape_markdown("Отмена генерации приглашения.", 2),
+    await update.message.reply_text(helpers.escape_markdown("Отмена генерации приглашения.", 2),
                                     reply_markup=ReplyKeyboardRemove(), parse_mode=ParseMode.MARKDOWN_V2)
     await send_main_menu(update, context)
     return ConversationStates.MAIN_MENU

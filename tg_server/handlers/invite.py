@@ -21,13 +21,7 @@ logger = logging.getLogger(__name__)
 
 UD_KEY_USER_ID_TO_INVITE = "user_id_to_invite"
 
-GENERATE_INVITE_PREFIX_MD2 = "*\[Генерация приглашения\]*\n"
 USER_INVITE_PREFIX_MD2 = "*\[Приглашение\]*\n"
-
-share_handle_msg = (GENERATE_INVITE_PREFIX_MD2
-                    + helpers.escape_markdown("Пожалуйста, выберете пользователя, используя меню", 2)
-                    )
-
 
 # TODO: request_id ????
 choose_user_markup = ReplyKeyboardMarkup(
@@ -41,7 +35,7 @@ async def invite_user_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"[Invite start], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
 
     await update.message.reply_text(
-        share_handle_msg,
+        helpers.escape_markdown("Пожалуйста, выберете пользователя, используя меню", 2),
         reply_markup=choose_user_markup,
         parse_mode=ParseMode.MARKDOWN_V2,
     )
@@ -54,8 +48,7 @@ async def invite_users_shared_invalid(update: Update, context: ContextTypes.DEFA
     return await invite_user_start(update, context)
 
 
-prompt_creds_msg = (GENERATE_INVITE_PREFIX_MD2
-                    + helpers.escape_markdown(
+prompt_creds_msg = (helpers.escape_markdown(
             "Пожалуйста, предоставьте данные учетной записи Gerchik в следующем формате:\n", 2)
                     + "```формат \<account_number\> \<password\> ```"
                     + "\n\n*__\(Сообщение с учетными данными будет удалено\)__*")
@@ -74,7 +67,7 @@ async def invite_users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
         if link is not None:
             logger.warning(f"[Invite link exists], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
             await update.message.reply_text(
-                GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("У этого пользователя уже есть ожидающие приглашение (см. ниже). Выберите другого пользователя.", 2),
+                helpers.escape_markdown("У этого пользователя уже есть ожидающие приглашение (см. ниже). Выберите другого пользователя.", 2),
                 reply_markup=choose_user_markup,
                 parse_mode=ParseMode.MARKDOWN_V2,
                 protect_content=True
@@ -87,7 +80,7 @@ async def invite_users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
         if contains_user:
             logger.warning(f"[Invite user exists], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
             await update.message.reply_text(
-                GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Этот пользователь уже зарегистрирован. Выберите другого пользователя.", 2),
+                helpers.escape_markdown("Этот пользователь уже зарегистрирован. Выберите другого пользователя.", 2),
                 reply_markup=choose_user_markup,
                 parse_mode=ParseMode.MARKDOWN_V2,
                 protect_content=True
@@ -108,7 +101,7 @@ async def invite_users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def invite_invalid_account_credentials(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.warning(f"[Invite invalid creds], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
     await update.message.reply_text(
-        GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Неверный формат учетных данных. Попробуйте еще раз.", 2),
+        helpers.escape_markdown("Неверный формат учетных данных. Попробуйте еще раз.", 2),
         parse_mode=ParseMode.MARKDOWN_V2,
         protect_content=True
     )
@@ -124,8 +117,7 @@ async def invite_account_credentials(update: Update, context: ContextTypes.DEFAU
 
     await update.message.delete()
 
-    await update.message.reply_text(
-        GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown(f"Проверка учетных данных...", 2),
+    await update.message.reply_text(helpers.escape_markdown(f"Проверка учетных данных...", 2),
         parse_mode=ParseMode.MARKDOWN_V2,
         protect_content=True
     )
@@ -138,7 +130,7 @@ async def invite_account_credentials(update: Update, context: ContextTypes.DEFAU
         if user_with_same_account:
             logger.warning(f"[Invite user with same account#], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
             await update.message.reply_text(
-                GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Пользователь с таким номером счета уже существует. Введите учетные данные для другого счета.", 2),
+                helpers.escape_markdown("Пользователь с таким номером счета уже существует. Введите учетные данные для другого счета.", 2),
                 parse_mode=ParseMode.MARKDOWN_V2,
                 protect_content=True
             )
@@ -148,7 +140,7 @@ async def invite_account_credentials(update: Update, context: ContextTypes.DEFAU
         if link_by_account_num:
             logger.warning(f"[Invite link with same account#], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
             await update.message.reply_text(
-                GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Приглашение с таким же номером счета уже существует. Введите учетные данные для другого счета.", 2),
+                helpers.escape_markdown("Приглашение с таким же номером счета уже существует. Введите учетные данные для другого счета.", 2),
                 parse_mode=ParseMode.MARKDOWN_V2,
                 protect_content=True
             )
@@ -158,14 +150,14 @@ async def invite_account_credentials(update: Update, context: ContextTypes.DEFAU
         if not valid_creds:
             logger.warning(f"[Invite invalid creds], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
             await update.message.reply_text(
-                GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Учетные данные недействительны. Попробуйте еще раз.", 2),
+                helpers.escape_markdown("Учетные данные недействительны. Попробуйте еще раз.", 2),
                 parse_mode=ParseMode.MARKDOWN_V2,
                 protect_content=True
             )
             return InviteUserConvStates.PROMPT_CREDENTIALS
 
         await update.message.reply_text(
-            GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown(
+            helpers.escape_markdown(
                 f"Учетные данные действительны.\nПерешлите следующее сообщение пользователю.\nГенерация приглашения...", 2),
             parse_mode=ParseMode.MARKDOWN_V2,
             protect_content=True
@@ -195,7 +187,7 @@ async def invite_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.warning(f"[Invite cancel], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
     user = update.message.from_user
     logger.info("User %s canceled the conversation.", user.first_name)
-    await update.message.reply_text(GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Отмена генерации приглашения.", 2),
+    await update.message.reply_text(helpers.escape_markdown("Отмена генерации приглашения.", 2),
                                     reply_markup=ReplyKeyboardRemove(), parse_mode=ParseMode.MARKDOWN_V2)
     await send_main_menu(update, context)
     return ConversationStates.MAIN_MENU
