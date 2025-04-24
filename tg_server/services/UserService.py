@@ -30,3 +30,11 @@ class UserService:
 
     def contains_user(self, user_id: int) -> bool:
         return self.get_user_by_id(user_id) is not None
+
+    def change_user_credentials(self, shared_user_id, account_number, encrypted_pwd):
+        user = self.get_user_by_id(shared_user_id)
+        if user:
+            user.mt5_acc_number = account_number
+            user.mt5_acc_pwd_enc = encrypted_pwd
+        else:
+            raise ValueError(f"User with ID {shared_user_id} not found.")

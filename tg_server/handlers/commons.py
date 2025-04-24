@@ -10,6 +10,9 @@ from tg_server.database.db import engine
 from tg_server.services.UserService import UserService
 from telegram import ReplyKeyboardMarkup, KeyboardButton
 
+use_cancel_msg = "\n\nИспользуйте /cancel, чтобы вернуться в главное меню."
+
+
 class KeyboardButtons(str, Enum):
     BUY = "Купить"
     SELL = "Продать"
@@ -20,6 +23,7 @@ class KeyboardButtons(str, Enum):
     HEDGE = 'Хедж'
     BALANCE = 'Баланс'
 
+    CHANGE_USER_ACCOUNT_CREDS= 'Изменить учетные данные для пользователя'
     INVITE_USER= 'Пригласить пользователя'
     INVITE_ADMIN= 'Пригласить админа'
 
@@ -32,6 +36,7 @@ user_main_menu_keyboard = [
 admin_main_menu_keyboard = [
     user_main_menu_keyboard[0],
     [KeyboardButton(KeyboardButtons.INVITE_USER), KeyboardButton(KeyboardButtons.INVITE_ADMIN)],
+    [KeyboardButton(KeyboardButtons.CHANGE_USER_ACCOUNT_CREDS)]
 ]
 
 user_main_menu_markup = ReplyKeyboardMarkup(user_main_menu_keyboard, one_time_keyboard=True, resize_keyboard=True)

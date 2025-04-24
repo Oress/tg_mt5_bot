@@ -12,6 +12,8 @@ from handlers.invite import invite_user_start, invite_cancel, invite_users_share
 from tg_server.constants.UserRole import UserRole
 from tg_server.database.db import engine
 from tg_server.handlers.balance import balance_command
+from tg_server.handlers.change_creds import change_creds_start, change_creds_cancel, change_creds_shared, \
+    change_creds_shared_invalid, change_creds_invalid_account_credentials, change_creds_account_credentials
 from tg_server.handlers.commons import KeyboardButtons
 from tg_server.handlers.filters.AuthFilter import manager_filter, user_filter, admin_filter
 from tg_server.handlers.hedge import hedge_start, hedge_operation_selected, hedge_instrument_selected, \
@@ -22,7 +24,8 @@ from tg_server.handlers.help import help_command_admin, help_command_user, help_
 from tg_server.handlers.invite_admin import invite_admin_start, invite_admin_cancel, invite_admin_shared, \
     invite_admin_shared_invalid
 from tg_server.handlers.start import start_command
-from tg_server.handlers.states import ConversationStates, InviteUserConvStates, HedgeConvStates, InviteAdminConvStates
+from tg_server.handlers.states import ConversationStates, InviteUserConvStates, HedgeConvStates, InviteAdminConvStates, \
+    ChangeCredsConvStates
 from tg_server.services.InviteLinkService import InviteLinkService
 from tg_server.services.UserService import UserService
 
@@ -128,6 +131,32 @@ if __name__ == '__main__':
     job_queue = application.job_queue
     job_minute = job_queue.run_repeating(remove_expired_links, interval=30 * 60, first=10)
 
+
+    change_creds_conv = ConversationHandler(
+        name="change_creds_conversation",
+        persistent=True,
+        entry_points=[
+            CommandHandler("changecreds", change_creds_start, filters=disable_edited_msg(manager_filter)),
+            MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.CHANGE_USER_ACCOUNT_CREDS]) & manager_filter), change_creds_start)
+        ],
+        states={
+            ChangeCredsConvStates.PROMPT_USER: [
+                CommandHandler("cancel", change_creds_cancel, filters=disable_edited_msg()),
+                MessageHandler(disable_edited_msg(filters.StatusUpdate.USERS_SHARED), change_creds_shared),
+                MessageHandler(disable_edited_msg(~filters.StatusUpdate.USERS_SHARED), change_creds_shared_invalid),
+            ],
+            ChangeCredsConvStates.PROMPT_CREDENTIALS: [
+                CommandHandler("cancel", invite_cancel, filters=disable_edited_msg()),
+                MessageHandler(disable_edited_msg(filters.Regex("^\d+ \S+$")), change_creds_account_credentials),
+                MessageHandler(disable_edited_msg(~filters.Regex("^\d+ \S+$")), change_creds_invalid_account_credentials),
+            ],
+        },
+        fallbacks=[],
+        map_to_parent={
+            ConversationStates.MAIN_MENU: ConversationStates.MAIN_MENU,
+        }
+    )
+
     # TODO: conversation_timeout and allow_reentry ?
     invite_user_conv = ConversationHandler(
         name="invite_user_conversation",
@@ -227,6 +256,7 @@ if __name__ == '__main__':
                 MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.BALANCE]) & user_filter), balance_command),
                 invite_user_conv,
                 invite_admin_conv,
+                change_creds_conv,
                 hedge_conv,
                 CommandHandler(["start", "menu"], start_command, filters=disable_edited_msg()),
             ],

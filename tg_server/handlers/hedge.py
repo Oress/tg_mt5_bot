@@ -11,7 +11,8 @@ from telegram.ext import ContextTypes
 from tg_server.constants.Instruments import available_instruments, get_instrument_by_label, get_instrument_by_symbol
 from tg_server.database.db import engine
 from tg_server.database.models import Order
-from tg_server.handlers.commons import send_main_menu, KeyboardButtons, remove_exponent, round_flt_to_4_decimal
+from tg_server.handlers.commons import send_main_menu, KeyboardButtons, remove_exponent, round_flt_to_4_decimal, \
+    use_cancel_msg
 from tg_server.handlers.states import ConversationStates, HedgeConvStates
 from tg_server.mt5.mt5service import mt5service
 from tg_server.security.encryptor import pwd_encryptor
@@ -60,7 +61,6 @@ preview_action_menu_markup = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-use_cancel_msg = "\n\nИспользуйте /cancel, чтобы вернуться в главное меню."
 
 async def hedge_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"[Cancel Hedge], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
