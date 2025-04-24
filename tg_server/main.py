@@ -234,11 +234,11 @@ if __name__ == '__main__':
                 MessageHandler(disable_edited_msg(filters.Regex("^[1-9]\d*$")), hedge_volume_selected),
                 MessageHandler(disable_edited_msg(~filters.Regex("^[1-9]\d*$")), hedge_invalid_volume_selected)
             ],
-            HedgeConvStates.SELECT_CITY: [
-                cancel_command_handler,
-                MessageHandler(disable_edited_msg(filters.Text(cities_list)), hedge_city_selected),
-                MessageHandler(disable_edited_msg(~filters.Text(cities_list)), hedge_invalid_city_selected)
-            ],
+            # HedgeConvStates.SELECT_CITY: [
+            #     cancel_command_handler,
+            #     MessageHandler(disable_edited_msg(filters.Text(cities_list)), hedge_city_selected),
+            #     MessageHandler(disable_edited_msg(~filters.Text(cities_list)), hedge_invalid_city_selected)
+            # ],
             HedgeConvStates.PREVIEW: [
                 cancel_command_handler,
                 MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.PLACE_ORDER])), hedge_preview_accepted),

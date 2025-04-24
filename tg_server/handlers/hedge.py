@@ -38,7 +38,7 @@ UD_KEY_HEDGE_PRICE = "UD_KEY_HEDGE_PRICE"
 UD_KEY_HEDGE_CITY = "UD_KEY_HEDGE_CITY"
 
 select_operation_menu_markup = ReplyKeyboardMarkup(
-    [[KeyboardButton(KeyboardButtons.BUY), KeyboardButton(KeyboardButtons.SELL)]],
+    [[KeyboardButton(KeyboardButtons.SELL), KeyboardButton(KeyboardButtons.BUY)]],
     one_time_keyboard=True,
     resize_keyboard=True
 )
@@ -266,16 +266,45 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
     except (ValueError, TypeError):
        return hedge_invalid_volume_selected(update, context)
 
-    await update.message.reply_text(
-        HEDGE_PREFIX_MD2 + helpers.escape_markdown((
-            "Город?"
-            + use_cancel_msg
-        ), 2),
-        reply_markup=select_city_menu_markup,
-        parse_mode=ParseMode.MARKDOWN_V2,
-    )
 
-    return HedgeConvStates.SELECT_CITY
+    with Session(engine) as session:
+        user_service = UserService(session)
+        user_id = update.effective_user.id
+        user = user_service.get_user_by_id(user_id)
+        pwd_decrypted_bytes = pwd_encryptor.decrypt(user.mt5_acc_pwd_enc)
+
+        price_per_unit = mt5service.get_price_for_short(
+            user.mt5_acc_number,
+            pwd_decrypted_bytes.decode(),
+            context.user_data.get(UD_KEY_HEDGE_INSTRUMENT),
+        )
+
+
+    instrument = get_instrument_by_symbol(context.user_data.get(UD_KEY_HEDGE_INSTRUMENT))
+    now_dt_utc = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+    preview_msg = (f"Предварительный просмотр: \n"
+                   f"Операция: {context.user_data.get(UD_KEY_HEDGE_OPERATION)}\n"
+                   f"Инструмент: {instrument.label}\n"
+                   f"Сколько: {context.user_data.get(UD_KEY_HEDGE_EURO)} {instrument.base}\n"
+                   f"Цена (на {now_dt_utc}): {price_per_unit}\n"
+                   )
+    await update.message.reply_text(
+        HEDGE_PREFIX_MD2 + helpers.escape_markdown(preview_msg, 2),
+        reply_markup=preview_action_menu_markup,
+        parse_mode=ParseMode.MARKDOWN_V2,
+        )
+    return HedgeConvStates.PREVIEW
+
+    # await update.message.reply_text(
+    #     HEDGE_PREFIX_MD2 + helpers.escape_markdown((
+    #         "Город?"
+    #         + use_cancel_msg
+    #     ), 2),
+    #     reply_markup=select_city_menu_markup,
+    #     parse_mode=ParseMode.MARKDOWN_V2,
+    # )
+    #
+    # return HedgeConvStates.SELECT_CITY
 
 
 async def hedge_invalid_city_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -294,17 +323,6 @@ async def hedge_invalid_city_selected(update: Update, context: ContextTypes.DEFA
 async def hedge_city_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"[Hedge City Selected], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
     city_str = update.message.text
-
-    if city_str not in cities_list:
-        await update.message.reply_text(
-            HEDGE_PREFIX_MD2 + helpers.escape_markdown((
-                "Неверный город. Выберите допустимый город из меню."
-                + use_cancel_msg
-            ), 2),
-            reply_markup=select_city_menu_markup,
-            parse_mode=ParseMode.MARKDOWN_V2,
-        )
-        return HedgeConvStates.SELECT_CITY
 
     context.user_data[UD_KEY_HEDGE_CITY] = city_str
 
@@ -328,7 +346,7 @@ async def hedge_city_selected(update: Update, context: ContextTypes.DEFAULT_TYPE
                    f"Инструмент: {instrument.label}\n"
                    f"Сколько: {context.user_data.get(UD_KEY_HEDGE_EURO)} {instrument.base}\n"
                    f"Цена (на {now_dt_utc}): {price_per_unit}\n"
-                   f"Город: {context.user_data.get(UD_KEY_HEDGE_CITY)}\n"
+                   # f"Город: {context.user_data.get(UD_KEY_HEDGE_CITY)}\n"
                    )
     await update.message.reply_text(
         HEDGE_PREFIX_MD2 + helpers.escape_markdown(preview_msg, 2),
@@ -399,7 +417,7 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
                     order_msg = (
                         f"Ордер #: {new_order.id}\n"
                         f"Цена: {new_order.price}\n"
-                        f"Город: {new_order.city}\n"
+                        # f"Город: {new_order.city}\n"
                         f"Дата: {new_order.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
                     )
                 else:
@@ -419,7 +437,7 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
                 order_msg = (
                     f"Ордер #: {new_order.id}\n"
                     f"Цена: {new_order.price}\n"
-                    f"Город: {new_order.city}\n"
+                    # f"Город: {new_order.city}\n"
                     f"Дата: {new_order.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
                             )
             else:

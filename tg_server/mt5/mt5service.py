@@ -5,6 +5,8 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from mt5linux import MetaTrader5
 
+from tg_server.handlers.commons import round_flt_to_4_decimal
+
 logger = logging.getLogger(__name__)
 
 class MT5InvalidCreds(Exception):
@@ -184,14 +186,13 @@ class MT5Service:
                 sym_info = session.symbol_info(symbol)
                 print(sym_info)
 
-                reference = Decimal("0.0001")
                 sym_info_model = SymbolInfo(
                     description=sym_info.description,
-                    volume_min=Decimal(sym_info.volume_min).quantize(reference, rounding=ROUND_HALF_UP),
-                    volume_step=Decimal(sym_info.volume_step).quantize(reference, rounding=ROUND_HALF_UP),
-                    volume_max=Decimal(sym_info.volume_max).quantize(reference, rounding=ROUND_HALF_UP),
-                    volume_limit=Decimal(sym_info.volume_limit).quantize(reference, rounding=ROUND_HALF_UP),
-                    trade_contract_size=Decimal(sym_info.trade_contract_size).quantize(reference, rounding=ROUND_HALF_UP)
+                    volume_min=round_flt_to_4_decimal(sym_info.volume_min),
+                    volume_step=round_flt_to_4_decimal(sym_info.volume_step),
+                    volume_max=round_flt_to_4_decimal(sym_info.volume_max),
+                    volume_limit=round_flt_to_4_decimal(sym_info.volume_limit),
+                    trade_contract_size=round_flt_to_4_decimal(sym_info.trade_contract_size)
                 )
                 return sym_info_model
         except MT5InvalidCreds as e:
