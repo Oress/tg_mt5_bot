@@ -37,5 +37,22 @@ services:
     volumes:
       - ./database/schema:/liquibase/changelog
 
+  db_backup_cron_service:
+    image: tgb_postgres_backup
+    build: database/backup_img
+    depends_on:
+      - postgres
+    environment:
+      - POSTGRES_DB
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB_HOST
+      - POSTGRES_DB_PORT
+
+      - BACKUP_SCHEDULE=@daily
+      - B2_BUCKET_NAME
+      - B2_APPLICATION_KEY_ID
+      - B2_APPLICATION_KEY
+
 volumes:
   data1: { }

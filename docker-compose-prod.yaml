@@ -64,6 +64,14 @@ services:
       - appLogs:${LOGS_FOLDER}
     command: 'run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy'
 
+  db_backup_cron:
+    extends:
+      file: docker-compose-base.yaml
+      service: db_backup_cron_service
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: true
 volumes:
   appLogs: { }
   data1: { }
