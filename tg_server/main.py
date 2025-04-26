@@ -12,6 +12,8 @@ from handlers.invite import invite_user_start, invite_cancel, invite_users_share
 from tg_server.constants.UserRole import UserRole
 from tg_server.database.db import engine
 from tg_server.handlers.balance import balance_command
+from tg_server.handlers.block_user import block_user_start, block_user_cancel, block_user_shared, \
+    block_user_shared_invalid, block_user_reason_entered
 from tg_server.handlers.change_creds import change_creds_start, change_creds_cancel, change_creds_shared, \
     change_creds_shared_invalid, change_creds_invalid_account_credentials, change_creds_account_credentials
 from tg_server.handlers.commons import KeyboardButtons
@@ -25,7 +27,7 @@ from tg_server.handlers.invite_admin import invite_admin_start, invite_admin_can
     invite_admin_shared_invalid
 from tg_server.handlers.start import start_command
 from tg_server.handlers.states import ConversationStates, InviteUserConvStates, HedgeConvStates, InviteAdminConvStates, \
-    ChangeCredsConvStates
+    ChangeCredsConvStates, BlockUserConvStates
 from tg_server.services.InviteLinkService import InviteLinkService
 from tg_server.services.UserService import UserService
 
@@ -154,9 +156,33 @@ if __name__ == '__main__':
                 MessageHandler(disable_edited_msg(~filters.StatusUpdate.USERS_SHARED), change_creds_shared_invalid),
             ],
             ChangeCredsConvStates.PROMPT_CREDENTIALS: [
-                MessageHandler(disable_edited_msg(main_menu_text_filter), invite_cancel),
+                MessageHandler(disable_edited_msg(main_menu_text_filter), change_creds_cancel),
                 MessageHandler(disable_edited_msg(filters.Regex("^\d+ \S+$")), change_creds_account_credentials),
                 MessageHandler(disable_edited_msg(~filters.Regex("^\d+ \S+$")), change_creds_invalid_account_credentials),
+            ],
+        },
+        fallbacks=[],
+        map_to_parent={
+            ConversationStates.MAIN_MENU: ConversationStates.MAIN_MENU,
+        }
+    )
+
+    block_user_conv = ConversationHandler(
+        name="block_user_conversation",
+        persistent=True,
+        entry_points=[
+            CommandHandler("blockuser", block_user_start, filters=disable_edited_msg(manager_filter)),
+            MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.BLOCK_USER]) & manager_filter), block_user_start)
+        ],
+        states={
+            BlockUserConvStates.PROMPT_USER: [
+                MessageHandler(disable_edited_msg(main_menu_text_filter), block_user_cancel),
+                MessageHandler(disable_edited_msg(filters.StatusUpdate.USERS_SHARED), block_user_shared),
+                MessageHandler(disable_edited_msg(~filters.StatusUpdate.USERS_SHARED), block_user_shared_invalid),
+            ],
+            BlockUserConvStates.PROMPT_REASON: [
+                MessageHandler(disable_edited_msg(main_menu_text_filter), block_user_cancel),
+                MessageHandler(disable_edited_msg(filters.TEXT), block_user_reason_entered),
             ],
         },
         fallbacks=[],
@@ -264,6 +290,7 @@ if __name__ == '__main__':
                 MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.BALANCE]) & user_filter), balance_command),
                 invite_user_conv,
                 invite_admin_conv,
+                block_user_conv,
                 change_creds_conv,
                 hedge_conv,
                 CommandHandler(["start", "menu"], start_command, filters=disable_edited_msg()),

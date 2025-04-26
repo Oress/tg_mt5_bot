@@ -38,3 +38,14 @@ class UserService:
             user.mt5_acc_pwd_enc = encrypted_pwd
         else:
             raise ValueError(f"User with ID {shared_user_id} not found.")
+
+    def block_user(self, shared_user_id, block_reason):
+        user = self.get_user_by_id(shared_user_id)
+        if user:
+            user.disabled = True
+            # Watch the max length
+            user.disabled_reason = block_reason
+            user.mt5_acc_number = None
+            user.mt5_acc_pwd_enc = None
+        else:
+            raise ValueError(f"User with ID {shared_user_id} not found.")

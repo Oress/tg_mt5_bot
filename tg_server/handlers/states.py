@@ -7,6 +7,10 @@ class InviteUserConvStates(str, Enum):
     PROMPT_USER = 'PROMPT_USER'
     PROMPT_CREDENTIALS = 'PROMPT_CREDENTIALS'
 
+class BlockUserConvStates(str, Enum):
+    PROMPT_USER = 'PROMPT_USER'
+    PROMPT_REASON = 'PROMPT_REASON'
+
 class ChangeCredsConvStates(str, Enum):
     PROMPT_USER = 'PROMPT_USER'
     PROMPT_CREDENTIALS = 'PROMPT_CREDENTIALS'
