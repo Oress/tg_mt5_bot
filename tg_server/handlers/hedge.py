@@ -117,7 +117,7 @@ async def hedge_invalid_instrument_selected(update: Update, context: ContextType
 
 
 async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"[Hedge Instrument Selected], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
+    logger.info(f"[Hedge Instrument Selected], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
     # instrument = get_instrument_by_label(update.message.text)
     # instrument_str = instrument.symbol
 
@@ -140,6 +140,8 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
         sym_info = mt5service.symbol_info(user.mt5_acc_number, pwd_decrypted_bytes.decode(), instrument_str)
 
         if operation == BUY.callback_data:
+            logger.info(f"[Hedge Instrument Selected], buy operation, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+
             avail_to_spend_dcm = Decimal(0)
             open_positions = mt5service.positions_get(user.mt5_acc_number, pwd_decrypted_bytes.decode(), instrument_str)
             if len(open_positions) == 0:
@@ -161,12 +163,23 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
                                # f"Шаг: {sym_info.volume_step}"
                                )
         elif operation == SELL.callback_data:
+            logger.info(f"[Hedge Instrument Selected], sell operation, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+
             symbol_info_msg = (f"Сколько ({instrument.base})? (Отправьте мне сумму в чат.)\n"
                                f"Инструмент: {sym_info.description}"
                                # f"Мин. объем: {sym_info.volume_min}\n"
                                # f"Макс. объем: {sym_info.volume_max}\n"
                                # f"Шаг: {sym_info.volume_step}"
                                )
+        else:
+            logger.error(f"[Hedge Instrument Selected], invalid operation: {operation}, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+            await query.edit_message_text(
+                text=helpers.escape_markdown("Неверный тип операции.", 2),
+                reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+                parse_mode=ParseMode.MARKDOWN_V2
+            )
+            return HedgeConvStates.SELECT_VOLUME
+
         context.user_data[UD_KEY_HEDGE_INSTRUMENT] = instrument_str
 
         # To enable symbol in the MT5 terminal and get the price in the next step, otherwise it will return 0
