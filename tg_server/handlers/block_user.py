@@ -39,9 +39,9 @@ async def block_user_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return BlockUserConvStates.PROMPT_USER
 
 
-async def block_user_shared_invalid(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.warning(f"[Block User] invalid user, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
-    return await block_user_start(update, context)
+# async def block_user_shared_invalid(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     logger.warning(f"[Block User] invalid user, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
+#     return await block_user_start(update, context)
 
 async def block_user_shared(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.warning(f"[Block User] user shared, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
@@ -131,13 +131,13 @@ def block_user_reason_handler(skip: bool):
 
     return block_user_reason_entered
 
-async def block_user_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Cancels and ends the conversation."""
-    user = update.message.from_user
-    logger.info("[Block User] User %s canceled the conversation.", user.first_name)
-    await update.message.reply_text(helpers.escape_markdown("Отмена генерации приглашения.", 2),
-                                    reply_markup=ReplyKeyboardRemove(), parse_mode=ParseMode.MARKDOWN_V2)
-    await send_main_menu(update, context)
-    return ConversationStates.MAIN_MENU
+# async def block_user_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     """Cancels and ends the conversation."""
+#     user = update.message.from_user
+#     logger.info("[Block User] User %s canceled the conversation.", user.first_name)
+#     await update.message.reply_text(helpers.escape_markdown("Отмена генерации приглашения.", 2),
+#                                     reply_markup=ReplyKeyboardRemove(), parse_mode=ParseMode.MARKDOWN_V2)
+#     await send_main_menu(update, context)
+#     return ConversationStates.MAIN_MENU
 
 

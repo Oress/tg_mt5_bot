@@ -50,9 +50,9 @@ async def unblock_user_start(update: Update, context: ContextTypes.DEFAULT_TYPE)
     return UnblockUserConvStates.PROMPT_USER
 
 
-async def unblock_users_shared_invalid(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"[Unblock user] invalid user, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
-    return await unblock_user_start(update, context)
+# async def unblock_users_shared_invalid(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     logger.info(f"[Unblock user] invalid user, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
+#     return await unblock_user_start(update, context)
 
 
 async def unblock_users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -117,14 +117,14 @@ async def unblock_users_shared(update: Update, context: ContextTypes.DEFAULT_TYP
     )
     return UnblockUserConvStates.PROMPT_CREDENTIALS
 
-async def unblock_invalid_account_credentials(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.warning(f"[Unblock user] invalid creds, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
-    await update.message.reply_text(
-        helpers.escape_markdown("Неверный формат учетных данных. Попробуйте еще раз.", 2),
-        parse_mode=ParseMode.MARKDOWN_V2,
-        protect_content=True
-    )
-    return UnblockUserConvStates.PROMPT_CREDENTIALS
+# async def unblock_invalid_account_credentials(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     logger.warning(f"[Unblock user] invalid creds, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
+#     await update.message.reply_text(
+#         helpers.escape_markdown("Неверный формат учетных данных. Попробуйте еще раз.", 2),
+#         parse_mode=ParseMode.MARKDOWN_V2,
+#         protect_content=True
+#     )
+#     return UnblockUserConvStates.PROMPT_CREDENTIALS
 
 async def unblock_account_credentials(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"[Unblock user] creds entered, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
@@ -204,11 +204,11 @@ async def unblock_account_credentials(update: Update, context: ContextTypes.DEFA
     # await send_main_menu(update, context)
     return UnblockUserConvStates.RESULT
 
-async def unblock_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"[Unblock user] cancel, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
-    await update.message.reply_text(helpers.escape_markdown("Отмена генерации приглашения.", 2),
-                                    reply_markup=ReplyKeyboardRemove(), parse_mode=ParseMode.MARKDOWN_V2)
-    await send_main_menu(update, context)
-    return ConversationStates.MAIN_MENU
+# async def unblock_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     logger.info(f"[Unblock user] cancel, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+#     await update.message.reply_text(helpers.escape_markdown("Отмена генерации приглашения.", 2),
+#                                     reply_markup=ReplyKeyboardRemove(), parse_mode=ParseMode.MARKDOWN_V2)
+#     await send_main_menu(update, context)
+#     return ConversationStates.MAIN_MENU
 
 

@@ -25,7 +25,7 @@ from tg_server.handlers.commons import main_menu_callback, PLACE_ORDER, PREVIEW_
     main_menu_command, main_menu_decorator, UD_KEY_MENU_MSG_ID, BLOCK_USER_SKIP_RSN, INVITE_ADMIN
 from tg_server.handlers.filters.AuthFilter import user_filter, BlockedUserFilter
 from tg_server.handlers.hedge import hedge_start, hedge_operation_selected, hedge_instrument_selected, \
-    hedge_volume_selected, hedge_preview_accepted, hedge_cancel
+    hedge_volume_selected, hedge_preview_accepted
 from tg_server.handlers.help import help_command_user, help_command_unauthorized
 from tg_server.handlers.invite_admin import invite_admin_shared, invite_admin_start
 from tg_server.handlers.start import start_command
@@ -131,15 +131,23 @@ def disable_edited_msg(filter=None):
 
 async def global_error_handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f"[Global error handler] Error: {context.error}, chat_id: {update.effective_chat.id}, message: {update.effective_message.text}, username: {update.effective_user.username}, user_id {update.effective_user.id}" , exc_info=context.error)
-
     view_msg_id = context.user_data.get(UD_KEY_MENU_MSG_ID)
-    await context.bot.edit_message_text(
-        chat_id=update.effective_chat.id,
-        message_id=view_msg_id,
-        text=helpers.escape_markdown("Произошла ошибка. Пожалуйста, попробуйте позже.", 2),
-        reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
-        parse_mode=ParseMode.MARKDOWN_V2
-        )
+
+    if view_msg_id is not None:
+        try:
+            await context.bot.edit_message_text(
+                chat_id=update.effective_chat.id,
+                message_id=view_msg_id,
+                text=helpers.escape_markdown("Произошла ошибка. Пожалуйста, попробуйте позже.", 2),
+                reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+                parse_mode=ParseMode.MARKDOWN_V2
+            )
+        except Exception as e:
+            context.user_data.pop(UD_KEY_MENU_MSG_ID)
+            logger.error(f"[Start Registered User] Error deleting message: {e}")
+    else:
+        logger.error(f"[Global error handler] Error: {context.error}")
+
 
 if __name__ == '__main__':
     tg_bot_token = os.getenv("TG_BOT_TOKEN")
@@ -317,8 +325,6 @@ if __name__ == '__main__':
         }
     )
 
-    cancel_command_handler = MessageHandler(disable_edited_msg(main_menu_text_filter), hedge_cancel)
-
     hedge_conv = ConversationHandler(
         name="hedge_conversation",
         persistent=True,
@@ -366,7 +372,7 @@ if __name__ == '__main__':
     conv_handler = ConversationHandler(
         name="menu_conversation",
         persistent=True,
-        entry_points=[CommandHandler(["start", "menu"], start_command, filters=disable_edited_msg())],
+        entry_points=[CommandHandler(["start"], start_command)],
         states = {
             ConversationStates.MAIN_MENU: [
                 balance_conv,

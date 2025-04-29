@@ -60,11 +60,6 @@ async def invite_user_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 #     return await invite_user_start(update, context)
 
 
-prompt_creds_msg = (helpers.escape_markdown(
-            "Пожалуйста, предоставьте данные учетной записи Gerchik в следующем формате:\n", 2)
-                    + "```формат \<account_number\> \<password\> ```")
-
-
 async def invite_users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"[Invite user shared], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
     shared_user = await extract_passed_user(message=update.message)
@@ -129,20 +124,22 @@ async def invite_users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
     await context.bot.edit_message_text(
         chat_id=update.effective_chat.id,
         message_id=view_msg_id,
-        text=prompt_creds_msg,
+        text=helpers.escape_markdown(
+            "Пожалуйста, предоставьте данные учетной записи Gerchik в следующем формате:\n", 2)
+             + "```формат \<account_number\> \<password\> ```",
         reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
         parse_mode=ParseMode.MARKDOWN_V2
     )
     return InviteUserConvStates.PROMPT_CREDENTIALS
 
-async def invite_invalid_account_credentials(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.warning(f"[Invite invalid creds], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
-    await update.message.reply_text(
-        helpers.escape_markdown("Неверный формат учетных данных. Попробуйте еще раз.", 2),
-        parse_mode=ParseMode.MARKDOWN_V2,
-        protect_content=True
-    )
-    return InviteUserConvStates.PROMPT_CREDENTIALS
+# async def invite_invalid_account_credentials(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     logger.warning(f"[Invite invalid creds], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
+#     await update.message.reply_text(
+#         helpers.escape_markdown("Неверный формат учетных данных. Попробуйте еще раз.", 2),
+#         parse_mode=ParseMode.MARKDOWN_V2,
+#         protect_content=True
+#     )
+#     return InviteUserConvStates.PROMPT_CREDENTIALS
 
 async def invite_account_credentials(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"[Invite creds entered], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
@@ -231,14 +228,13 @@ async def show_user_invite(update, context, invite_code):
         parse_mode=ParseMode.MARKDOWN_V2,
     )
 
-
-async def invite_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.warning(f"[Invite cancel], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
-    user = update.message.from_user
-    logger.info("User %s canceled the conversation.", user.first_name)
-    await update.message.reply_text(helpers.escape_markdown("Отмена генерации приглашения.", 2),
-                                    reply_markup=ReplyKeyboardRemove(), parse_mode=ParseMode.MARKDOWN_V2)
-    await send_main_menu(update, context)
-    return ConversationStates.MAIN_MENU
+# async def invite_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     logger.warning(f"[Invite cancel], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+#     user = update.message.from_user
+#     logger.info("User %s canceled the conversation.", user.first_name)
+#     await update.message.reply_text(helpers.escape_markdown("Отмена генерации приглашения.", 2),
+#                                     reply_markup=ReplyKeyboardRemove(), parse_mode=ParseMode.MARKDOWN_V2)
+#     await send_main_menu(update, context)
+#     return ConversationStates.MAIN_MENU
 
 

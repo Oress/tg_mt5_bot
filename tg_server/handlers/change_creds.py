@@ -21,8 +21,6 @@ logger = logging.getLogger(__name__)
 
 UD_KEY_CHANGE_CREDS_USER_ID = "UD_KEY_CHANGE_CREDS_USER_ID"
 
-GENERATE_INVITE_PREFIX_MD2 = "*\[Изменение учетных данных пользователя\]*\n\n"
-
 choose_user_markup = ReplyKeyboardMarkup(
     [[
         KeyboardButton("Выбрать пользователя",
@@ -37,7 +35,7 @@ async def change_creds_start(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await query.answer()
 
     await query.edit_message_text(
-        text=(GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Пожалуйста, выберете пользователя, используя меню", 2)),
+        text=helpers.escape_markdown("Пожалуйста, выберете пользователя, используя меню", 2),
         reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
         parse_mode=ParseMode.MARKDOWN_V2
     )
@@ -74,7 +72,7 @@ async def change_creds_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
             await context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
                 message_id=view_msg_id,
-                text=GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Этот пользователь не зарегистрирован. Выберите другого пользователя.", 2),
+                text=helpers.escape_markdown("Этот пользователь не зарегистрирован. Выберите другого пользователя.", 2),
                 reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
                 parse_mode=ParseMode.MARKDOWN_V2
             )
@@ -94,10 +92,9 @@ async def change_creds_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
     await context.bot.edit_message_text(
         chat_id=update.effective_chat.id,
         message_id=view_msg_id,
-        text=        (GENERATE_INVITE_PREFIX_MD2
-                      + helpers.escape_markdown(
+        text=helpers.escape_markdown(
                     "Пожалуйста, предоставьте данные учетной записи Gerchik в следующем формате:\n", 2)
-                      + "```формат \<account_number\> \<password\> ```"),
+                      + "```формат \<account_number\> \<password\> ```",
         reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
         parse_mode=ParseMode.MARKDOWN_V2
     )
@@ -107,7 +104,7 @@ async def change_creds_invalid_account_credentials(update: Update, context: Cont
     logger.warning(f"[Change credentials|invalid_format_acc_creds], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
 
     await update.message.reply_text(
-        GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Неверный формат учетных данных. Попробуйте еще раз.", 2),
+        helpers.escape_markdown("Неверный формат учетных данных. Попробуйте еще раз.", 2),
         parse_mode=ParseMode.MARKDOWN_V2,
         protect_content=True
     )
@@ -128,7 +125,7 @@ async def change_creds_account_credentials(update: Update, context: ContextTypes
     await context.bot.edit_message_text(
         chat_id=update.effective_chat.id,
         message_id=view_msg_id,
-        text=GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown(f"Проверка учетных данных...", 2),
+        text=helpers.escape_markdown(f"Проверка учетных данных...", 2),
         parse_mode=ParseMode.MARKDOWN_V2
     )
 
@@ -142,7 +139,7 @@ async def change_creds_account_credentials(update: Update, context: ContextTypes
             await context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
                 message_id=view_msg_id,
-                text=GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Пользователь с таким номером счета уже существует. Введите учетные данные для другого счета.", 2),
+                text=helpers.escape_markdown("Пользователь с таким номером счета уже существует. Введите учетные данные для другого счета.", 2),
                 parse_mode=ParseMode.MARKDOWN_V2
             )
             return ChangeCredsConvStates.PROMPT_CREDENTIALS
@@ -154,7 +151,7 @@ async def change_creds_account_credentials(update: Update, context: ContextTypes
             await context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
                 message_id=view_msg_id,
-                text=GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Приглашение с таким же номером счета уже существует. Введите учетные данные для другого счета.", 2),
+                text=helpers.escape_markdown("Приглашение с таким же номером счета уже существует. Введите учетные данные для другого счета.", 2),
                 parse_mode=ParseMode.MARKDOWN_V2
             )
 
@@ -167,7 +164,7 @@ async def change_creds_account_credentials(update: Update, context: ContextTypes
             await context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
                 message_id=view_msg_id,
-                text=GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Учетные данные недействительны. Попробуйте еще раз.", 2),
+                text=helpers.escape_markdown("Учетные данные недействительны. Попробуйте еще раз.", 2),
                 parse_mode=ParseMode.MARKDOWN_V2
             )
 
@@ -182,7 +179,7 @@ async def change_creds_account_credentials(update: Update, context: ContextTypes
         await context.bot.edit_message_text(
             chat_id=update.effective_chat.id,
             message_id=view_msg_id,
-            text=GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown(f"Учетные данные изменены успешно.", 2),
+            text=helpers.escape_markdown(f"Учетные данные изменены успешно.", 2),
             reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
             parse_mode=ParseMode.MARKDOWN_V2
         )
@@ -193,7 +190,7 @@ async def change_creds_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE
     logger.warning(f"[Change credentials|сфтсуд], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
     user = update.message.from_user
     logger.info("User %s canceled the conversation.", user.first_name)
-    await update.message.reply_text(GENERATE_INVITE_PREFIX_MD2 + helpers.escape_markdown("Отмена генерации приглашения.", 2),
+    await update.message.reply_text(helpers.escape_markdown("Отмена генерации приглашения.", 2),
                                     reply_markup=ReplyKeyboardRemove(), parse_mode=ParseMode.MARKDOWN_V2)
     await send_main_menu(update, context)
     return ConversationStates.MAIN_MENU

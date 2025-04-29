@@ -57,10 +57,10 @@ preview_action_menu_markup = InlineKeyboardMarkup(
 )
 
 
-async def hedge_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"[Cancel Hedge], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
-    await send_main_menu(update, context)
-    return ConversationStates.MAIN_MENU
+# async def hedge_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     logger.info(f"[Cancel Hedge], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+#     await send_main_menu(update, context)
+#     return ConversationStates.MAIN_MENU
 
 async def hedge_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"[Hedge Start], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
@@ -77,14 +77,14 @@ async def hedge_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return HedgeConvStates.SELECT_OPERATION
 
 
-async def hedge_invalid_operation_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.warning(f"[Hedge Invalid Operation], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text} ")
-    await update.message.reply_text(
-        helpers.escape_markdown(f"Неверный тип операции. Выберите «{BUY.label}» или «{SELL.label}».", 2),
-        reply_markup=select_operation_menu_markup,
-        parse_mode=ParseMode.MARKDOWN_V2,
-    )
-    return HedgeConvStates.SELECT_OPERATION
+# async def hedge_invalid_operation_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     logger.warning(f"[Hedge Invalid Operation], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text} ")
+#     await update.message.reply_text(
+#         helpers.escape_markdown(f"Неверный тип операции. Выберите «{BUY.label}» или «{SELL.label}».", 2),
+#         reply_markup=select_operation_menu_markup,
+#         parse_mode=ParseMode.MARKDOWN_V2,
+#     )
+#     return HedgeConvStates.SELECT_OPERATION
 
 
 async def hedge_operation_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -105,15 +105,15 @@ async def hedge_operation_selected(update: Update, context: ContextTypes.DEFAULT
 
     return HedgeConvStates.SELECT_INSTRUMENT
 
-async def hedge_invalid_instrument_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.warning(f"[Hedge Invalid Instrument], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
-    await update.message.reply_text(
-        helpers.escape_markdown((
-            "Недействительный инструмент. Выберите действительный инструмент из меню."), 2),
-        reply_markup=select_instrument_menu_markup,
-        parse_mode=ParseMode.MARKDOWN_V2,
-    )
-    return HedgeConvStates.SELECT_INSTRUMENT
+# async def hedge_invalid_instrument_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     logger.warning(f"[Hedge Invalid Instrument], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
+#     await update.message.reply_text(
+#         helpers.escape_markdown((
+#             "Недействительный инструмент. Выберите действительный инструмент из меню."), 2),
+#         reply_markup=select_instrument_menu_markup,
+#         parse_mode=ParseMode.MARKDOWN_V2,
+#     )
+#     return HedgeConvStates.SELECT_INSTRUMENT
 
 
 async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -186,7 +186,7 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
         mt5service.get_price_for_short(
             user.mt5_acc_number,
             pwd_decrypted_bytes.decode(),
-            context.user_data.get(UD_KEY_HEDGE_INSTRUMENT)
+            instrument_str
         )
 
 
@@ -197,15 +197,15 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
     )
     return HedgeConvStates.SELECT_VOLUME
 
-async def hedge_invalid_volume_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.warning(f"[Hedge Invalid Volume], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
-    await update.message.reply_text(
-        helpers.escape_markdown((
-            "Неверная сумма. Введите допустимое число."), 2),
-        reply_markup=ReplyKeyboardRemove(),
-        parse_mode=ParseMode.MARKDOWN_V2,
-    )
-    return HedgeConvStates.SELECT_VOLUME
+# async def hedge_invalid_volume_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     logger.warning(f"[Hedge Invalid Volume], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
+#     await update.message.reply_text(
+#         helpers.escape_markdown((
+#             "Неверная сумма. Введите допустимое число."), 2),
+#         reply_markup=ReplyKeyboardRemove(),
+#         parse_mode=ParseMode.MARKDOWN_V2,
+#     )
+#     return HedgeConvStates.SELECT_VOLUME
 
 
 async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -241,11 +241,11 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
             await context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
                 message_id=upd_msg_id,
-                text=helpers.escape_markdown(f"Минимальная сумма: {remove_exponent(min_amount_eur.normalize())}", 2),
+                text=helpers.escape_markdown(f"Минимальная сумма: {remove_exponent(min_amount_eur.normalize())}, введите допустимое число.", 2),
                 reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
                 parse_mode=ParseMode.MARKDOWN_V2
             )
-            return await hedge_invalid_volume_selected(update, context)
+            return HedgeConvStates.SELECT_VOLUME
 
         # Check the euro amnt is less than the available amount
         max_amount_eur = sym_info.volume_max * sym_info.trade_contract_size
@@ -253,11 +253,11 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
             await context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
                 message_id=upd_msg_id,
-                text=helpers.escape_markdown(f"Максимальная сумма: {remove_exponent(max_amount_eur.normalize())}", 2),
+                text=helpers.escape_markdown(f"Максимальная сумма: {remove_exponent(max_amount_eur.normalize())}, введите допустимое число.", 2),
                 reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
                 parse_mode=ParseMode.MARKDOWN_V2
             )
-            return await hedge_invalid_volume_selected(update, context)
+            return HedgeConvStates.SELECT_VOLUME
 
         # Check the euro amnt is divisible by the step
         step_eur = sym_info.volume_step * sym_info.trade_contract_size
@@ -265,11 +265,11 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
             await context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
                 message_id=upd_msg_id,
-                text=helpers.escape_markdown(f"Сумма должна быть кратна: {remove_exponent(step_eur.normalize())}", 2),
+                text=helpers.escape_markdown(f"Сумма должна быть кратна: {remove_exponent(step_eur.normalize())}, введите допустимое число.", 2),
                 reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
                 parse_mode=ParseMode.MARKDOWN_V2
             )
-            return await hedge_invalid_volume_selected(update, context)
+            return HedgeConvStates.SELECT_VOLUME
 
         # In case of buying, check the euro amnt is less than the available amount
         if operation == BUY.callback_data and avail_to_spend:
@@ -277,16 +277,16 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
                 await context.bot.edit_message_text(
                     chat_id=update.effective_chat.id,
                     message_id=upd_msg_id,
-                    text=helpers.escape_markdown(f"Максимальная сумма: {remove_exponent(avail_to_spend.normalize())}", 2),
+                    text=helpers.escape_markdown(f"Максимальная сумма: {remove_exponent(avail_to_spend.normalize())}, введите допустимое число.", 2),
                     reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
                     parse_mode=ParseMode.MARKDOWN_V2
                 )
-                return await hedge_invalid_volume_selected(update, context)
+                return HedgeConvStates.SELECT_VOLUME
 
         context.user_data[UD_KEY_HEDGE_VOLUME] = str(eur_dcm / sym_info.trade_contract_size)
         context.user_data[UD_KEY_HEDGE_EURO] = str(eur_dcm)
     except (ValueError, TypeError):
-       return hedge_invalid_volume_selected(update, context)
+       return HedgeConvStates.SELECT_VOLUME
 
 
     with Session(engine) as session:
@@ -305,11 +305,11 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
     instrument = get_instrument_by_symbol(context.user_data.get(UD_KEY_HEDGE_INSTRUMENT))
     operation_str = BUY.label if BUY.callback_data == context.user_data.get(UD_KEY_HEDGE_OPERATION) else SELL.label
     now_dt_utc = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
-    preview_msg = (f"Предварительный просмотр: \n"
+    preview_msg = (f"Предварительный просмотр: \n\n"
                    f"Операция: {operation_str}\n"
                    f"Инструмент: {instrument.label}\n"
                    f"Сколько: {context.user_data.get(UD_KEY_HEDGE_EURO)} {instrument.base}\n"
-                   f"Цена (на {now_dt_utc}): {price_per_unit}\n"
+                   # f"Цена (на {now_dt_utc}): {price_per_unit}\n"
                    )
 
     await context.bot.edit_message_text(
@@ -333,61 +333,61 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
     # return HedgeConvStates.SELECT_CITY
 
 
-async def hedge_invalid_city_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.warning(f"[Hedge Invalid City], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
-    await update.message.reply_text(
-        helpers.escape_markdown((
-            "Неверный город. Выберите допустимый город из меню."), 2),
-        reply_markup=select_city_menu_markup,
-        parse_mode=ParseMode.MARKDOWN_V2,
-    )
-    return HedgeConvStates.SELECT_CITY
+# async def hedge_invalid_city_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     logger.warning(f"[Hedge Invalid City], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
+#     await update.message.reply_text(
+#         helpers.escape_markdown((
+#             "Неверный город. Выберите допустимый город из меню."), 2),
+#         reply_markup=select_city_menu_markup,
+#         parse_mode=ParseMode.MARKDOWN_V2,
+#     )
+#     return HedgeConvStates.SELECT_CITY
 
 
-async def hedge_city_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"[Hedge City Selected], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
-    city_str = update.message.text
+# async def hedge_city_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     logger.info(f"[Hedge City Selected], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
+#     city_str = update.message.text
+#
+#     context.user_data[UD_KEY_HEDGE_CITY] = city_str
+#
+#     with Session(engine) as session:
+#         user_service = UserService(session)
+#         user_id = update.effective_user.id
+#         user = user_service.get_user_by_id(user_id)
+#         pwd_decrypted_bytes = pwd_encryptor.decrypt(user.mt5_acc_pwd_enc)
+#
+#         price_per_unit = mt5service.get_price_for_short(
+#             user.mt5_acc_number,
+#             pwd_decrypted_bytes.decode(),
+#             context.user_data.get(UD_KEY_HEDGE_INSTRUMENT),
+#         )
+#
+#
+#     instrument = get_instrument_by_symbol(context.user_data.get(UD_KEY_HEDGE_INSTRUMENT))
+#     now_dt_utc = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+#     preview_msg = (f"Предварительный просмотр: \n"
+#                    f"Операция: {context.user_data.get(UD_KEY_HEDGE_OPERATION)}\n"
+#                    f"Инструмент: {instrument.label}\n"
+#                    f"Сколько: {context.user_data.get(UD_KEY_HEDGE_EURO)} {instrument.base}\n"
+#                    f"Цена (на {now_dt_utc}): {price_per_unit}\n"
+#                    # f"Город: {context.user_data.get(UD_KEY_HEDGE_CITY)}\n"
+#                    )
+#     await update.message.reply_text(
+#         helpers.escape_markdown(preview_msg, 2),
+#         reply_markup=preview_action_menu_markup,
+#         parse_mode=ParseMode.MARKDOWN_V2,
+#     )
+#     return HedgeConvStates.PREVIEW
 
-    context.user_data[UD_KEY_HEDGE_CITY] = city_str
-
-    with Session(engine) as session:
-        user_service = UserService(session)
-        user_id = update.effective_user.id
-        user = user_service.get_user_by_id(user_id)
-        pwd_decrypted_bytes = pwd_encryptor.decrypt(user.mt5_acc_pwd_enc)
-
-        price_per_unit = mt5service.get_price_for_short(
-            user.mt5_acc_number,
-            pwd_decrypted_bytes.decode(),
-            context.user_data.get(UD_KEY_HEDGE_INSTRUMENT),
-        )
-
-
-    instrument = get_instrument_by_symbol(context.user_data.get(UD_KEY_HEDGE_INSTRUMENT))
-    now_dt_utc = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
-    preview_msg = (f"Предварительный просмотр: \n"
-                   f"Операция: {context.user_data.get(UD_KEY_HEDGE_OPERATION)}\n"
-                   f"Инструмент: {instrument.label}\n"
-                   f"Сколько: {context.user_data.get(UD_KEY_HEDGE_EURO)} {instrument.base}\n"
-                   f"Цена (на {now_dt_utc}): {price_per_unit}\n"
-                   # f"Город: {context.user_data.get(UD_KEY_HEDGE_CITY)}\n"
-                   )
-    await update.message.reply_text(
-        helpers.escape_markdown(preview_msg, 2),
-        reply_markup=preview_action_menu_markup,
-        parse_mode=ParseMode.MARKDOWN_V2,
-    )
-    return HedgeConvStates.PREVIEW
-
-async def hedge_invalid_preview_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.warning(f"[Hedge Invalid Preview], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
-    await update.message.reply_text(
-        helpers.escape_markdown((
-            "Неверный выбор. Выберите «Размесить ордер» или «Изменить»."), 2),
-        reply_markup=preview_action_menu_markup,
-        parse_mode=ParseMode.MARKDOWN_V2,
-    )
-    return HedgeConvStates.PREVIEW
+# async def hedge_invalid_preview_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     logger.warning(f"[Hedge Invalid Preview], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
+#     await update.message.reply_text(
+#         helpers.escape_markdown((
+#             "Неверный выбор. Выберите «Размесить ордер» или «Изменить»."), 2),
+#         reply_markup=preview_action_menu_markup,
+#         parse_mode=ParseMode.MARKDOWN_V2,
+#     )
+#     return HedgeConvStates.PREVIEW
 
 
 async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_TYPE):

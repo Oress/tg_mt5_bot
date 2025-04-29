@@ -1,18 +1,16 @@
 import logging
-from enum import Enum
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Union, Sequence, List
 
 from sqlalchemy.orm.session import Session
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram import Update, Message
-from telegram.ext import ContextTypes, ConversationHandler
+from telegram.ext import ContextTypes
 
 from tg_server.constants.UserRole import UserRole
 from tg_server.database.db import engine
 from tg_server.handlers.states import ConversationStates
 from tg_server.services.UserService import UserService
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-
 
 UD_KEY_MENU_MSG_ID = "UD_KEY_MENU_MSG_ID"
 
@@ -73,6 +71,7 @@ async def send_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with Session(engine) as session:
         user_service = UserService(session)
         user = user_service.get_user_by_id(user_id)
+        logger.info(f"[Send Main Menu] user_id: {user_id}, role: {user.role}")
         user_role = user.role
 
     return await context.bot.send_message(chat_id=update.effective_chat.id,

@@ -128,13 +128,13 @@ async def show_admin_invite(update, context, invite_code):
         parse_mode=ParseMode.MARKDOWN_V2,
     )
 
-async def invite_admin_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Cancels and ends the conversation."""
-    user = update.message.from_user
-    logger.info("User %s canceled the conversation.", user.first_name)
-    await update.message.reply_text(helpers.escape_markdown("Отмена генерации приглашения.", 2),
-                                    reply_markup=ReplyKeyboardRemove(), parse_mode=ParseMode.MARKDOWN_V2)
-    await send_main_menu(update, context)
-    return ConversationStates.MAIN_MENU
+# async def invite_admin_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     """Cancels and ends the conversation."""
+#     user = update.message.from_user
+#     logger.info("User %s canceled the conversation.", user.first_name)
+#     await update.message.reply_text(helpers.escape_markdown("Отмена генерации приглашения.", 2),
+#                                     reply_markup=ReplyKeyboardRemove(), parse_mode=ParseMode.MARKDOWN_V2)
+#     await send_main_menu(update, context)
+#     return ConversationStates.MAIN_MENU
 
 
