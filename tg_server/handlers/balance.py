@@ -2,14 +2,14 @@ import logging
 from datetime import datetime
 
 from sqlalchemy.orm.session import Session
-from telegram import helpers, Update
+from telegram import helpers, Update, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
 from tg_server.constants.Instruments import get_instrument_by_symbol, available_instruments
 from tg_server.database.db import engine
-from tg_server.handlers.commons import send_main_menu, remove_exponent, round_flt_to_4_decimal
-from tg_server.handlers.states import ConversationStates
+from tg_server.handlers.commons import send_main_menu, remove_exponent, round_flt_to_4_decimal, main_menu_decorator
+from tg_server.handlers.states import ConversationStates, BalanceConvStates
 from tg_server.mt5.mt5service import mt5service
 from tg_server.security.encryptor import pwd_encryptor
 from tg_server.services.UserService import UserService
@@ -20,6 +20,10 @@ BALANCE_PREFIX_MD2 = "*\[Баланс\]*\n"
 
 async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"[Balance], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+
+    query = update.callback_query
+    await query.answer()
+
     with Session(engine) as session:
         user_service = UserService(session)
         user_id = update.effective_user.id
@@ -30,9 +34,14 @@ async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for inst in available_instruments:
             positions = mt5service.positions_get(user.mt5_acc_number, pwd_decrypted_bytes.decode(), inst.symbol)
             if positions is None or len(positions) == 0:
-                await context.bot.send_message(chat_id=update.effective_chat.id, text="У вас нет открытых позиций.")
-                await send_main_menu(update, context)
-                return ConversationStates.MAIN_MENU
+                balance_msg = "У вас нет открытых позиций."
+                await query.edit_message_text(
+                    text=f"{BALANCE_PREFIX_MD2}\n" + helpers.escape_markdown(balance_msg, 2),
+                    reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+                    parse_mode=ParseMode.MARKDOWN_V2
+                )
+                # await send_main_menu(update, context)
+                return BalanceConvStates.BALANCE_OPENED
             elif len(positions) > 1:
                 raise Exception("More than one position")
 
@@ -44,9 +53,10 @@ async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                      f"Продано: -{remove_exponent(base_equivalent)} {instrument.base}\n\n"
                      f"на {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}")
 
-            await context.bot.send_message(chat_id=update.effective_chat.id,
-                                           text=f"{BALANCE_PREFIX_MD2}\n" + "||" + helpers.escape_markdown(balance_msg, 2) + "||",
-                                           parse_mode=ParseMode.MARKDOWN_V2)
+            await query.edit_message_text(
+                text=f"{BALANCE_PREFIX_MD2}\n" + helpers.escape_markdown(balance_msg, 2),
+                reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+                parse_mode=ParseMode.MARKDOWN_V2
+            )
 
-        await send_main_menu(update, context)
-        return ConversationStates.MAIN_MENU
+        return BalanceConvStates.BALANCE_OPENED

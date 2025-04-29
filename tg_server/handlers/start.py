@@ -5,14 +5,17 @@ from telegram import Update
 from telegram.ext import ConversationHandler, ContextTypes
 
 from tg_server.database.db import engine
-from tg_server.handlers.commons import send_main_menu
+from tg_server.handlers.commons import send_main_menu, UD_KEY_MENU_MSG_ID
 from tg_server.handlers.states import ConversationStates
 from tg_server.services.InviteLinkService import InviteLinkService
 from tg_server.services.UserService import UserService
 
 logger = logging.getLogger(__name__)
 
+
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=update.effective_message.message_id)
+
     with Session(engine) as session:
         user_service = UserService(session)
         user_id = update.effective_user.id
@@ -20,7 +23,15 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if user is not None:
             logger.info(f"[Start Registered User], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
-            await send_main_menu(update, context)
+
+            if context.user_data.get(UD_KEY_MENU_MSG_ID) is not None:
+                try:
+                    await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=context.user_data[UD_KEY_MENU_MSG_ID])
+                except Exception as e:
+                    logger.error(f"[Start Registered User] Error deleting message: {e}")
+
+            menu_msg = await send_main_menu(update, context)
+            context.user_data[UD_KEY_MENU_MSG_ID] = menu_msg.id
             return ConversationStates.MAIN_MENU
 
         if len(context.args) == 0:
@@ -46,7 +57,5 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await context.bot.send_message(chat_id=update.effective_chat.id, text="Недействительное приглашение.")
             return ConversationHandler.END
 
-
-
-    return new_state
+    return ConversationStates.MAIN_MENU
 

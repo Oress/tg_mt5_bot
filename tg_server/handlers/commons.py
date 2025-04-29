@@ -1,55 +1,72 @@
+import logging
 from enum import Enum
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Union, Sequence, List
 
 from sqlalchemy.orm.session import Session
 from telegram import Update
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, ConversationHandler
 
 from tg_server.constants.UserRole import UserRole
 from tg_server.database.db import engine
+from tg_server.handlers.states import ConversationStates
 from tg_server.services.UserService import UserService
-from telegram import ReplyKeyboardMarkup, KeyboardButton
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 
-class KeyboardButtons(str, Enum):
-    BUY = "🔼 Купить"
-    SELL = "🔽 Продать"
+UD_KEY_MENU_MSG_ID = "UD_KEY_MENU_MSG_ID"
 
-    PREVIEW_EDIT = "✏️ Изменить"
-    PLACE_ORDER = "✅ Разместить ордер"
+logger = logging.getLogger(__name__)
 
-    HEDGE = '🏦 Хедж'
-    BALANCE = '⚖️ Баланс'
+class KeyboardButtons:
+    def __init__(self, label, callback_data=None):
+        self.label = label
+        self.callback_data = callback_data
 
-    BLOCK_USER= '🔒 Заблокировать пользователя'
-    UNBLOCK_USER= '🔓 Разблокировать пользователя'
-    CHANGE_USER_ACCOUNT_CREDS= '✍️ Изменить учетные данные для пользователя'
-    INVITE_USER= '📨 Пригласить пользователя'
-    INVITE_ADMIN= '📨 Пригласить админа'
-
-    MAIN_MENU = "🏠 Главное меню"
-
+BUY = KeyboardButtons("🔼 Купить", "HEDGE_BUY")
+SELL = KeyboardButtons("🔽 Продать", "HEDGE_SELL")
+PREVIEW_EDIT = KeyboardButtons("✏️ Изменить", "HEDGE_EDIT")
+PLACE_ORDER = KeyboardButtons("✅ Разместить ордер", "HEDGE_PLACE_ORDER")
+HEDGE = KeyboardButtons('🏦 Хедж', "MM_HEDGE")
+BALANCE = KeyboardButtons('⚖️ Баланс', "MM_BALANCE")
+BLOCK_USER= KeyboardButtons('🔒 Заблокировать пользователя', "MM_BLOCK_USER")
+UNBLOCK_USER= KeyboardButtons('🔓 Разблокировать пользователя', "MM_UNBLOCK_USER")
+CHANGE_USER_ACCOUNT_CREDS= KeyboardButtons('✍️ Изменить учетные данные для пользователя', "MM_USER_CHNG_CREDS")
+INVITE_USER= KeyboardButtons('📨 Пригласить пользователя', "MM_INVITE_USER")
+INVITE_ADMIN= KeyboardButtons('📨 Пригласить админа', "MM_INVITE_ADMIN")
+MAIN_MENU = KeyboardButtons("🏠 Главное меню", 'MAIN_MENU')
 
 
 user_main_menu_keyboard = [
-    [KeyboardButton(KeyboardButtons.HEDGE), KeyboardButton(KeyboardButtons.BALANCE)]
+    [
+        InlineKeyboardButton(text=HEDGE.label, callback_data=HEDGE.callback_data),
+        InlineKeyboardButton(text=BALANCE.label, callback_data=BALANCE.callback_data)
+    ]
 ]
 
 admin_main_menu_keyboard = [
     user_main_menu_keyboard[0],
-    [KeyboardButton(KeyboardButtons.INVITE_USER), KeyboardButton(KeyboardButtons.INVITE_ADMIN)],
-    [KeyboardButton(KeyboardButtons.CHANGE_USER_ACCOUNT_CREDS)],
-    [KeyboardButton(KeyboardButtons.BLOCK_USER), KeyboardButton(KeyboardButtons.UNBLOCK_USER)],
+    [
+        InlineKeyboardButton(text=INVITE_USER.label, callback_data=INVITE_USER.callback_data),
+        InlineKeyboardButton(text=INVITE_ADMIN.label, callback_data=INVITE_ADMIN.callback_data)
+    ],
+    [
+        InlineKeyboardButton(text=CHANGE_USER_ACCOUNT_CREDS.label, callback_data=CHANGE_USER_ACCOUNT_CREDS.callback_data)
+    ],
+    [
+        InlineKeyboardButton(text=BLOCK_USER.label, callback_data=BLOCK_USER.callback_data),
+        InlineKeyboardButton(UNBLOCK_USER.label, callback_data=UNBLOCK_USER.callback_data)
+    ],
 ]
 
-user_main_menu_markup = ReplyKeyboardMarkup(user_main_menu_keyboard, one_time_keyboard=True, resize_keyboard=True)
-admin_main_menu_markup = ReplyKeyboardMarkup(admin_main_menu_keyboard, one_time_keyboard=True, resize_keyboard=True)
+user_main_menu_markup = InlineKeyboardMarkup(user_main_menu_keyboard)
+admin_main_menu_markup = InlineKeyboardMarkup(admin_main_menu_keyboard)
 
 
-def main_menu_decorator(menu: List[Sequence[Union[str, KeyboardButton]]]):
-    menu.append([KeyboardButton(KeyboardButtons.MAIN_MENU)])
+def main_menu_decorator(menu: List[Sequence[Union[str, InlineKeyboardButton]]]):
+    menu.append([InlineKeyboardButton(text=MAIN_MENU.label, callback_data=MAIN_MENU.callback_data)])
     return menu
+
 
 async def send_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -58,7 +75,7 @@ async def send_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = user_service.get_user_by_id(user_id)
         user_role = user.role
 
-    await context.bot.send_message(chat_id=update.effective_chat.id,
+    return await context.bot.send_message(chat_id=update.effective_chat.id,
                                    text="Главное меню:",
                                    reply_markup=user_main_menu_markup if user_role == UserRole.USER else admin_main_menu_markup)
 
@@ -68,3 +85,35 @@ def remove_exponent(d):
 reference = Decimal("0.0001")
 def round_flt_to_4_decimal(flt: float) -> Decimal:
     return Decimal(flt).quantize(reference, rounding=ROUND_HALF_UP)
+
+async def main_menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=update.effective_message.message_id)
+
+    if context.user_data.get(UD_KEY_MENU_MSG_ID) is not None:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=context.user_data[UD_KEY_MENU_MSG_ID])
+        except Exception as e:
+            logger.error(f"[Start Registered User] Error deleting message: {e}")
+
+    menu_msg = await send_main_menu(update, context)
+    context.user_data[UD_KEY_MENU_MSG_ID] = menu_msg.id
+    return ConversationStates.MAIN_MENU
+
+
+async def main_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print('main_menu_callback')
+    query = update.callback_query
+    await query.answer()
+
+    user_id = update.effective_user.id
+    with Session(engine) as session:
+        user_service = UserService(session)
+        user = user_service.get_user_by_id(user_id)
+        user_role = user.role
+
+    await query.edit_message_text(
+        text="Главное меню:",
+        reply_markup=user_main_menu_markup if user_role == UserRole.USER else admin_main_menu_markup,
+    )
+
+    return ConversationHandler.END

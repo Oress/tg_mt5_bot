@@ -3,9 +3,12 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 
+from ptbcontrib.postgres_persistence import PostgresPersistence
+from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.orm.session import Session
 from telegram import helpers, Update, Bot
-from telegram.ext import filters, MessageHandler, ApplicationBuilder, ContextTypes, ConversationHandler, CommandHandler
+from telegram.ext import filters, MessageHandler, CallbackQueryHandler, ApplicationBuilder, ContextTypes, \
+    ConversationHandler, CommandHandler
 
 from handlers.invite import invite_user_start, invite_cancel, invite_users_shared, \
     invite_users_shared_invalid, invite_account_credentials, invite_invalid_account_credentials
@@ -16,26 +19,23 @@ from tg_server.handlers.block_user import block_user_start, block_user_cancel, b
     block_user_shared_invalid, block_user_reason_entered
 from tg_server.handlers.change_creds import change_creds_start, change_creds_cancel, change_creds_shared, \
     change_creds_shared_invalid, change_creds_invalid_account_credentials, change_creds_account_credentials
-from tg_server.handlers.commons import KeyboardButtons
+from tg_server.handlers.commons import main_menu_callback, PLACE_ORDER, PREVIEW_EDIT, HEDGE, BALANCE, INVITE_ADMIN, \
+    UNBLOCK_USER, INVITE_USER, BLOCK_USER, CHANGE_USER_ACCOUNT_CREDS, MAIN_MENU, \
+    main_menu_command
 from tg_server.handlers.filters.AuthFilter import manager_filter, user_filter, admin_filter, BlockedUserFilter
 from tg_server.handlers.hedge import hedge_start, hedge_operation_selected, hedge_instrument_selected, \
-    hedge_volume_selected, hedge_city_selected, hedge_preview_accepted, hedge_invalid_operation_selected, inst_list, \
-    hedge_cancel, hedge_invalid_instrument_selected, hedge_invalid_volume_selected, cities_list, \
-    hedge_invalid_city_selected, hedge_invalid_preview_choice
+    hedge_volume_selected, hedge_preview_accepted, hedge_cancel, hedge_invalid_volume_selected
 from tg_server.handlers.help import help_command_admin, help_command_user, help_command_unauthorized
 from tg_server.handlers.invite_admin import invite_admin_start, invite_admin_cancel, invite_admin_shared, \
     invite_admin_shared_invalid
 from tg_server.handlers.start import start_command
 from tg_server.handlers.states import ConversationStates, InviteUserConvStates, HedgeConvStates, InviteAdminConvStates, \
-    ChangeCredsConvStates, BlockUserConvStates, UnblockUserConvStates
+    ChangeCredsConvStates, BlockUserConvStates, UnblockUserConvStates, BalanceConvStates
 from tg_server.handlers.unblock_user import unblock_user_start, unblock_cancel, unblock_users_shared, \
     unblock_users_shared_invalid, unblock_account_credentials, unblock_invalid_account_credentials
 from tg_server.services.InviteLinkService import InviteLinkService
 from tg_server.services.UserService import UserService
 
-from sqlalchemy.orm import sessionmaker, scoped_session
-
-from ptbcontrib.postgres_persistence import PostgresPersistence
 
 def check_env_variables():
     required_env_vars = [
@@ -96,11 +96,13 @@ async def edit_unsupported_command(update: Update, context: ContextTypes.DEFAULT
 
 async def unknown_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.warning(f"[Unknown command], ignoring it, chat_id: {update.effective_chat.id}, message: {update.effective_message.text}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Извините, я не понял эту команду.")
+    # await context.bot.send_message(chat_id=update.effective_chat.id, text="Извините, я не понял эту команду.")
+    await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=update.effective_message.message_id)
 
 async def unexpected_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.warning(f"[Unknown text], ignoring it, chat_id: {update.effective_chat.id}, message: {update.effective_message.text}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Извините, я не понимаю что вы пытаетесь сделать. Используйте /help, чтобы увидеть список доступных команд.")
+    # await context.bot.send_message(chat_id=update.effective_chat.id, text="Извините, я не понимаю что вы пытаетесь сделать. Используйте /help, чтобы увидеть список доступных команд.")
+    await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=update.effective_message.message_id)
 
 async def generate_superadmin_invite():
     superadmin_id = int(os.getenv("SUPERADMIN_ID"))
@@ -146,14 +148,34 @@ if __name__ == '__main__':
     job_minute = job_queue.run_repeating(remove_expired_links, interval=30 * 60, first=10)
 
 
-    main_menu_text_filter = filters.Text([KeyboardButtons.MAIN_MENU])
+    main_menu_text_filter = filters.Text([MAIN_MENU.label])
+    start_menu_handler = CommandHandler(["start", "menu"], main_menu_command, filters=disable_edited_msg())
+    main_menu_query_handler = CallbackQueryHandler(main_menu_callback, MAIN_MENU.callback_data)
+
+    balance_conv = ConversationHandler(
+        name="balance_user_conversation",
+        persistent=True,
+        entry_points=[
+            CallbackQueryHandler(balance_command, BALANCE.callback_data),
+        ],
+        states={
+            BalanceConvStates.BALANCE_OPENED: [
+                start_menu_handler,
+                main_menu_query_handler
+            ],
+        },
+        fallbacks=[],
+        map_to_parent={
+            ConversationStates.MAIN_MENU: ConversationStates.MAIN_MENU,
+        }
+    )
 
     change_creds_conv = ConversationHandler(
         name="change_creds_conversation",
         persistent=True,
         entry_points=[
             CommandHandler("changecreds", change_creds_start, filters=disable_edited_msg(manager_filter)),
-            MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.CHANGE_USER_ACCOUNT_CREDS]) & manager_filter), change_creds_start)
+            MessageHandler(disable_edited_msg(filters.Text([CHANGE_USER_ACCOUNT_CREDS.label]) & manager_filter), change_creds_start)
         ],
         states={
             ChangeCredsConvStates.PROMPT_USER: [
@@ -178,7 +200,7 @@ if __name__ == '__main__':
         persistent=True,
         entry_points=[
             CommandHandler("blockuser", block_user_start, filters=disable_edited_msg(manager_filter)),
-            MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.BLOCK_USER]) & manager_filter), block_user_start)
+            MessageHandler(disable_edited_msg(filters.Text([BLOCK_USER.label]) & manager_filter), block_user_start)
         ],
         states={
             BlockUserConvStates.PROMPT_USER: [
@@ -203,7 +225,7 @@ if __name__ == '__main__':
         persistent=True,
         entry_points=[
             CommandHandler("inviteuser", invite_user_start, filters=disable_edited_msg(manager_filter)),
-            MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.INVITE_USER]) & manager_filter), invite_user_start)
+            MessageHandler(disable_edited_msg(filters.Text([INVITE_USER.label]) & manager_filter), invite_user_start)
         ],
         states={
             InviteUserConvStates.PROMPT_USER: [
@@ -228,7 +250,7 @@ if __name__ == '__main__':
         persistent=True,
         entry_points=[
             CommandHandler("unblockuser", unblock_user_start, filters=disable_edited_msg(manager_filter)),
-            MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.UNBLOCK_USER]) & manager_filter), unblock_user_start)
+            MessageHandler(disable_edited_msg(filters.Text([UNBLOCK_USER.label]) & manager_filter), unblock_user_start)
         ],
         states={
             UnblockUserConvStates.PROMPT_USER: [
@@ -253,7 +275,7 @@ if __name__ == '__main__':
         persistent=True,
         entry_points=[
             CommandHandler("inviteadmin", invite_admin_start, filters=disable_edited_msg(admin_filter)),
-            MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.INVITE_ADMIN]) & admin_filter), invite_admin_start)
+            MessageHandler(disable_edited_msg(filters.Text([INVITE_ADMIN.label]) & admin_filter), invite_admin_start)
         ],
         states={
             InviteAdminConvStates.PROMPT_USER: [
@@ -274,22 +296,29 @@ if __name__ == '__main__':
         name="hedge_conversation",
         persistent=True,
         entry_points=[
-            CommandHandler("hedge", hedge_start, filters=disable_edited_msg(user_filter)),
-            MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.HEDGE]) & user_filter), hedge_start)
+            # CallbackQueryHandler(balance_command, BALANCE.callback_data),
+            CallbackQueryHandler(hedge_start, HEDGE.callback_data),
+            # CommandHandler("hedge", hedge_start, filters=disable_edited_msg(user_filter)),
+            # MessageHandler(disable_edited_msg(filters.Text([HEDGE]) & user_filter), hedge_start)
         ],
         states={
             HedgeConvStates.SELECT_OPERATION: [
-                cancel_command_handler,
-                MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.BUY, KeyboardButtons.SELL])), hedge_operation_selected),
-                MessageHandler(disable_edited_msg(~filters.Text([KeyboardButtons.BUY, KeyboardButtons.SELL])), hedge_invalid_operation_selected),
+                start_menu_handler,
+                main_menu_query_handler,
+                CallbackQueryHandler(hedge_operation_selected)
+                # MessageHandler(disable_edited_msg(filters.Text([BUY, SELL])), hedge_operation_selected),
+                # MessageHandler(disable_edited_msg(~filters.Text([BUY, SELL])), hedge_invalid_operation_selected),
             ],
             HedgeConvStates.SELECT_INSTRUMENT: [
-                cancel_command_handler,
-                MessageHandler(disable_edited_msg(filters.Text(inst_list)), hedge_instrument_selected),
-                MessageHandler(disable_edited_msg(~filters.Text(inst_list)), hedge_invalid_instrument_selected)
+                start_menu_handler,
+                main_menu_query_handler,
+                CallbackQueryHandler(hedge_instrument_selected)
+                # MessageHandler(disable_edited_msg(filters.Text(inst_list)), hedge_instrument_selected),
+                # MessageHandler(disable_edited_msg(~filters.Text(inst_list)), hedge_invalid_instrument_selected)
             ],
             HedgeConvStates.SELECT_VOLUME: [
-                cancel_command_handler,
+                start_menu_handler,
+                main_menu_query_handler,
                 MessageHandler(disable_edited_msg(filters.Regex("^[1-9]\d*$")), hedge_volume_selected),
                 MessageHandler(disable_edited_msg(~filters.Regex("^[1-9]\d*$")), hedge_invalid_volume_selected)
             ],
@@ -299,11 +328,18 @@ if __name__ == '__main__':
             #     MessageHandler(disable_edited_msg(~filters.Text(cities_list)), hedge_invalid_city_selected)
             # ],
             HedgeConvStates.PREVIEW: [
-                cancel_command_handler,
-                MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.PLACE_ORDER])), hedge_preview_accepted),
-                MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.PREVIEW_EDIT])), hedge_start),
-                MessageHandler(disable_edited_msg(~filters.Text([KeyboardButtons.PLACE_ORDER, KeyboardButtons.PREVIEW_EDIT])), hedge_invalid_preview_choice),
+                start_menu_handler,
+                main_menu_query_handler,
+                CallbackQueryHandler(hedge_preview_accepted, pattern=PLACE_ORDER.callback_data),
+                CallbackQueryHandler(hedge_start, pattern=PREVIEW_EDIT.callback_data),
+                # MessageHandler(disable_edited_msg(filters.Text([PLACE_ORDER.label])), hedge_preview_accepted),
+                # MessageHandler(disable_edited_msg(filters.Text([PREVIEW_EDIT.label])), hedge_start),
+                # MessageHandler(disable_edited_msg(~filters.Text([PLACE_ORDER.label, PREVIEW_EDIT.label])), hedge_invalid_preview_choice),
             ],
+            HedgeConvStates.RESULT: [
+                start_menu_handler,
+                main_menu_query_handler,
+            ]
         },
         fallbacks=[],
         map_to_parent={
@@ -317,8 +353,9 @@ if __name__ == '__main__':
         entry_points=[CommandHandler(["start", "menu"], start_command, filters=disable_edited_msg())],
         states = {
             ConversationStates.MAIN_MENU: [
-                CommandHandler("balance", balance_command, filters=disable_edited_msg()),
-                MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.BALANCE]) & user_filter), balance_command),
+                start_menu_handler,
+                main_menu_query_handler,
+                balance_conv,
                 invite_user_conv,
                 invite_admin_conv,
                 block_user_conv,
@@ -331,14 +368,15 @@ if __name__ == '__main__':
         fallbacks=[],
     )
 
+    application.add_handler(balance_conv)
     application.add_handler(conv_handler)
     application.add_handler(hedge_conv)
 
     application.add_handler(CommandHandler("balance", balance_command, filters=disable_edited_msg(user_filter)))
-    application.add_handler(MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.BALANCE]) & user_filter), balance_command))
+    application.add_handler(MessageHandler(disable_edited_msg(filters.Text([BALANCE.label]) & user_filter), balance_command))
 
     application.add_handler(CommandHandler("hedge", hedge_start, filters=disable_edited_msg(user_filter)),)
-    application.add_handler(MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.HEDGE]) & user_filter), hedge_start))
+    application.add_handler(MessageHandler(disable_edited_msg(filters.Text([HEDGE.label]) & user_filter), hedge_start))
 
     application.add_handler(CommandHandler("help", help_command_admin, filters=disable_edited_msg(admin_filter)))
     application.add_handler(CommandHandler("help", help_command_user, filters=disable_edited_msg(user_filter)))
