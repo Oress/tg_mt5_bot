@@ -13,21 +13,22 @@ from telegram import ReplyKeyboardMarkup, KeyboardButton
 
 
 class KeyboardButtons(str, Enum):
-    BUY = "Купить"
-    SELL = "Продать"
+    BUY = "🔼 Купить"
+    SELL = "🔽 Продать"
 
-    PREVIEW_EDIT = "Изменить"
-    PLACE_ORDER = "Разместить ордер"
+    PREVIEW_EDIT = "✏️ Изменить"
+    PLACE_ORDER = "✅ Разместить ордер"
 
-    HEDGE = 'Хедж'
-    BALANCE = 'Баланс'
+    HEDGE = '🏦 Хедж'
+    BALANCE = '⚖️ Баланс'
 
-    BLOCK_USER= 'Заблокировать пользователя'
-    CHANGE_USER_ACCOUNT_CREDS= 'Изменить учетные данные для пользователя'
-    INVITE_USER= 'Пригласить пользователя'
-    INVITE_ADMIN= 'Пригласить админа'
+    BLOCK_USER= '🔒 Заблокировать пользователя'
+    UNBLOCK_USER= '🔓 Разблокировать пользователя'
+    CHANGE_USER_ACCOUNT_CREDS= '✍️ Изменить учетные данные для пользователя'
+    INVITE_USER= '📨 Пригласить пользователя'
+    INVITE_ADMIN= '📨 Пригласить админа'
 
-    MAIN_MENU = "Главное меню"
+    MAIN_MENU = "🏠 Главное меню"
 
 
 
