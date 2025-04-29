@@ -40,7 +40,7 @@ admin_main_menu_keyboard = [
     user_main_menu_keyboard[0],
     [KeyboardButton(KeyboardButtons.INVITE_USER), KeyboardButton(KeyboardButtons.INVITE_ADMIN)],
     [KeyboardButton(KeyboardButtons.CHANGE_USER_ACCOUNT_CREDS)],
-    [KeyboardButton(KeyboardButtons.BLOCK_USER)]
+    [KeyboardButton(KeyboardButtons.BLOCK_USER), KeyboardButton(KeyboardButtons.UNBLOCK_USER)],
 ]
 
 user_main_menu_markup = ReplyKeyboardMarkup(user_main_menu_keyboard, one_time_keyboard=True, resize_keyboard=True)

@@ -17,7 +17,7 @@ from tg_server.handlers.block_user import block_user_start, block_user_cancel, b
 from tg_server.handlers.change_creds import change_creds_start, change_creds_cancel, change_creds_shared, \
     change_creds_shared_invalid, change_creds_invalid_account_credentials, change_creds_account_credentials
 from tg_server.handlers.commons import KeyboardButtons
-from tg_server.handlers.filters.AuthFilter import manager_filter, user_filter, admin_filter
+from tg_server.handlers.filters.AuthFilter import manager_filter, user_filter, admin_filter, BlockedUserFilter
 from tg_server.handlers.hedge import hedge_start, hedge_operation_selected, hedge_instrument_selected, \
     hedge_volume_selected, hedge_city_selected, hedge_preview_accepted, hedge_invalid_operation_selected, inst_list, \
     hedge_cancel, hedge_invalid_instrument_selected, hedge_invalid_volume_selected, cities_list, \
@@ -27,7 +27,9 @@ from tg_server.handlers.invite_admin import invite_admin_start, invite_admin_can
     invite_admin_shared_invalid
 from tg_server.handlers.start import start_command
 from tg_server.handlers.states import ConversationStates, InviteUserConvStates, HedgeConvStates, InviteAdminConvStates, \
-    ChangeCredsConvStates, BlockUserConvStates
+    ChangeCredsConvStates, BlockUserConvStates, UnblockUserConvStates
+from tg_server.handlers.unblock_user import unblock_user_start, unblock_cancel, unblock_users_shared, \
+    unblock_users_shared_invalid, unblock_account_credentials, unblock_invalid_account_credentials
 from tg_server.services.InviteLinkService import InviteLinkService
 from tg_server.services.UserService import UserService
 
@@ -83,6 +85,10 @@ async def remove_expired_links(context: ContextTypes.DEFAULT_TYPE):
         invite_link_service.remove_expired_links()
         session.commit()
 
+
+async def user_has_been_blocked(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.warning(f"[User is blocked], ignoring request, chat_id: {update.effective_chat.id}, message: {update.effective_message.text}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Вы были заблокированы.")
 
 async def edit_unsupported_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.warning(f"[Msg edit], ignoring it, chat_id: {update.effective_chat.id}, message: {update.effective_message.text}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
@@ -217,6 +223,31 @@ if __name__ == '__main__':
         }
     )
 
+    unblock_user_conv = ConversationHandler(
+        name="unblock_user_conversation",
+        persistent=True,
+        entry_points=[
+            CommandHandler("unblockuser", unblock_user_start, filters=disable_edited_msg(manager_filter)),
+            MessageHandler(disable_edited_msg(filters.Text([KeyboardButtons.UNBLOCK_USER]) & manager_filter), unblock_user_start)
+        ],
+        states={
+            UnblockUserConvStates.PROMPT_USER: [
+                MessageHandler(disable_edited_msg(main_menu_text_filter), unblock_cancel),
+                MessageHandler(disable_edited_msg(filters.StatusUpdate.USERS_SHARED), unblock_users_shared),
+                MessageHandler(disable_edited_msg(~filters.StatusUpdate.USERS_SHARED), unblock_users_shared_invalid),
+            ],
+            UnblockUserConvStates.PROMPT_CREDENTIALS: [
+                MessageHandler(disable_edited_msg(main_menu_text_filter), unblock_cancel),
+                MessageHandler(disable_edited_msg(filters.Regex("^\d+ \S+$")), unblock_account_credentials),
+                MessageHandler(disable_edited_msg(~filters.Regex("^\d+ \S+$")), unblock_invalid_account_credentials),
+            ],
+        },
+        fallbacks=[],
+        map_to_parent={
+            ConversationStates.MAIN_MENU: ConversationStates.MAIN_MENU,
+        }
+    )
+
     invite_admin_conv = ConversationHandler(
         name="invite_admin_conversation",
         persistent=True,
@@ -291,6 +322,7 @@ if __name__ == '__main__':
                 invite_user_conv,
                 invite_admin_conv,
                 block_user_conv,
+                unblock_user_conv,
                 change_creds_conv,
                 hedge_conv,
                 CommandHandler(["start", "menu"], start_command, filters=disable_edited_msg()),
@@ -313,6 +345,7 @@ if __name__ == '__main__':
     application.add_handler(CommandHandler("help", help_command_unauthorized, filters=disable_edited_msg()))
 
     # These handlers must be added last
+    application.add_handler(MessageHandler(BlockedUserFilter(), user_has_been_blocked))
     application.add_handler(MessageHandler(filters.UpdateType.EDITED_MESSAGE, edit_unsupported_command))
     application.add_handler(MessageHandler(filters.COMMAND, unknown_command))
     application.add_handler(MessageHandler(filters.TEXT, unexpected_text))

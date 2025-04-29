@@ -39,8 +39,8 @@ class UserService:
         else:
             raise ValueError(f"User with ID {shared_user_id} not found.")
 
-    def block_user(self, shared_user_id, block_reason):
-        user = self.get_user_by_id(shared_user_id)
+    def block_user(self, user_id, block_reason):
+        user = self.get_user_by_id(user_id)
         if user:
             user.disabled = True
             # Watch the max length
@@ -48,4 +48,14 @@ class UserService:
             user.mt5_acc_number = None
             user.mt5_acc_pwd_enc = None
         else:
-            raise ValueError(f"User with ID {shared_user_id} not found.")
+            raise ValueError(f"User with ID {user_id} not found.")
+
+    def unblock_user(self, user_id: int, account_number: int, account_pwd_enc: bytes):
+        user = self.get_user_by_id(user_id)
+        if user:
+            user.disabled = False
+            user.disabled_reason = None
+            user.mt5_acc_number = account_number
+            user.mt5_acc_pwd_enc = account_pwd_enc
+        else:
+            raise ValueError(f"User with ID {user_id} not found.")

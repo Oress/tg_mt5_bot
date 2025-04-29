@@ -22,7 +22,21 @@ class AuthFilter(MessageFilter):
             role = user.role if user is not None else None
             print(f"role for user {user_id}: {role}, expected roles: {self.roles}")
 
-            return role in self.roles
+            return not user.disabled and role in self.roles
+
+
+class BlockedUserFilter(MessageFilter):
+    def __init__(self):
+        super().__init__()
+
+    def filter(self, message):
+        with Session(engine) as session:
+            user_service = UserService(session)
+
+            user_id = message.from_user.id
+            user = user_service.get_user_by_id(user_id)
+
+            return user.disabled
 
 superadmin_filter = AuthFilter([UserRole.SUPERADMIN])
 admin_filter = AuthFilter([UserRole.SUPERADMIN, UserRole.ADMIN])
