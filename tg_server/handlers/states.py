@@ -9,21 +9,26 @@ class BalanceConvStates(str, Enum):
 class InviteUserConvStates(str, Enum):
     PROMPT_USER = 'PROMPT_USER'
     PROMPT_CREDENTIALS = 'PROMPT_CREDENTIALS'
+    RESULT = 'RESULT'
 
 class UnblockUserConvStates(str, Enum):
     PROMPT_USER = 'PROMPT_USER'
     PROMPT_CREDENTIALS = 'PROMPT_CREDENTIALS'
+    RESULT = 'RESULT'
 
 class BlockUserConvStates(str, Enum):
     PROMPT_USER = 'PROMPT_USER'
     PROMPT_REASON = 'PROMPT_REASON'
+    RESULT = 'RESULT'
 
 class ChangeCredsConvStates(str, Enum):
     PROMPT_USER = 'PROMPT_USER'
     PROMPT_CREDENTIALS = 'PROMPT_CREDENTIALS'
+    RESULT = 'RESULT'
 
 class InviteAdminConvStates(str, Enum):
     PROMPT_USER = 'PROMPT_USER'
+    RESULT = 'RESULT'
 
 
 class HedgeConvStates(str, Enum):

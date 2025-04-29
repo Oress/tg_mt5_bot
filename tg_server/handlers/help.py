@@ -8,10 +8,7 @@ from tg_server.handlers.commons import send_main_menu
 logger = logging.getLogger(__name__)
 
 help_msg = (
-    f"Команды:\n\n"
-    f"/start или /menu - Запустить бота и показать главное меню\n"
-    f"/balance - Показать баланс\n"
-    f"/hedge - Хедж\n"
+    f"/start - Запустить бота и показать главное меню\n"
     # f"/settings - Show settings\n"
     # f"/feedback - Send feedback\n"
     # f"/support - Contact support\n"
@@ -23,16 +20,16 @@ help_msg = (
 )
 
 
-async def help_command_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    admin_help_msg = \
-        (
-                help_msg
-                + "\nКоманды админа:\n"
-                  "/inviteuser - Пригласить пользователя\n"
-                  "/inviteadmin - Пригласить администратора\n"
-        )
-    await update.message.reply_text(admin_help_msg)
-    await send_main_menu(update, context)
+# async def help_command_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     admin_help_msg = \
+#         (
+#                 help_msg
+#                 + "\nКоманды админа:\n"
+#                   "/inviteuser - Пригласить пользователя\n"
+#                   "/inviteadmin - Пригласить администратора\n"
+#         )
+#     await update.message.reply_text(admin_help_msg)
+#     await send_main_menu(update, context)
 
 
 async def help_command_user(update: Update, context: ContextTypes.DEFAULT_TYPE):

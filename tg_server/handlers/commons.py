@@ -4,7 +4,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import Union, Sequence, List
 
 from sqlalchemy.orm.session import Session
-from telegram import Update
+from telegram import Update, Message
 from telegram.ext import ContextTypes, ConversationHandler
 
 from tg_server.constants.UserRole import UserRole
@@ -35,6 +35,7 @@ CHANGE_USER_ACCOUNT_CREDS= KeyboardButtons('✍️ Изменить учетны
 INVITE_USER= KeyboardButtons('📨 Пригласить пользователя', "MM_INVITE_USER")
 INVITE_ADMIN= KeyboardButtons('📨 Пригласить админа', "MM_INVITE_ADMIN")
 MAIN_MENU = KeyboardButtons("🏠 Главное меню", 'MAIN_MENU')
+BLOCK_USER_SKIP_RSN = KeyboardButtons("Пропустить", 'BLCK_USR_SKIP_RSN')
 
 
 user_main_menu_keyboard = [
@@ -67,7 +68,6 @@ def main_menu_decorator(menu: List[Sequence[Union[str, InlineKeyboardButton]]]):
     menu.append([InlineKeyboardButton(text=MAIN_MENU.label, callback_data=MAIN_MENU.callback_data)])
     return menu
 
-
 async def send_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     with Session(engine) as session:
@@ -88,6 +88,7 @@ def round_flt_to_4_decimal(flt: float) -> Decimal:
 
 async def main_menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=update.effective_message.message_id)
+    await purge_messages(update, context)
 
     if context.user_data.get(UD_KEY_MENU_MSG_ID) is not None:
         try:
@@ -100,10 +101,30 @@ async def main_menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationStates.MAIN_MENU
 
 
+UD_KEY_MSGS_IDS_TO_DELETE = "UD_KEY_MSGS_IDS_TO_DELETE"
+def add_message_to_delete(msgs: Sequence[Message], context: ContextTypes.DEFAULT_TYPE):
+    messages = context.user_data.get(UD_KEY_MSGS_IDS_TO_DELETE, [])
+    for msg in msgs:
+        messages.append(msg.message_id)
+    context.user_data[UD_KEY_MSGS_IDS_TO_DELETE] = messages
+
+async def purge_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    messages = context.user_data.get(UD_KEY_MSGS_IDS_TO_DELETE, [])
+    if len(messages) == 0:
+        return
+
+    try:
+        await context.bot.delete_messages(chat_id=update.effective_chat.id, message_ids=messages)
+    except Exception as e:
+        logger.error(f"[Purge Messages] Error deleting message: {e}")
+
+    context.user_data[UD_KEY_MSGS_IDS_TO_DELETE] = []
+
 async def main_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print('main_menu_callback')
     query = update.callback_query
     await query.answer()
+
+    await purge_messages(update, context)
 
     user_id = update.effective_user.id
     with Session(engine) as session:
@@ -116,4 +137,4 @@ async def main_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
         reply_markup=user_main_menu_markup if user_role == UserRole.USER else admin_main_menu_markup,
     )
 
-    return ConversationHandler.END
+    return ConversationStates.MAIN_MENU
