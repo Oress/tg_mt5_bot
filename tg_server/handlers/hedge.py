@@ -63,7 +63,7 @@ preview_action_menu_markup = InlineKeyboardMarkup(
 #     return ConversationStates.MAIN_MENU
 
 async def hedge_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"[Hedge Start], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+    logger.info(f"[Hedge][start][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
 
     query = update.callback_query
     await query.answer()
@@ -74,6 +74,7 @@ async def hedge_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = user_service.get_user_by_id(user_id)
 
         if user.mt5_acc_number is None or user.mt5_acc_pwd_enc is None:
+            logger.warning(f"[Hedge][No related account][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
             await query.edit_message_text(
                 text=helpers.escape_markdown("У вас нет привязанной учетной записи для выполнения операции.", 2),
                 reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
@@ -101,10 +102,9 @@ async def hedge_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def hedge_operation_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"[Hedge Operation Selected], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
-
     query = update.callback_query
     await query.answer()
+    logger.info(f"[Hedge][operation selected][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][operation: {query.data}]")
 
     # HEDGE_SELL or HEDGE_BUY
     type_str = query.data
@@ -130,12 +130,9 @@ async def hedge_operation_selected(update: Update, context: ContextTypes.DEFAULT
 
 
 async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"[Hedge Instrument Selected], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
-    # instrument = get_instrument_by_label(update.message.text)
-    # instrument_str = instrument.symbol
-
     query = update.callback_query
     await query.answer()
+    logger.info(f"[Hedge][instrument selected][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][instrument: {query.data}]")
 
     # symbol e.g. EURUSDm
     instrument_str = query.data
@@ -153,11 +150,12 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
         sym_info = mt5service.symbol_info(user.mt5_acc_number, pwd_decrypted_bytes.decode(), instrument_str)
 
         if operation == BUY.callback_data:
-            logger.info(f"[Hedge Instrument Selected], buy operation, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+            logger.info(f"[Hedge][instrument selected][BUY][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][instrument: {query.data}]")
 
             avail_to_spend_dcm = Decimal(0)
             open_positions = mt5service.positions_get(user.mt5_acc_number, pwd_decrypted_bytes.decode(), instrument_str)
             if len(open_positions) == 0:
+                logger.warning(f"[Hedge][No active positions][BUY][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][instrument: {query.data}]")
                 await query.edit_message_text(
                     text=helpers.escape_markdown("Нет активных позиций, пожалуйста начните сначала.\n\nОперация?", 2),
                     reply_markup=select_operation_menu_markup,
@@ -165,7 +163,6 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
                 )
                 return HedgeConvStates.SELECT_OPERATION
             else:
-                print(open_positions)
                 avail_to_spend_dcm = round_flt_to_4_decimal(open_positions[0].volume) * Decimal(sym_info.trade_contract_size)
 
             symbol_info_msg = (f"Сколько ({instrument.base})? (Отправьте мне сумму в чат.)\n"
@@ -176,7 +173,7 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
                                # f"Шаг: {sym_info.volume_step}"
                                )
         elif operation == SELL.callback_data:
-            logger.info(f"[Hedge Instrument Selected], sell operation, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+            logger.info(f"[Hedge][instrument selected][SELL][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][instrument: {query.data}]")
 
             symbol_info_msg = (f"Сколько ({instrument.base})? (Отправьте мне сумму в чат.)\n"
                                f"Инструмент: {sym_info.description}"
@@ -186,7 +183,7 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
                                )
         else:
             # Ideally this should never happen, but just in case
-            logger.error(f"[Hedge Instrument Selected], invalid operation: {operation}, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+            logger.error(f"[Hedge][invalid operation][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][instrument: {query.data}][operation: {operation}]")
             await query.edit_message_text(
                 text=helpers.escape_markdown("Неверный тип операции.", 2),
                 reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
@@ -223,7 +220,7 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
 
 
 async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"[Hedge Volume Selected], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id} message: {update.effective_message.text}")
+    logger.info(f"[Hedge][Volume Selected][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
     eur_str = update.message.text
 
     await update.message.delete()
@@ -252,6 +249,8 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
         # Check the euro amnt is more than the min amount
         min_amount_eur = sym_info.volume_min * sym_info.trade_contract_size
         if eur_dcm < min_amount_eur:
+            logger.warning(f"[Hedge][vol less than min][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][amnt: {eur_dcm}]")
+
             try:
                 await context.bot.edit_message_text(
                     chat_id=update.effective_chat.id,
@@ -261,12 +260,13 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
                     parse_mode=ParseMode.MARKDOWN_V2
                 )
             except Exception as e:
-                logger.error(f"[Hedge Volume Selected] Error: {e}")
+                logger.error(f"[Hedge][vol less than min][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][amnt: {eur_dcm}][avail_to_spend: {avail_to_spend}][error: {e}]")
 
             return HedgeConvStates.SELECT_VOLUME
 
         # In case of buying, check the euro amnt is less than the available amount
         if operation == BUY.callback_data and avail_to_spend:
+            logger.warning(f"[Hedge][buy, vol more than avail][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][amnt: {eur_dcm}][avail_to_spend: {avail_to_spend}]")
             if eur_dcm > avail_to_spend:
                 try:
                     await context.bot.edit_message_text(
@@ -277,12 +277,13 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
                         parse_mode=ParseMode.MARKDOWN_V2
                     )
                 except Exception as e:
-                    logger.error(f"[Hedge Volume Selected] Error: {e}")
+                    logger.error(f"[Hedge][buy, vol more than avail][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][amnt: {eur_dcm}][avail_to_spend: {avail_to_spend}][error: {e}]")
                 return HedgeConvStates.SELECT_VOLUME
 
         # Check the euro amnt is less than the available amount
         max_amount_eur = sym_info.volume_max * sym_info.trade_contract_size
         if eur_dcm > max_amount_eur:
+            logger.warning(f"[Hedge][vol more than max][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][amnt: {eur_dcm}]")
             try:
                 await context.bot.edit_message_text(
                     chat_id=update.effective_chat.id,
@@ -292,12 +293,14 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
                     parse_mode=ParseMode.MARKDOWN_V2
                 )
             except Exception as e:
-                logger.error(f"[Hedge Volume Selected] Error: {e}")
+                logger.error(f"[Hedge][vol more than max][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][amnt: {eur_dcm}][error: {e}]")
             return HedgeConvStates.SELECT_VOLUME
 
         # Check the euro amnt is divisible by the step
         step_eur = sym_info.volume_step * sym_info.trade_contract_size
         if eur_dcm % step_eur != 0:
+            logger.warning(f"[Hedge][vol not divisible by step][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][amnt: {eur_dcm}][step: {step_eur}]")
+
             try:
                 await context.bot.edit_message_text(
                     chat_id=update.effective_chat.id,
@@ -307,7 +310,7 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
                     parse_mode=ParseMode.MARKDOWN_V2
                 )
             except Exception as e:
-                logger.error(f"[Hedge Volume Selected] Error: {e}")
+                logger.error(f"[Hedge][vol not divisible by step][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][amnt: {eur_dcm}][step: {step_eur}][error: {e}]")
             return HedgeConvStates.SELECT_VOLUME
 
         context.user_data[UD_KEY_HEDGE_VOLUME] = str(eur_dcm / sym_info.trade_contract_size)
@@ -418,7 +421,7 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
 
 
 async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"[Hedge Place Order], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.effective_message.text}")
+    logger.info(f"[Hedge Place Order], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
 
     query = update.callback_query
     await query.answer()
@@ -448,17 +451,17 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
                                                             context.user_data.get(UD_KEY_HEDGE_INSTRUMENT),
                                                             Decimal(context.user_data.get(UD_KEY_HEDGE_VOLUME)))
                 if order_result is None:
+                    logger.error(f"[Hedge][BUY][no order rslt][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
                     raise RuntimeError(f"Something went wrong")
                 elif order_result.retcode not in [10008, 10009, 10010]:
-                    logger.error(f"[Hedge Place Order Error] No recent order found for user_id: {user_id}")
+                    logger.error(f"[Hedge][BUY][order place err rslt][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][retCode: {order_result.retcode}]")
                     await query.edit_message_text(
                         text=helpers.escape_markdown(report_on_order_send(order_result), 2),
                         reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
                         parse_mode=ParseMode.MARKDOWN_V2
                     )
 
-                    # await send_main_menu(update, context)
-                    return ConversationStates.MAIN_MENU
+                    return HedgeConvStates.RESULT
 
                 new_order: Order = order_service.save_close_order_to_db(user_id,
                                                                         context.user_data.get(UD_KEY_HEDGE_CITY),
@@ -473,13 +476,28 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
                     f"Дата: {new_order.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
                 )
             else:
-                logger.error(f"[Hedge Place Order Error] No recent order found for user_id: {user_id}")
+                logger.error(f"[Hedge][BUY][no recent order fnd][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
                 raise RuntimeError(f"Incorrect trade account credentials")
         elif operation == SELL.callback_data:
             order_result = mt5service.place_short_order(user.mt5_acc_number,
                                                         pwd_decrypted_bytes.decode(),
                                                         context.user_data.get(UD_KEY_HEDGE_INSTRUMENT),
                                                         Decimal(context.user_data.get(UD_KEY_HEDGE_VOLUME)))
+
+            if order_result is None:
+                logger.error(f"[Hedge][SELL][no order rslt][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
+                raise RuntimeError(f"Something went wrong")
+            elif order_result.retcode not in [10008, 10009, 10010]:
+                logger.error(f"[Hedge][SELL][order place err rslt][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][retCode: {order_result.retcode}]")
+                await query.edit_message_text(
+                    text=helpers.escape_markdown(report_on_order_send(order_result), 2),
+                    reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+                    parse_mode=ParseMode.MARKDOWN_V2
+                )
+
+                return HedgeConvStates.RESULT
+
+
             new_order: Order = order_service.save_short_order_to_db(user_id,
                                                                     context.user_data.get(UD_KEY_HEDGE_CITY),
                                                                     user.mt5_acc_number,
@@ -493,6 +511,7 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
                 f"Дата: {new_order.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
                         )
         else:
+            logger.error(f"[Hedge][place order invld op][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][operation: {operation}]")
             await query.edit_message_text(
                 text=helpers.escape_markdown("Неверный тип операции.", 2),
                 reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
@@ -508,7 +527,6 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
         parse_mode=ParseMode.MARKDOWN_V2
     )
 
-    # await send_main_menu(update, context)
     return HedgeConvStates.RESULT
 
 

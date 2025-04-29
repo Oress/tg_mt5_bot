@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 BALANCE_PREFIX_MD2 = "*\[Баланс\]*\n"
 
 async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"[Balance], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+    logger.info(f"[Balance][start][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
 
     query = update.callback_query
     await query.answer()
@@ -30,6 +30,7 @@ async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = user_service.get_user_by_id(user_id)
 
         if user.mt5_acc_number is None or user.mt5_acc_pwd_enc is None:
+            logger.warning(f"[Balance][No related account][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
             await query.edit_message_text(
                 text=helpers.escape_markdown("У вас нет привязанной учетной записи для выполнения операции.", 2),
                 reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
@@ -42,6 +43,7 @@ async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for inst in available_instruments:
             positions = mt5service.positions_get(user.mt5_acc_number, pwd_decrypted_bytes.decode(), inst.symbol)
             if positions is None or len(positions) == 0:
+                logger.warning(f"[Balance][No open positions][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
                 balance_msg = "У вас нет открытых позиций."
                 await query.edit_message_text(
                     text=f"{BALANCE_PREFIX_MD2}\n" + helpers.escape_markdown(balance_msg, 2),
@@ -51,6 +53,7 @@ async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 # await send_main_menu(update, context)
                 return BalanceConvStates.BALANCE_OPENED
             elif len(positions) > 1:
+                logger.error(f"[Balance][More than 1 open positions][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
                 raise Exception("More than one position")
 
             sym_info = mt5service.symbol_info(user.mt5_acc_number, pwd_decrypted_bytes.decode(), positions[0].symbol)

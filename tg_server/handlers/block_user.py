@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 UD_KEY_USERID_TO_BLOCK = "UD_KEY_USERID_TO_BLOCK"
 
 async def block_user_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.warning(f"[Block User Start], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+    logger.warning(f"[Block User][start][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
 
     query = update.callback_query
     await query.answer()
@@ -44,7 +44,7 @@ async def block_user_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 #     return await block_user_start(update, context)
 
 async def block_user_shared(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.warning(f"[Block User] user shared, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+    logger.info(f"[Block User][user shared][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
     shared_user = await extract_passed_user(message=update.message)
 
     add_message_to_delete([update.message], context)
@@ -65,7 +65,7 @@ async def block_user_shared(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     parse_mode=ParseMode.MARKDOWN_V2
                 )
             except Exception as e:
-                logger.error(f"Error while editing message: {e}")
+                logger.error(f"[Block User][not registered][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][exception: {e}]")
 
             prompt_msg = await update.effective_user.send_message(
                 text="Выберете пользователя:",
@@ -86,7 +86,7 @@ async def block_user_shared(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     parse_mode=ParseMode.MARKDOWN_V2
                 )
             except Exception as e:
-                logger.error(f"Error while editing message: {e}")
+                logger.error(f"[Block User][user blocked][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][exception: {e}]")
 
             prompt_msg = await update.effective_user.send_message(
                 text="Выберете пользователя:",
@@ -113,7 +113,7 @@ async def block_user_shared(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def block_user_reason_handler(skip: bool):
     async def block_user_reason_entered(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        logger.info(f"[Block User] Invite creds entered, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+        logger.info(f"[Block User][reason entered][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][skip: {skip}]")
 
         if skip:
             query = update.callback_query

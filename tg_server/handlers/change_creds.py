@@ -29,7 +29,7 @@ choose_user_markup = ReplyKeyboardMarkup(
 )
 
 async def change_creds_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"[Change credentials|start], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+    logger.info(f"[Change credentials][start][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
 
     query = update.callback_query
     await query.answer()
@@ -56,7 +56,7 @@ async def change_creds_start(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 async def change_creds_shared(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"[Change credentials|user_shared], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+    logger.info(f"[Change credentials][user shared][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
     shared_user = await extract_passed_user(message=update.message)
 
     add_message_to_delete([update.message], context)
@@ -67,7 +67,7 @@ async def change_creds_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
         user_service = UserService(session)
         user = user_service.get_user_by_id(shared_user.user_id)
         if not user:
-            logger.warning(f"[Change credentials|user_not_registered], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+            logger.warning(f"[Change credentials][user not registered][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
 
             try:
                 await context.bot.edit_message_text(
@@ -78,7 +78,7 @@ async def change_creds_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
                     parse_mode=ParseMode.MARKDOWN_V2
                 )
             except Exception as e:
-                logger.error(f"Error while editing message: {e}")
+                logger.error(f"[Change credentials][user not registered][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][exception: {e}]")
 
             prompt_msg = await update.effective_user.send_message(
                 text="Выберете пользователя:",
@@ -89,7 +89,7 @@ async def change_creds_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
 
             return ChangeCredsConvStates.PROMPT_USER
         elif user.disabled:
-            logger.warning(f"[Change credentials|user_is_blocked], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+            logger.warning(f"[Change credentials][user blocked][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
 
             try:
                 block_reason = user.disabled_reason if user.disabled_reason else "не указана"
@@ -101,7 +101,7 @@ async def change_creds_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
                     parse_mode=ParseMode.MARKDOWN_V2
                 )
             except Exception as e:
-                logger.error(f"Error while editing message: {e}")
+                logger.error(f"[Change credentials][user blocked][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][exception: {e}]")
 
             prompt_msg = await update.effective_user.send_message(
                 text="Выберете пользователя:",
@@ -136,7 +136,7 @@ async def change_creds_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
 #     return ChangeCredsConvStates.PROMPT_CREDENTIALS
 
 async def change_creds_account_credentials(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"[Change credentials|acc_creds_input], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+    logger.info(f"[Change credentials][creds received][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
 
     credentials_arr: List[str] = update.message.text.split(' ')
 
@@ -160,7 +160,8 @@ async def change_creds_account_credentials(update: Update, context: ContextTypes
         user_service = UserService(session)
         user_with_same_account = user_service.get_user_by_account_num(account_number)
         if user_with_same_account and user_with_same_account.tg_id != update.effective_user.id:
-            logger.warning(f"[Change credentials|user_with_same_acc#], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+            logger.warning(f"[Change credentials][user with same acc#][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][user_with_same_account: {user_with_same_account.tg_id}]")
+
             try:
                 await context.bot.edit_message_text(
                     chat_id=update.effective_chat.id,
@@ -170,12 +171,13 @@ async def change_creds_account_credentials(update: Update, context: ContextTypes
                     parse_mode=ParseMode.MARKDOWN_V2
                 )
             except Exception as e:
-                logger.error(f"Error while editing message: {e}")
+                logger.error(f"[Change credentials][user with same acc#][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][exception: {e}]")
+
             return ChangeCredsConvStates.PROMPT_CREDENTIALS
 
         link_by_account_num = invite_links_service.get_link_by_account_num(account_number)
         if link_by_account_num:
-            logger.warning(f"[Change credentials|link_with_same_acc#], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+            logger.warning(f"[Change credentials][link with same acc#][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][user_with_same_account: {user_with_same_account.tg_id}]")
 
             try:
                 await context.bot.edit_message_text(
@@ -186,13 +188,13 @@ async def change_creds_account_credentials(update: Update, context: ContextTypes
                     parse_mode=ParseMode.MARKDOWN_V2
                 )
             except Exception as e:
-                logger.error(f"Error while editing message: {e}")
+                logger.error(f"[Change credentials][link with same acc#][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][exception: {e}]")
 
             return ChangeCredsConvStates.PROMPT_CREDENTIALS
 
         valid_creds = mt5service.check_credentials(account_number, account_pwd)
         if not valid_creds:
-            logger.warning(f"[Change credentials|invalid_creds], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+            logger.warning(f"[Change credentials][invalid creds][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][user_with_same_account: {user_with_same_account.tg_id}]")
 
             try:
                 await context.bot.edit_message_text(
@@ -203,7 +205,7 @@ async def change_creds_account_credentials(update: Update, context: ContextTypes
                     parse_mode=ParseMode.MARKDOWN_V2
                 )
             except Exception as e:
-                logger.error(f"Error while editing message: {e}")
+                logger.error(f"[Change credentials][invalid creds][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][exception: {e}]")
 
             return ChangeCredsConvStates.PROMPT_CREDENTIALS
 

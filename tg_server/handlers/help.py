@@ -12,6 +12,7 @@ help_msg = (
 )
 
 async def help_command_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info(f"[Help][authorized][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
     await update.message.delete()
 
     view_msg_id = context.user_data.get(UD_KEY_MENU_MSG_ID)
@@ -27,6 +28,7 @@ async def help_command_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
         add_message_to_delete([msg], context)
 
 async def help_command_unauthorized(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.warning(f"[Help][unauthorized][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
     await update.message.delete()
     await update.message.reply_text(
         f"Этот бот доступен только для авторизованных пользователей. Пожалуйста, получите приглашение, чтобы использовать его.")
