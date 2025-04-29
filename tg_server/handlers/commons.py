@@ -14,6 +14,8 @@ from tg_server.services.UserService import UserService
 
 UD_KEY_MENU_MSG_ID = "UD_KEY_MENU_MSG_ID"
 
+ACCOUNT_CREDS_FORMAT = "```формат \<account_number\> \<password\> ```"
+
 logger = logging.getLogger(__name__)
 
 class KeyboardButtons:
@@ -74,9 +76,11 @@ async def send_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.info(f"[Send Main Menu] user_id: {user_id}, role: {user.role}")
         user_role = user.role
 
-    return await context.bot.send_message(chat_id=update.effective_chat.id,
+    msg = await context.bot.send_message(chat_id=update.effective_chat.id,
                                    text="Главное меню:",
                                    reply_markup=user_main_menu_markup if user_role == UserRole.USER else admin_main_menu_markup)
+    context.user_data[UD_KEY_MENU_MSG_ID] = msg.message_id
+    return msg
 
 def remove_exponent(d):
     return d.quantize(Decimal(1)) if d == d.to_integral() else d.normalize()

@@ -1,17 +1,17 @@
 import logging
 from typing import List
-from ptbcontrib.extract_passed_user import extract_passed_user
 
+from ptbcontrib.extract_passed_user import extract_passed_user
 from sqlalchemy.orm.session import Session
-from telegram import helpers, Update, ReplyKeyboardRemove, ReplyKeyboardMarkup, KeyboardButton, \
+from telegram import helpers, Update, ReplyKeyboardMarkup, KeyboardButton, \
     KeyboardButtonRequestUsers, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
 from tg_server.database.db import engine
-from tg_server.handlers.commons import send_main_menu, main_menu_decorator, add_message_to_delete, purge_messages, \
-    UD_KEY_MENU_MSG_ID
-from tg_server.handlers.states import UnblockUserConvStates, ConversationStates
+from tg_server.handlers.commons import main_menu_decorator, add_message_to_delete, purge_messages, \
+    UD_KEY_MENU_MSG_ID, ACCOUNT_CREDS_FORMAT
+from tg_server.handlers.states import UnblockUserConvStates
 from tg_server.mt5.mt5service import mt5service
 from tg_server.security.encryptor import pwd_encryptor
 from tg_server.services.InviteLinkService import InviteLinkService
@@ -51,7 +51,7 @@ async def unblock_user_start(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 # async def unblock_users_shared_invalid(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     logger.info(f"[Unblock user] invalid user, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
+#     logger.info(f"[Unblock user] invalid user, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
 #     return await unblock_user_start(update, context)
 
 
@@ -67,7 +67,7 @@ async def unblock_users_shared(update: Update, context: ContextTypes.DEFAULT_TYP
         user_service = UserService(session)
         user = user_service.get_user_by_id(shared_user.user_id)
         if not user:
-            logger.warning(f"[Unblock user] user not registered, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
+            logger.warning(f"[Unblock user] user not registered, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
             await context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
                 message_id=view_msg_id,
@@ -118,7 +118,7 @@ async def unblock_users_shared(update: Update, context: ContextTypes.DEFAULT_TYP
     return UnblockUserConvStates.PROMPT_CREDENTIALS
 
 # async def unblock_invalid_account_credentials(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     logger.warning(f"[Unblock user] invalid creds, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
+#     logger.warning(f"[Unblock user] invalid creds, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
 #     await update.message.reply_text(
 #         helpers.escape_markdown("Неверный формат учетных данных. Попробуйте еще раз.", 2),
 #         parse_mode=ParseMode.MARKDOWN_V2,
@@ -155,7 +155,8 @@ async def unblock_account_credentials(update: Update, context: ContextTypes.DEFA
             await context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
                 message_id=view_msg_id,
-                text=helpers.escape_markdown("Пользователь с таким номером счета уже существует. Введите учетные данные для другого счета.", 2),
+                text=helpers.escape_markdown("Пользователь с таким номером счета уже существует. Введите учетные данные для другого счета.\n", 2) + ACCOUNT_CREDS_FORMAT,
+                reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
                 parse_mode=ParseMode.MARKDOWN_V2
             )
 
@@ -169,7 +170,8 @@ async def unblock_account_credentials(update: Update, context: ContextTypes.DEFA
             await context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
                 message_id=view_msg_id,
-                text=helpers.escape_markdown("Приглашение с таким же номером счета уже существует. Введите учетные данные для другого счета.", 2),
+                text=helpers.escape_markdown("Приглашение с таким же номером счета уже существует. Введите учетные данные для другого счета.\n", 2) + ACCOUNT_CREDS_FORMAT,
+                reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
                 parse_mode=ParseMode.MARKDOWN_V2
             )
 
@@ -182,7 +184,8 @@ async def unblock_account_credentials(update: Update, context: ContextTypes.DEFA
             await context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
                 message_id=view_msg_id,
-                text=helpers.escape_markdown("Учетные данные недействительны. Попробуйте еще раз.", 2),
+                text=helpers.escape_markdown("Учетные данные недействительны. Попробуйте еще раз.\n", 2) + ACCOUNT_CREDS_FORMAT,
+                reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
                 parse_mode=ParseMode.MARKDOWN_V2
             )
 

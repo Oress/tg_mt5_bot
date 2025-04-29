@@ -8,8 +8,8 @@ from telegram.ext import ContextTypes
 
 from tg_server.constants.Instruments import get_instrument_by_symbol, available_instruments
 from tg_server.database.db import engine
-from tg_server.handlers.commons import send_main_menu, remove_exponent, round_flt_to_4_decimal, main_menu_decorator
-from tg_server.handlers.states import ConversationStates, BalanceConvStates
+from tg_server.handlers.commons import remove_exponent, round_flt_to_4_decimal, main_menu_decorator
+from tg_server.handlers.states import BalanceConvStates
 from tg_server.mt5.mt5service import mt5service
 from tg_server.security.encryptor import pwd_encryptor
 from tg_server.services.UserService import UserService
@@ -28,6 +28,14 @@ async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_service = UserService(session)
         user_id = update.effective_user.id
         user = user_service.get_user_by_id(user_id)
+
+        if user.mt5_acc_number is None or user.mt5_acc_pwd_enc is None:
+            await query.edit_message_text(
+                text=helpers.escape_markdown("У вас нет привязанной учетной записи для выполнения операции.", 2),
+                reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+                parse_mode=ParseMode.MARKDOWN_V2
+            )
+            return BalanceConvStates.BALANCE_OPENED
 
         pwd_decrypted_bytes = pwd_encryptor.decrypt(user.mt5_acc_pwd_enc)
 

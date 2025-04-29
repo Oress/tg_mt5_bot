@@ -1,18 +1,18 @@
 import logging
 from typing import List
-from ptbcontrib.extract_passed_user import extract_passed_user
 
+from ptbcontrib.extract_passed_user import extract_passed_user
 from sqlalchemy.orm.session import Session
-from telegram import helpers, Update, ReplyKeyboardRemove, ReplyKeyboardMarkup, KeyboardButton, \
+from telegram import helpers, Update, ReplyKeyboardMarkup, KeyboardButton, \
     KeyboardButtonRequestUsers, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
 from tg_server.constants.UserRole import UserRole
 from tg_server.database.db import engine
-from tg_server.handlers.commons import send_main_menu, main_menu_decorator, UD_KEY_MENU_MSG_ID, add_message_to_delete, \
-    purge_messages
-from tg_server.handlers.states import InviteUserConvStates, ConversationStates
+from tg_server.handlers.commons import main_menu_decorator, UD_KEY_MENU_MSG_ID, add_message_to_delete, \
+    purge_messages, ACCOUNT_CREDS_FORMAT
+from tg_server.handlers.states import InviteUserConvStates
 from tg_server.mt5.mt5service import mt5service
 from tg_server.security.encryptor import pwd_encryptor
 from tg_server.services.InviteLinkService import InviteLinkService
@@ -24,7 +24,6 @@ UD_KEY_USER_ID_TO_INVITE = "user_id_to_invite"
 
 USER_INVITE_PREFIX_MD2 = "*\[Приглашение\]*\n"
 
-# TODO: request_id ????
 choose_user_markup = ReplyKeyboardMarkup(
     [[
         KeyboardButton("Выбрать пользователя",
@@ -56,7 +55,7 @@ async def invite_user_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # async def invite_users_shared_invalid(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     logger.info(f"[Invite invalid user], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
+#     logger.info(f"[Invite invalid user], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
 #     return await invite_user_start(update, context)
 
 
@@ -72,7 +71,7 @@ async def invite_users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
         invite_link_service = InviteLinkService(session)
         link = invite_link_service.get_invite_link_by_id(shared_user.user_id)
         if link is not None:
-            logger.warning(f"[Invite link exists], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
+            logger.warning(f"[Invite link exists], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
 
             # May return Message is not modified: specified new message content and reply markup are exactly the same as a current content and reply markup of the message
             try:
@@ -100,7 +99,7 @@ async def invite_users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
         user_service = UserService(session)
         contains_user = user_service.contains_user(shared_user.user_id)
         if contains_user:
-            logger.warning(f"[Invite user exists], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
+            logger.warning(f"[Invite user exists], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
 
             await context.bot.edit_message_text(
                 chat_id=update.effective_chat.id,
@@ -126,14 +125,14 @@ async def invite_users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
         message_id=view_msg_id,
         text=helpers.escape_markdown(
             "Пожалуйста, предоставьте данные учетной записи Gerchik в следующем формате:\n", 2)
-             + "```формат \<account_number\> \<password\> ```",
+             + ACCOUNT_CREDS_FORMAT,
         reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
         parse_mode=ParseMode.MARKDOWN_V2
     )
     return InviteUserConvStates.PROMPT_CREDENTIALS
 
 # async def invite_invalid_account_credentials(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     logger.warning(f"[Invite invalid creds], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
+#     logger.warning(f"[Invite invalid creds], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
 #     await update.message.reply_text(
 #         helpers.escape_markdown("Неверный формат учетных данных. Попробуйте еще раз.", 2),
 #         parse_mode=ParseMode.MARKDOWN_V2,
@@ -168,12 +167,16 @@ async def invite_account_credentials(update: Update, context: ContextTypes.DEFAU
         if user_with_same_account:
             logger.warning(f"[Invite user with same account#], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
 
-            await context.bot.edit_message_text(
-                chat_id=update.effective_chat.id,
-                message_id=view_msg_id,
-                text=helpers.escape_markdown("Пользователь с таким номером счета уже существует. Введите учетные данные для другого счета.", 2),
-                parse_mode=ParseMode.MARKDOWN_V2
-            )
+            try:
+                await context.bot.edit_message_text(
+                    chat_id=update.effective_chat.id,
+                    message_id=view_msg_id,
+                    text=helpers.escape_markdown("Пользователь с таким номером счета уже существует. Введите учетные данные для другого счета.\n", 2) + ACCOUNT_CREDS_FORMAT,
+                    reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+                    parse_mode=ParseMode.MARKDOWN_V2
+                )
+            except Exception as e:
+                logger.error(f"Error while editing message: {e}")
 
             return InviteUserConvStates.PROMPT_CREDENTIALS
 
@@ -181,23 +184,34 @@ async def invite_account_credentials(update: Update, context: ContextTypes.DEFAU
         if link_by_account_num:
             logger.warning(f"[Invite link with same account#], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
 
-            await context.bot.edit_message_text(
-                chat_id=update.effective_chat.id,
-                message_id=view_msg_id,
-                text=helpers.escape_markdown("Приглашение с таким же номером счета уже существует. Введите учетные данные для другого счета.", 2),
-                parse_mode=ParseMode.MARKDOWN_V2
-            )
+            try:
+                await context.bot.edit_message_text(
+                    chat_id=update.effective_chat.id,
+                    message_id=view_msg_id,
+                    text=helpers.escape_markdown("Приглашение с таким же номером счета уже существует. Введите учетные данные для другого счета.\n", 2) + ACCOUNT_CREDS_FORMAT,
+                    reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+                    parse_mode=ParseMode.MARKDOWN_V2
+                )
+            except Exception as e:
+                logger.error(f"[Invite user] Error editing message: {e}")
+
             return InviteUserConvStates.PROMPT_CREDENTIALS
 
         valid_creds = mt5service.check_credentials(account_number, account_pwd)
         if not valid_creds:
             logger.warning(f"[Invite invalid creds], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
-            await context.bot.edit_message_text(
-                chat_id=update.effective_chat.id,
-                message_id=view_msg_id,
-                text=helpers.escape_markdown("Учетные данные недействительны. Попробуйте еще раз.", 2),
-                parse_mode=ParseMode.MARKDOWN_V2
-            )
+
+            try:
+                await context.bot.edit_message_text(
+                    chat_id=update.effective_chat.id,
+                    message_id=view_msg_id,
+                    text=helpers.escape_markdown("Учетные данные недействительны. Попробуйте еще раз.\n", 2) + ACCOUNT_CREDS_FORMAT,
+                    reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+                    parse_mode=ParseMode.MARKDOWN_V2
+                )
+            except Exception as e:
+                logger.error(f"[Invite user] Error : {e}")
+
             return InviteUserConvStates.PROMPT_CREDENTIALS
 
         await context.bot.edit_message_text(
@@ -207,6 +221,7 @@ async def invite_account_credentials(update: Update, context: ContextTypes.DEFAU
             reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
             parse_mode=ParseMode.MARKDOWN_V2
         )
+
         shared_user_id: int = context.user_data.get(UD_KEY_USER_ID_TO_INVITE)
         encrypted_pwd = pwd_encryptor.encrypt(account_pwd.encode())
 

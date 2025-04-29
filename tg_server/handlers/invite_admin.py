@@ -2,16 +2,16 @@ import logging
 
 from ptbcontrib.extract_passed_user import extract_passed_user
 from sqlalchemy.orm.session import Session
-from telegram import helpers, Update, ReplyKeyboardRemove, InlineKeyboardMarkup
+from telegram import helpers, Update, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
 from tg_server.constants.UserRole import UserRole
 from tg_server.database.db import engine
-from tg_server.handlers.commons import send_main_menu, add_message_to_delete, main_menu_decorator, purge_messages, \
+from tg_server.handlers.commons import add_message_to_delete, main_menu_decorator, purge_messages, \
     UD_KEY_MENU_MSG_ID
 from tg_server.handlers.invite import choose_user_markup
-from tg_server.handlers.states import InviteUserConvStates, ConversationStates, InviteAdminConvStates
+from tg_server.handlers.states import InviteUserConvStates, InviteAdminConvStates
 from tg_server.services.InviteLinkService import InviteLinkService
 from tg_server.services.UserService import UserService
 
@@ -46,11 +46,11 @@ async def invite_admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 # async def invite_admin_shared_invalid(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     logger.warning(f"[Invite Admin invalid user], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
+#     logger.warning(f"[Invite Admin invalid user], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
 #     return await invite_admin_start(update, context)
 
 async def invite_admin_shared(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.warning(f"[Invite Admin user shared], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
+    logger.warning(f"[Invite Admin user shared], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
     shared_user = await extract_passed_user(message=update.message)
 
     add_message_to_delete([update.message], context)
@@ -72,7 +72,7 @@ async def invite_admin_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
                     parse_mode=ParseMode.MARKDOWN_V2
                 )
             except Exception as e:
-                logger.error(f"[Invite user] Error deleting message: {e}")
+                logger.error(f"[Invite user] Error editing message: {e}")
 
             invite_msg = await show_admin_invite(update, context, link.code)
             add_message_to_delete([invite_msg], context)
@@ -88,13 +88,16 @@ async def invite_admin_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
         user_service = UserService(session)
         contains_user = user_service.contains_user(shared_user.user_id)
         if contains_user:
-            await context.bot.edit_message_text(
-                chat_id=update.effective_chat.id,
-                message_id=view_msg_id,
-                text=helpers.escape_markdown("Этот пользователь уже зарегистрирован. Выберите другого пользователя.", 2),
-                reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
-                parse_mode=ParseMode.MARKDOWN_V2
-            )
+            try:
+                await context.bot.edit_message_text(
+                    chat_id=update.effective_chat.id,
+                    message_id=view_msg_id,
+                    text=helpers.escape_markdown("Этот пользователь уже зарегистрирован. Выберите другого пользователя.", 2),
+                    reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+                    parse_mode=ParseMode.MARKDOWN_V2
+                )
+            except Exception as e:
+                logger.error(f"[Invite user] Error editing message: {e}")
 
             prompt_msg = await update.effective_user.send_message(
                 text="Выберете пользователя:",

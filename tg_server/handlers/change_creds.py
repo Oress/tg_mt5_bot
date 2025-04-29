@@ -1,17 +1,17 @@
 import logging
 from typing import List
-from ptbcontrib.extract_passed_user import extract_passed_user
 
+from ptbcontrib.extract_passed_user import extract_passed_user
 from sqlalchemy.orm.session import Session
-from telegram import helpers, Update, ReplyKeyboardRemove, ReplyKeyboardMarkup, KeyboardButton, \
+from telegram import helpers, Update, ReplyKeyboardMarkup, KeyboardButton, \
     KeyboardButtonRequestUsers, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
 from tg_server.database.db import engine
-from tg_server.handlers.commons import send_main_menu, main_menu_decorator, UD_KEY_MENU_MSG_ID, add_message_to_delete, \
-    purge_messages
-from tg_server.handlers.states import ChangeCredsConvStates, ConversationStates
+from tg_server.handlers.commons import main_menu_decorator, UD_KEY_MENU_MSG_ID, add_message_to_delete, \
+    purge_messages, ACCOUNT_CREDS_FORMAT
+from tg_server.handlers.states import ChangeCredsConvStates
 from tg_server.mt5.mt5service import mt5service
 from tg_server.security.encryptor import pwd_encryptor
 from tg_server.services.InviteLinkService import InviteLinkService
@@ -50,9 +50,9 @@ async def change_creds_start(update: Update, context: ContextTypes.DEFAULT_TYPE)
     return ChangeCredsConvStates.PROMPT_USER
 
 
-async def change_creds_shared_invalid(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"[Change credentials|invalid_user], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
-    return await change_creds_start(update, context)
+# async def change_creds_shared_invalid(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     logger.info(f"[Change credentials|invalid_user], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+#     return await change_creds_start(update, context)
 
 
 async def change_creds_shared(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -65,17 +65,20 @@ async def change_creds_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     with Session(engine) as session:
         user_service = UserService(session)
-        contains_user = user_service.contains_user(shared_user.user_id)
-        if not contains_user:
-            logger.warning(f"[Change credentials|user_not_registered], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
+        user = user_service.get_user_by_id(shared_user.user_id)
+        if not user:
+            logger.warning(f"[Change credentials|user_not_registered], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
 
-            await context.bot.edit_message_text(
-                chat_id=update.effective_chat.id,
-                message_id=view_msg_id,
-                text=helpers.escape_markdown("Этот пользователь не зарегистрирован. Выберите другого пользователя.", 2),
-                reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
-                parse_mode=ParseMode.MARKDOWN_V2
-            )
+            try:
+                await context.bot.edit_message_text(
+                    chat_id=update.effective_chat.id,
+                    message_id=view_msg_id,
+                    text=helpers.escape_markdown("Этот пользователь не зарегистрирован. Выберите другого пользователя.", 2),
+                    reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+                    parse_mode=ParseMode.MARKDOWN_V2
+                )
+            except Exception as e:
+                logger.error(f"Error while editing message: {e}")
 
             prompt_msg = await update.effective_user.send_message(
                 text="Выберете пользователя:",
@@ -85,7 +88,29 @@ async def change_creds_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
             add_message_to_delete([prompt_msg], context)
 
             return ChangeCredsConvStates.PROMPT_USER
+        elif user.disabled:
+            logger.warning(f"[Change credentials|user_is_blocked], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
 
+            try:
+                block_reason = user.disabled_reason if user.disabled_reason else "не указана"
+                await context.bot.edit_message_text(
+                    chat_id=update.effective_chat.id,
+                    message_id=view_msg_id,
+                    text=helpers.escape_markdown(f"Этот пользователь был заблокирован.\nПричина: {block_reason}\nВыберите другого пользователя.", 2),
+                    reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+                    parse_mode=ParseMode.MARKDOWN_V2
+                )
+            except Exception as e:
+                logger.error(f"Error while editing message: {e}")
+
+            prompt_msg = await update.effective_user.send_message(
+                text="Выберете пользователя:",
+                reply_markup=choose_user_markup,
+                parse_mode=ParseMode.MARKDOWN_V2,
+            )
+            add_message_to_delete([prompt_msg], context)
+
+            return ChangeCredsConvStates.PROMPT_USER
     # Save the shared user in user_data
     context.user_data[UD_KEY_CHANGE_CREDS_USER_ID] = shared_user.user_id
 
@@ -100,15 +125,15 @@ async def change_creds_shared(update: Update, context: ContextTypes.DEFAULT_TYPE
     )
     return ChangeCredsConvStates.PROMPT_CREDENTIALS
 
-async def change_creds_invalid_account_credentials(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.warning(f"[Change credentials|invalid_format_acc_creds], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
-
-    await update.message.reply_text(
-        helpers.escape_markdown("Неверный формат учетных данных. Попробуйте еще раз.", 2),
-        parse_mode=ParseMode.MARKDOWN_V2,
-        protect_content=True
-    )
-    return ChangeCredsConvStates.PROMPT_CREDENTIALS
+# async def change_creds_invalid_account_credentials(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     logger.warning(f"[Change credentials|invalid_format_acc_creds], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+#
+#     await update.message.reply_text(
+#         helpers.escape_markdown("Неверный формат учетных данных. Попробуйте еще раз.", 2),
+#         parse_mode=ParseMode.MARKDOWN_V2,
+#         protect_content=True
+#     )
+#     return ChangeCredsConvStates.PROMPT_CREDENTIALS
 
 async def change_creds_account_credentials(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"[Change credentials|acc_creds_input], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
@@ -136,24 +161,32 @@ async def change_creds_account_credentials(update: Update, context: ContextTypes
         user_with_same_account = user_service.get_user_by_account_num(account_number)
         if user_with_same_account and user_with_same_account.tg_id != update.effective_user.id:
             logger.warning(f"[Change credentials|user_with_same_acc#], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
-            await context.bot.edit_message_text(
-                chat_id=update.effective_chat.id,
-                message_id=view_msg_id,
-                text=helpers.escape_markdown("Пользователь с таким номером счета уже существует. Введите учетные данные для другого счета.", 2),
-                parse_mode=ParseMode.MARKDOWN_V2
-            )
+            try:
+                await context.bot.edit_message_text(
+                    chat_id=update.effective_chat.id,
+                    message_id=view_msg_id,
+                    text=helpers.escape_markdown("Пользователь с таким номером счета уже существует. Введите учетные данные для другого счета.\n", 2) + ACCOUNT_CREDS_FORMAT,
+                    reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+                    parse_mode=ParseMode.MARKDOWN_V2
+                )
+            except Exception as e:
+                logger.error(f"Error while editing message: {e}")
             return ChangeCredsConvStates.PROMPT_CREDENTIALS
 
         link_by_account_num = invite_links_service.get_link_by_account_num(account_number)
         if link_by_account_num:
             logger.warning(f"[Change credentials|link_with_same_acc#], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
 
-            await context.bot.edit_message_text(
-                chat_id=update.effective_chat.id,
-                message_id=view_msg_id,
-                text=helpers.escape_markdown("Приглашение с таким же номером счета уже существует. Введите учетные данные для другого счета.", 2),
-                parse_mode=ParseMode.MARKDOWN_V2
-            )
+            try:
+                await context.bot.edit_message_text(
+                    chat_id=update.effective_chat.id,
+                    message_id=view_msg_id,
+                    text=helpers.escape_markdown("Приглашение с таким же номером счета уже существует. Введите учетные данные для другого счета.\n", 2) + ACCOUNT_CREDS_FORMAT,
+                    reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+                    parse_mode=ParseMode.MARKDOWN_V2
+                )
+            except Exception as e:
+                logger.error(f"Error while editing message: {e}")
 
             return ChangeCredsConvStates.PROMPT_CREDENTIALS
 
@@ -161,12 +194,16 @@ async def change_creds_account_credentials(update: Update, context: ContextTypes
         if not valid_creds:
             logger.warning(f"[Change credentials|invalid_creds], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
 
-            await context.bot.edit_message_text(
-                chat_id=update.effective_chat.id,
-                message_id=view_msg_id,
-                text=helpers.escape_markdown("Учетные данные недействительны. Попробуйте еще раз.", 2),
-                parse_mode=ParseMode.MARKDOWN_V2
-            )
+            try:
+                await context.bot.edit_message_text(
+                    chat_id=update.effective_chat.id,
+                    message_id=view_msg_id,
+                    text=helpers.escape_markdown("Учетные данные недействительны. Попробуйте еще раз.\n", 2) + ACCOUNT_CREDS_FORMAT,
+                    reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+                    parse_mode=ParseMode.MARKDOWN_V2
+                )
+            except Exception as e:
+                logger.error(f"Error while editing message: {e}")
 
             return ChangeCredsConvStates.PROMPT_CREDENTIALS
 
@@ -186,13 +223,13 @@ async def change_creds_account_credentials(update: Update, context: ContextTypes
 
     return ChangeCredsConvStates.RESULT
 
-async def change_creds_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.warning(f"[Change credentials|сфтсуд], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
-    user = update.message.from_user
-    logger.info("User %s canceled the conversation.", user.first_name)
-    await update.message.reply_text(helpers.escape_markdown("Отмена генерации приглашения.", 2),
-                                    reply_markup=ReplyKeyboardRemove(), parse_mode=ParseMode.MARKDOWN_V2)
-    await send_main_menu(update, context)
-    return ConversationStates.MAIN_MENU
+# async def change_creds_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     logger.warning(f"[Change credentials|сфтсуд], chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
+#     user = update.message.from_user
+#     logger.info("User %s canceled the conversation.", user.first_name)
+#     await update.message.reply_text(helpers.escape_markdown("Отмена генерации приглашения.", 2),
+#                                     reply_markup=ReplyKeyboardRemove(), parse_mode=ParseMode.MARKDOWN_V2)
+#     await send_main_menu(update, context)
+#     return ConversationStates.MAIN_MENU
 
 

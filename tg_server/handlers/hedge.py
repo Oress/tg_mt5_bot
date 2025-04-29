@@ -4,14 +4,14 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy.orm.session import Session
-from telegram import helpers, Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardMarkup
+from telegram import helpers, Update, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
-from tg_server.constants.Instruments import available_instruments, get_instrument_by_label, get_instrument_by_symbol
+from tg_server.constants.Instruments import available_instruments, get_instrument_by_symbol
 from tg_server.database.db import engine
 from tg_server.database.models import Order
-from tg_server.handlers.commons import send_main_menu, InlineKeyboardButton, remove_exponent, round_flt_to_4_decimal, \
+from tg_server.handlers.commons import InlineKeyboardButton, remove_exponent, round_flt_to_4_decimal, \
     main_menu_decorator, SELL, BUY, PLACE_ORDER, PREVIEW_EDIT, UD_KEY_MENU_MSG_ID
 from tg_server.handlers.states import ConversationStates, HedgeConvStates
 from tg_server.mt5.mt5service import mt5service
@@ -24,9 +24,9 @@ logger = logging.getLogger(__name__)
 # TODO: maybe add them to the DB tables instead.
 inst_btns = [InlineKeyboardButton(text=instr.label, callback_data=instr.symbol) for instr in available_instruments]
 
-cities_env_str = os.getenv("HEDGE_CITIES")
-cities_list = cities_env_str.split(";") if cities_env_str else []
-cities_list.sort()
+# cities_env_str = os.getenv("HEDGE_CITIES")
+# cities_list = cities_env_str.split(";") if cities_env_str else []
+# cities_list.sort()
 
 UD_KEY_HEDGE_OPERATION = "UD_KEY_HEDGE_OPERATION"
 UD_KEY_HEDGE_INSTRUMENT = "UD_KEY_HEDGE_INSTRUMENT"
@@ -46,9 +46,9 @@ select_instrument_menu_markup = InlineKeyboardMarkup(
     main_menu_decorator([inst_btns[i:i+3] for i in range(0, len(inst_btns), 3)]),
 )
 
-select_city_menu_markup = InlineKeyboardMarkup(
-    main_menu_decorator([cities_list[i:i+3] for i in range(0, len(cities_list), 3)]),
-)
+# select_city_menu_markup = InlineKeyboardMarkup(
+#     main_menu_decorator([cities_list[i:i+3] for i in range(0, len(cities_list), 3)]),
+# )
 
 preview_action_menu_markup = InlineKeyboardMarkup(
     main_menu_decorator([[
@@ -67,6 +67,19 @@ async def hedge_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     query = update.callback_query
     await query.answer()
+
+    with Session(engine) as session:
+        user_service = UserService(session)
+        user_id = update.effective_user.id
+        user = user_service.get_user_by_id(user_id)
+
+        if user.mt5_acc_number is None or user.mt5_acc_pwd_enc is None:
+            await query.edit_message_text(
+                text=helpers.escape_markdown("У вас нет привязанной учетной записи для выполнения операции.", 2),
+                reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+                parse_mode=ParseMode.MARKDOWN_V2
+            )
+            return HedgeConvStates.RESULT
 
     await query.edit_message_text(
         text=helpers.escape_markdown("Операция?", 2),
@@ -172,6 +185,7 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
                                # f"Шаг: {sym_info.volume_step}"
                                )
         else:
+            # Ideally this should never happen, but just in case
             logger.error(f"[Hedge Instrument Selected], invalid operation: {operation}, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
             await query.edit_message_text(
                 text=helpers.escape_markdown("Неверный тип операции.", 2),
@@ -238,50 +252,63 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
         # Check the euro amnt is more than the min amount
         min_amount_eur = sym_info.volume_min * sym_info.trade_contract_size
         if eur_dcm < min_amount_eur:
-            await context.bot.edit_message_text(
-                chat_id=update.effective_chat.id,
-                message_id=upd_msg_id,
-                text=helpers.escape_markdown(f"Минимальная сумма: {remove_exponent(min_amount_eur.normalize())}, введите допустимое число.", 2),
-                reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
-                parse_mode=ParseMode.MARKDOWN_V2
-            )
-            return HedgeConvStates.SELECT_VOLUME
+            try:
+                await context.bot.edit_message_text(
+                    chat_id=update.effective_chat.id,
+                    message_id=upd_msg_id,
+                    text=helpers.escape_markdown(f"Минимальная сумма: {remove_exponent(min_amount_eur.normalize())}, введите допустимое число.", 2),
+                    reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+                    parse_mode=ParseMode.MARKDOWN_V2
+                )
+            except Exception as e:
+                logger.error(f"[Hedge Volume Selected] Error: {e}")
 
-        # Check the euro amnt is less than the available amount
-        max_amount_eur = sym_info.volume_max * sym_info.trade_contract_size
-        if eur_dcm > max_amount_eur:
-            await context.bot.edit_message_text(
-                chat_id=update.effective_chat.id,
-                message_id=upd_msg_id,
-                text=helpers.escape_markdown(f"Максимальная сумма: {remove_exponent(max_amount_eur.normalize())}, введите допустимое число.", 2),
-                reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
-                parse_mode=ParseMode.MARKDOWN_V2
-            )
-            return HedgeConvStates.SELECT_VOLUME
-
-        # Check the euro amnt is divisible by the step
-        step_eur = sym_info.volume_step * sym_info.trade_contract_size
-        if eur_dcm % step_eur != 0:
-            await context.bot.edit_message_text(
-                chat_id=update.effective_chat.id,
-                message_id=upd_msg_id,
-                text=helpers.escape_markdown(f"Сумма должна быть кратна: {remove_exponent(step_eur.normalize())}, введите допустимое число.", 2),
-                reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
-                parse_mode=ParseMode.MARKDOWN_V2
-            )
             return HedgeConvStates.SELECT_VOLUME
 
         # In case of buying, check the euro amnt is less than the available amount
         if operation == BUY.callback_data and avail_to_spend:
             if eur_dcm > avail_to_spend:
+                try:
+                    await context.bot.edit_message_text(
+                        chat_id=update.effective_chat.id,
+                        message_id=upd_msg_id,
+                        text=helpers.escape_markdown(f"Доступная сумма: {remove_exponent(avail_to_spend.normalize())}, введите допустимое число.", 2),
+                        reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+                        parse_mode=ParseMode.MARKDOWN_V2
+                    )
+                except Exception as e:
+                    logger.error(f"[Hedge Volume Selected] Error: {e}")
+                return HedgeConvStates.SELECT_VOLUME
+
+        # Check the euro amnt is less than the available amount
+        max_amount_eur = sym_info.volume_max * sym_info.trade_contract_size
+        if eur_dcm > max_amount_eur:
+            try:
                 await context.bot.edit_message_text(
                     chat_id=update.effective_chat.id,
                     message_id=upd_msg_id,
-                    text=helpers.escape_markdown(f"Максимальная сумма: {remove_exponent(avail_to_spend.normalize())}, введите допустимое число.", 2),
+                    text=helpers.escape_markdown(f"Максимальная сумма: {remove_exponent(max_amount_eur.normalize())}, введите допустимое число.", 2),
                     reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
                     parse_mode=ParseMode.MARKDOWN_V2
                 )
-                return HedgeConvStates.SELECT_VOLUME
+            except Exception as e:
+                logger.error(f"[Hedge Volume Selected] Error: {e}")
+            return HedgeConvStates.SELECT_VOLUME
+
+        # Check the euro amnt is divisible by the step
+        step_eur = sym_info.volume_step * sym_info.trade_contract_size
+        if eur_dcm % step_eur != 0:
+            try:
+                await context.bot.edit_message_text(
+                    chat_id=update.effective_chat.id,
+                    message_id=upd_msg_id,
+                    text=helpers.escape_markdown(f"Сумма должна быть кратна: {remove_exponent(step_eur.normalize())}, введите допустимое число.", 2),
+                    reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+                    parse_mode=ParseMode.MARKDOWN_V2
+                )
+            except Exception as e:
+                logger.error(f"[Hedge Volume Selected] Error: {e}")
+            return HedgeConvStates.SELECT_VOLUME
 
         context.user_data[UD_KEY_HEDGE_VOLUME] = str(eur_dcm / sym_info.trade_contract_size)
         context.user_data[UD_KEY_HEDGE_EURO] = str(eur_dcm)

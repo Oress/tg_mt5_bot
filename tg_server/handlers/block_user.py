@@ -2,15 +2,15 @@ import logging
 
 from ptbcontrib.extract_passed_user import extract_passed_user
 from sqlalchemy.orm.session import Session
-from telegram import helpers, Update, ReplyKeyboardRemove, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import helpers, Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
 from tg_server.database.db import engine
-from tg_server.handlers.commons import send_main_menu, main_menu_decorator, UD_KEY_MENU_MSG_ID, BLOCK_USER_SKIP_RSN, \
+from tg_server.handlers.commons import main_menu_decorator, UD_KEY_MENU_MSG_ID, BLOCK_USER_SKIP_RSN, \
     add_message_to_delete, purge_messages
 from tg_server.handlers.invite import choose_user_markup
-from tg_server.handlers.states import ConversationStates, BlockUserConvStates
+from tg_server.handlers.states import BlockUserConvStates
 from tg_server.services.UserService import UserService
 
 logger = logging.getLogger(__name__)
@@ -40,11 +40,11 @@ async def block_user_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # async def block_user_shared_invalid(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     logger.warning(f"[Block User] invalid user, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
+#     logger.warning(f"[Block User] invalid user, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
 #     return await block_user_start(update, context)
 
 async def block_user_shared(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.warning(f"[Block User] user shared, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}, message: {update.message.text}")
+    logger.warning(f"[Block User] user shared, chat_id: {update.effective_chat.id}, username: {update.effective_user.username}, user_id {update.effective_user.id}")
     shared_user = await extract_passed_user(message=update.message)
 
     add_message_to_delete([update.message], context)
@@ -55,13 +55,17 @@ async def block_user_shared(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_service = UserService(session)
         user = user_service.get_user_by_id(shared_user.user_id)
         if not user:
-            await context.bot.edit_message_text(
-                chat_id=update.effective_chat.id,
-                message_id=view_msg_id,
-                text=helpers.escape_markdown("Этот пользователь не зарегистрирован. Выберите другого пользователя.", 2),
-                reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
-                parse_mode=ParseMode.MARKDOWN_V2
-            )
+            # May throw the Message is not modified error.
+            try:
+                await context.bot.edit_message_text(
+                    chat_id=update.effective_chat.id,
+                    message_id=view_msg_id,
+                    text=helpers.escape_markdown("Этот пользователь не зарегистрирован. Выберите другого пользователя.", 2),
+                    reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+                    parse_mode=ParseMode.MARKDOWN_V2
+                )
+            except Exception as e:
+                logger.error(f"Error while editing message: {e}")
 
             prompt_msg = await update.effective_user.send_message(
                 text="Выберете пользователя:",
@@ -73,13 +77,16 @@ async def block_user_shared(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         elif user.disabled:
             reason = user.disabled_reason if user.disabled_reason else "не указана"
-            await context.bot.edit_message_text(
-                chat_id=update.effective_chat.id,
-                message_id=view_msg_id,
-                text=helpers.escape_markdown(f"Этот пользователь уже заблокирован.\nПричина: {reason} \n Выберите другого пользователя.", 2),
-                reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
-                parse_mode=ParseMode.MARKDOWN_V2
-            )
+            try:
+                await context.bot.edit_message_text(
+                    chat_id=update.effective_chat.id,
+                    message_id=view_msg_id,
+                    text=helpers.escape_markdown(f"Этот пользователь уже заблокирован.\nПричина: {reason} \nВыберите другого пользователя.", 2),
+                    reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+                    parse_mode=ParseMode.MARKDOWN_V2
+                )
+            except Exception as e:
+                logger.error(f"Error while editing message: {e}")
 
             prompt_msg = await update.effective_user.send_message(
                 text="Выберете пользователя:",
@@ -111,6 +118,8 @@ def block_user_reason_handler(skip: bool):
         if skip:
             query = update.callback_query
             await query.answer()
+        else:
+            add_message_to_delete([update.message], context)
 
         with Session(engine) as session:
             user_service = UserService(session)
@@ -119,15 +128,16 @@ def block_user_reason_handler(skip: bool):
             user_service.block_user(shared_user_id, block_reason)
             session.commit()
 
-        await update.message.reply_text(
-            helpers.escape_markdown(
-                f"Пользователь был заблокирован.", 2),
+        view_msg_id = context.user_data.get(UD_KEY_MENU_MSG_ID)
+        await context.bot.edit_message_text(
+            chat_id=update.effective_chat.id,
+            message_id=view_msg_id,
+            text=helpers.escape_markdown(f"Пользователь был заблокирован.", 2),
             parse_mode=ParseMode.MARKDOWN_V2,
-            reply_markup=ReplyKeyboardRemove(),
+            reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
         )
 
-        await send_main_menu(update, context)
-        return ConversationStates.MAIN_MENU
+        return BlockUserConvStates.RESULT
 
     return block_user_reason_entered
 
