@@ -5,6 +5,7 @@ from typing import Union, Sequence, List
 from sqlalchemy.orm.session import Session
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram import Update, Message
+from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
 from tg_server.constants.UserRole import UserRole
@@ -77,6 +78,7 @@ async def send_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_role = user.role
 
     msg = await context.bot.send_message(chat_id=update.effective_chat.id,
+                                   parse_mode=ParseMode.MARKDOWN_V2,
                                    text="Главное меню:",
                                    reply_markup=user_main_menu_markup if user_role == UserRole.USER else admin_main_menu_markup)
     context.user_data[UD_KEY_MENU_MSG_ID] = msg.message_id
@@ -105,6 +107,13 @@ async def main_menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 UD_KEY_MSGS_IDS_TO_DELETE = "UD_KEY_MSGS_IDS_TO_DELETE"
+def add_message_ids_to_delete(msg_ids: Sequence[int], context: ContextTypes.DEFAULT_TYPE):
+    messages = context.user_data.get(UD_KEY_MSGS_IDS_TO_DELETE, [])
+    for msg_id in msg_ids:
+        messages.append(msg_id)
+    context.user_data[UD_KEY_MSGS_IDS_TO_DELETE] = messages
+
+
 def add_message_to_delete(msgs: Sequence[Message], context: ContextTypes.DEFAULT_TYPE):
     messages = context.user_data.get(UD_KEY_MSGS_IDS_TO_DELETE, [])
     for msg in msgs:
@@ -147,8 +156,7 @@ async def main_menu_callback_with_new_menu(update: Update, context: ContextTypes
     query = update.callback_query
     await query.answer()
 
-    if query.message:
-        await query.delete_message()
+    add_message_ids_to_delete([query.message.message_id], context)
 
     await purge_messages(update, context)
 

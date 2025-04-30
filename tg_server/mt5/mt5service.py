@@ -209,22 +209,21 @@ class MT5Service:
             with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
                 acc_info = session.account_info()
                 print(acc_info)
-                reference = Decimal("0.0001")
                 balance = AccountBalance(acc_info.currency,
-                                         Decimal(acc_info.balance).quantize(reference, rounding=ROUND_HALF_UP),
-                                         Decimal(acc_info.credit).quantize(reference, rounding=ROUND_HALF_UP),
-                                         Decimal(acc_info.profit).quantize(reference, rounding=ROUND_HALF_UP),
-                                         Decimal(acc_info.equity).quantize(reference, rounding=ROUND_HALF_UP),
-                                         Decimal(acc_info.margin).quantize(reference, rounding=ROUND_HALF_UP),
-                                         Decimal(acc_info.margin_free).quantize(reference, rounding=ROUND_HALF_UP),
-                                         Decimal(acc_info.margin_level).quantize(reference, rounding=ROUND_HALF_UP),
-                                         Decimal(acc_info.margin_so_call).quantize(reference, rounding=ROUND_HALF_UP),
-                                         Decimal(acc_info.margin_so_so).quantize(reference, rounding=ROUND_HALF_UP),
-                                         Decimal(acc_info.margin_initial).quantize(reference, rounding=ROUND_HALF_UP),
-                                         Decimal(acc_info.margin_maintenance).quantize(reference, rounding=ROUND_HALF_UP),
-                                         Decimal(acc_info.assets).quantize(reference, rounding=ROUND_HALF_UP),
-                                         Decimal(acc_info.liabilities).quantize(reference, rounding=ROUND_HALF_UP),
-                                         Decimal(acc_info.commission_blocked).quantize(reference, rounding=ROUND_HALF_UP)
+                                         round_flt_to_4_decimal(acc_info.balance),
+                                         round_flt_to_4_decimal(acc_info.credit),
+                                         round_flt_to_4_decimal(acc_info.profit),
+                                         round_flt_to_4_decimal(acc_info.equity),
+                                         round_flt_to_4_decimal(acc_info.margin),
+                                         round_flt_to_4_decimal(acc_info.margin_free),
+                                         round_flt_to_4_decimal(acc_info.margin_level),
+                                         round_flt_to_4_decimal(acc_info.margin_so_call),
+                                         round_flt_to_4_decimal(acc_info.margin_so_so),
+                                         round_flt_to_4_decimal(acc_info.margin_initial),
+                                         round_flt_to_4_decimal(acc_info.margin_maintenance),
+                                         round_flt_to_4_decimal(acc_info.assets),
+                                         round_flt_to_4_decimal(acc_info.liabilities),
+                                         round_flt_to_4_decimal(acc_info.commission_blocked),
                                          )
                 return balance
         except MT5InvalidCreds as e:

@@ -8,9 +8,10 @@ from telegram import helpers, Update, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
-from tg_server.constants.Instruments import available_instruments, get_instrument_by_symbol
+from tg_server.constants.Instruments import available_instruments, get_instrument_by_symbol, EURUSD
 from tg_server.database.db import engine
 from tg_server.database.models import Order
+from tg_server.handlers.balance import get_balance_per_instrument
 from tg_server.handlers.commons import InlineKeyboardButton, remove_exponent, round_flt_to_4_decimal, \
     main_menu_decorator, SELL, BUY, PLACE_ORDER, PREVIEW_EDIT, UD_KEY_MENU_MSG_ID
 from tg_server.handlers.states import ConversationStates, HedgeConvStates
@@ -165,22 +166,19 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
             else:
                 avail_to_spend_dcm = round_flt_to_4_decimal(open_positions[0].volume) * Decimal(sym_info.trade_contract_size)
 
-            symbol_info_msg = (f"Сколько ({instrument.base})? (Отправьте мне сумму в чат.)\n"
-                               f"Инструмент: {sym_info.description}\n"
-                               f"Доступно для покупки: {remove_exponent(avail_to_spend_dcm)} {instrument.base}"
-                               # f"Мин. объем: {sym_info.volume_min}\n"
-                               # f"Макс. объем: {sym_info.volume_max}\n"
-                               # f"Шаг: {sym_info.volume_step}"
-                               )
+            symbol_info_msg = (
+                    f"*Сколько {instrument.base}?* \(Напишите сумму в чат📝\)\n\n"
+                    + helpers.escape_markdown((f"Инструмент: {instrument.label}\n"
+                                               f"Доступно для покупки: {remove_exponent(avail_to_spend_dcm)} {instrument.base}"
+                                               ), 2)
+            )
         elif operation == SELL.callback_data:
             logger.info(f"[Hedge][instrument selected][SELL][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][instrument: {query.data}]")
 
-            symbol_info_msg = (f"Сколько ({instrument.base})? (Отправьте мне сумму в чат.)\n"
-                               f"Инструмент: {sym_info.description}"
-                               # f"Мин. объем: {sym_info.volume_min}\n"
-                               # f"Макс. объем: {sym_info.volume_max}\n"
-                               # f"Шаг: {sym_info.volume_step}"
-                               )
+            symbol_info_msg = (
+                    f"*Сколько {instrument.base}?* \(Напишите сумму в чат📝\)\n\n"
+                    + helpers.escape_markdown((f"Инструмент: {instrument.label}"), 2)
+            )
         else:
             # Ideally this should never happen, but just in case
             logger.error(f"[Hedge][invalid operation][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][instrument: {query.data}][operation: {operation}]")
@@ -200,9 +198,8 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
             instrument_str
         )
 
-
     await query.edit_message_text(
-        text=helpers.escape_markdown(symbol_info_msg, 2),
+        text=symbol_info_msg,
         reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
         parse_mode=ParseMode.MARKDOWN_V2
     )
@@ -469,15 +466,9 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
                                                                         context.user_data.get(UD_KEY_HEDGE_EURO),
                                                                         order_result)
                 session.commit()
-                order_msg = (
-                    f"Ордер #: {new_order.id}\n"
-                    f"Операция: {BUY.label}\n"
-                    f"Инструмент: {instrument.label}\n"
-                    f"Сумма: {remove_exponent(round_flt_to_4_decimal(new_order.euro_amount))}\n"
-                    f"Цена: {new_order.price}\n"
-                    # f"Город: {new_order.city}\n"
-                    f"Дата: {new_order.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
-                )
+
+                dict = get_balance_per_instrument(user)
+                order_msg = order_details_str(new_order, SELL.label, instrument, dict[EURUSD.symbol])
             else:
                 logger.error(f"[Hedge][BUY][no recent order fnd][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
                 raise RuntimeError(f"Incorrect trade account credentials")
@@ -507,15 +498,9 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
                                                                     context.user_data.get(UD_KEY_HEDGE_EURO),
                                                                     order_result)
             session.commit()
-            order_msg = (
-                f"Ордер #: {new_order.id}\n"
-                f"Операция: {SELL.label}\n"
-                f"Инструмент: {instrument.label}\n"
-                f"Сумма: {remove_exponent(round_flt_to_4_decimal(new_order.euro_amount))}\n"
-                f"Цена: {new_order.price}\n"
-                # f"Город: {new_order.city}\n"
-                f"Дата: {new_order.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
-                        )
+
+            dict = get_balance_per_instrument(user)
+            order_msg = order_details_str(new_order, SELL.label, instrument, dict[EURUSD.symbol])
         else:
             logger.error(f"[Hedge][place order invld op][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][operation: {operation}]")
             await query.edit_message_text(
@@ -525,21 +510,44 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
             )
             return HedgeConvStates.SELECT_OPERATION
 
+
+    # IMPORTANT!!!!: this moment should be accounted for
+    # Usually query.edit_message_text is used to edit the menu message
+    # This time we are replacing the menu message with the order message
+    # Note the UD_KEY_MENU_MSG_ID
     await query.edit_message_text(
+        text=order_msg,
+        # reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+        parse_mode=ParseMode.MARKDOWN_V2
+    )
+
+    new_menu_msg = await context.bot.send_message(
+        chat_id=update.effective_chat.id,
         text=helpers.escape_markdown(report_on_order_send(order_result), 2),
         reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
         parse_mode=ParseMode.MARKDOWN_V2
     )
 
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=helpers.escape_markdown(order_msg, 2),
-        # reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
-        parse_mode=ParseMode.MARKDOWN_V2
-    )
+    context.user_data[UD_KEY_MENU_MSG_ID] = new_menu_msg.message_id
 
     return HedgeConvStates.RESULT
 
+
+def order_details_str(new_order: Order, operation_lbl, instrument, balance: Decimal):
+    return (
+            f"✅Ордер размещен\n"
+            + helpers.escape_markdown(f"{new_order.id}\n", 2)
+            + f"Статус: *исполнен* \n"
+            + helpers.escape_markdown(
+            f"Дата: {new_order.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
+                f"Операция: {operation_lbl}\n"
+                f"Инструмент: {instrument.label}\n\n",
+     2)
+            + "*Сумма: *" + helpers.escape_markdown(f"{remove_exponent(round_flt_to_4_decimal(new_order.euro_amount))}\n\n", 2)
+            + "*Цена: *" + helpers.escape_markdown(f"{new_order.price}\n", 2)
+            + '\-\-\-\n'
+            + "*Общий баланс: * " + helpers.escape_markdown(f"{remove_exponent(-balance if balance else Decimal(0))} {instrument.base}\n", 2)
+    )
 
 def report_on_order_send(order_result) -> str:
     """Returns a user-friendly message based on the MT5 return code."""
