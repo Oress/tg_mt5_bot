@@ -535,7 +535,7 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
 
 
 def order_details_str(new_order: Order, operation, instrument, balance: Optional[Decimal]):
-    amnt = new_order.euro_amount if operation == BUY.callback_data else -new_order.euro_amount
+    amnt = new_order.euro_amount if operation.callback_data == BUY.callback_data else -new_order.euro_amount
     blnc = -balance if balance else Decimal(0)
     return (
             f"✅Ордер размещен\n"
