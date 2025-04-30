@@ -141,3 +141,17 @@ async def main_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
     )
 
     return ConversationStates.MAIN_MENU
+
+
+async def main_menu_callback_with_new_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    if query.message:
+        await query.delete_message()
+
+    await purge_messages(update, context)
+
+    await send_main_menu(update, context)
+
+    return ConversationStates.MAIN_MENU

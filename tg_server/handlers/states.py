@@ -37,5 +37,7 @@ class HedgeConvStates(str, Enum):
     SELECT_VOLUME = 'SELECT_VOLUME'
     SELECT_CITY = 'SELECT_CITY'
     PREVIEW = 'PREVIEW'
+    NO_ACCOUNT = 'NO_ACCOUNT'
+    ERR_RESULT = 'NO_ACCOUNT'
     RESULT = 'RESULT'
 

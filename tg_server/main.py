@@ -22,7 +22,8 @@ from tg_server.handlers.change_creds import change_creds_start, change_creds_sha
     change_creds_account_credentials
 from tg_server.handlers.commons import main_menu_callback, PLACE_ORDER, PREVIEW_EDIT, HEDGE, BALANCE, UNBLOCK_USER, \
     INVITE_USER, BLOCK_USER, CHANGE_USER_ACCOUNT_CREDS, MAIN_MENU, \
-    main_menu_command, main_menu_decorator, UD_KEY_MENU_MSG_ID, BLOCK_USER_SKIP_RSN, INVITE_ADMIN
+    main_menu_command, main_menu_decorator, UD_KEY_MENU_MSG_ID, BLOCK_USER_SKIP_RSN, INVITE_ADMIN, \
+    main_menu_callback_with_new_menu
 from tg_server.handlers.filters.AuthFilter import user_filter, BlockedUserFilter
 from tg_server.handlers.hedge import hedge_start, hedge_operation_selected, hedge_instrument_selected, \
     hedge_volume_selected, hedge_preview_accepted
@@ -358,9 +359,17 @@ if __name__ == '__main__':
                 CallbackQueryHandler(hedge_preview_accepted, pattern=PLACE_ORDER.callback_data),
                 CallbackQueryHandler(hedge_start, pattern=PREVIEW_EDIT.callback_data),
             ],
-            HedgeConvStates.RESULT: [
+            HedgeConvStates.NO_ACCOUNT: [
                 start_menu_handler,
                 main_menu_query_handler,
+            ],
+            HedgeConvStates.ERR_RESULT: [
+                start_menu_handler,
+                main_menu_query_handler,
+            ],
+            HedgeConvStates.RESULT: [
+                start_menu_handler,
+                CallbackQueryHandler(main_menu_callback_with_new_menu, MAIN_MENU.callback_data),
             ]
         },
         fallbacks=[],

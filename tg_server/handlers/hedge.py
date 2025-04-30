@@ -80,7 +80,7 @@ async def hedge_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
                 parse_mode=ParseMode.MARKDOWN_V2
             )
-            return HedgeConvStates.RESULT
+            return HedgeConvStates.NO_ACCOUNT
 
     await query.edit_message_text(
         text=helpers.escape_markdown("Операция?", 2),
@@ -334,12 +334,11 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
 
     instrument = get_instrument_by_symbol(context.user_data.get(UD_KEY_HEDGE_INSTRUMENT))
     operation_str = BUY.label if BUY.callback_data == context.user_data.get(UD_KEY_HEDGE_OPERATION) else SELL.label
-    now_dt_utc = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
     preview_msg = (f"Предварительный просмотр: \n\n"
                    f"Операция: {operation_str}\n"
                    f"Инструмент: {instrument.label}\n"
                    f"Сколько: {context.user_data.get(UD_KEY_HEDGE_EURO)} {instrument.base}\n"
-                   # f"Цена (на {now_dt_utc}): {price_per_unit}\n"
+                   f"Приблизительный курс: {price_per_unit}\n"
                    )
 
     await context.bot.edit_message_text(
@@ -440,15 +439,16 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
         pwd_decrypted_bytes = pwd_encryptor.decrypt(user.mt5_acc_pwd_enc)
 
         symbol = context.user_data.get(UD_KEY_HEDGE_INSTRUMENT)
+        instrument = get_instrument_by_symbol(symbol)
 
         operation = context.user_data[UD_KEY_HEDGE_OPERATION]
         if operation == BUY.callback_data:
-            positions = mt5service.positions_get(user.mt5_acc_number, pwd_decrypted_bytes.decode(), symbol)
+            positions = mt5service.positions_get(user.mt5_acc_number, pwd_decrypted_bytes.decode(), instrument.symbol)
             if len(positions) != 0:
                 order_result = mt5service.close_short_order(user.mt5_acc_number,
                                                             pwd_decrypted_bytes.decode(),
                                                             positions[0].ticket,
-                                                            context.user_data.get(UD_KEY_HEDGE_INSTRUMENT),
+                                                            instrument.symbol,
                                                             Decimal(context.user_data.get(UD_KEY_HEDGE_VOLUME)))
                 if order_result is None:
                     logger.error(f"[Hedge][BUY][no order rslt][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
@@ -461,7 +461,7 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
                         parse_mode=ParseMode.MARKDOWN_V2
                     )
 
-                    return HedgeConvStates.RESULT
+                    return HedgeConvStates.ERR_RESULT
 
                 new_order: Order = order_service.save_close_order_to_db(user_id,
                                                                         context.user_data.get(UD_KEY_HEDGE_CITY),
@@ -471,6 +471,9 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
                 session.commit()
                 order_msg = (
                     f"Ордер #: {new_order.id}\n"
+                    f"Операция: {BUY.label}\n"
+                    f"Инструмент: {instrument.label}\n"
+                    f"Сумма: {remove_exponent(round_flt_to_4_decimal(new_order.euro_amount))}\n"
                     f"Цена: {new_order.price}\n"
                     # f"Город: {new_order.city}\n"
                     f"Дата: {new_order.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
@@ -495,7 +498,7 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
                     parse_mode=ParseMode.MARKDOWN_V2
                 )
 
-                return HedgeConvStates.RESULT
+                return HedgeConvStates.ERR_RESULT
 
 
             new_order: Order = order_service.save_short_order_to_db(user_id,
@@ -506,6 +509,9 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
             session.commit()
             order_msg = (
                 f"Ордер #: {new_order.id}\n"
+                f"Операция: {SELL.label}\n"
+                f"Инструмент: {instrument.label}\n"
+                f"Сумма: {remove_exponent(round_flt_to_4_decimal(new_order.euro_amount))}\n"
                 f"Цена: {new_order.price}\n"
                 # f"Город: {new_order.city}\n"
                 f"Дата: {new_order.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
@@ -520,10 +526,15 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
             return HedgeConvStates.SELECT_OPERATION
 
     await query.edit_message_text(
-        text=helpers.escape_markdown(report_on_order_send(order_result), 2)
-             + "\n\n"
-             + helpers.escape_markdown(order_msg, 2),
+        text=helpers.escape_markdown(report_on_order_send(order_result), 2),
         reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+        parse_mode=ParseMode.MARKDOWN_V2
+    )
+
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=helpers.escape_markdown(order_msg, 2),
+        # reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
         parse_mode=ParseMode.MARKDOWN_V2
     )
 
