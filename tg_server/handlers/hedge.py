@@ -2,6 +2,7 @@ import logging
 import os
 from datetime import datetime
 from decimal import Decimal
+from typing import Optional
 
 from sqlalchemy.orm.session import Session
 from telegram import helpers, Update, InlineKeyboardMarkup
@@ -468,7 +469,7 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
                 session.commit()
 
                 dict = get_balance_per_instrument(user)
-                order_msg = order_details_str(new_order, SELL.label, instrument, dict[EURUSD.symbol])
+                order_msg = order_details_str(new_order, BUY, instrument, dict[EURUSD.symbol])
             else:
                 logger.error(f"[Hedge][BUY][no recent order fnd][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
                 raise RuntimeError(f"Incorrect trade account credentials")
@@ -500,7 +501,7 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
             session.commit()
 
             dict = get_balance_per_instrument(user)
-            order_msg = order_details_str(new_order, SELL.label, instrument, dict[EURUSD.symbol])
+            order_msg = order_details_str(new_order, SELL, instrument, dict[EURUSD.symbol])
         else:
             logger.error(f"[Hedge][place order invld op][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][operation: {operation}]")
             await query.edit_message_text(
@@ -533,20 +534,22 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
     return HedgeConvStates.RESULT
 
 
-def order_details_str(new_order: Order, operation_lbl, instrument, balance: Decimal):
+def order_details_str(new_order: Order, operation, instrument, balance: Optional[Decimal]):
+    amnt = new_order.euro_amount if operation == BUY.callback_data else -new_order.euro_amount
+    blnc = -balance if balance else Decimal(0)
     return (
             f"✅Ордер размещен\n"
             + helpers.escape_markdown(f"{new_order.id}\n", 2)
             + f"Статус: *исполнен* \n"
             + helpers.escape_markdown(
             f"Дата: {new_order.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
-                f"Операция: {operation_lbl}\n"
+                f"Операция: {operation.label}\n"
                 f"Инструмент: {instrument.label}\n\n",
      2)
-            + "*Сумма: *" + helpers.escape_markdown(f"{remove_exponent(round_flt_to_4_decimal(new_order.euro_amount))}\n\n", 2)
-            + "*Цена: *" + helpers.escape_markdown(f"{new_order.price}\n", 2)
+            + "Сумма: " + "*" + helpers.escape_markdown(f"{remove_exponent(round_flt_to_4_decimal(amnt))}\n\n", 2) + "*"
+            + "Цена: " + "*" + helpers.escape_markdown(f"{new_order.price}\n", 2) + "*"
             + '\-\-\-\n'
-            + "*Общий баланс: * " + helpers.escape_markdown(f"{remove_exponent(-balance if balance else Decimal(0))} {instrument.base}\n", 2)
+            + "Общий баланс: " + "*" + helpers.escape_markdown(f"{remove_exponent(blnc)} {instrument.base}\n", 2) + "*"
     )
 
 def report_on_order_send(order_result) -> str:
