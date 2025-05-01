@@ -63,6 +63,6 @@ class UserService:
             raise ValueError(f"User with ID {user_id} not found.")
 
     def get_all_non_blocked_users(self) -> List[TgUser]:
-        stmt = select(TgUser).join(Order.user_id).where(TgUser.disabled == False)
+        stmt = select(TgUser).where(TgUser.disabled == False)
         users = self.session.execute(stmt).all()
         return [x.TgUser for x in users]
