@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from sqlalchemy import select
 
-from tg_server.database.models import TgUser, Order
+from tg_server.database.models import TgUser, Order, OrderType
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ class OrderService:
         if order_result is None:
             logger.error(f"[OrderService] Order result is None for user_id: {user_id}")
 
-        datetime_now = datetime.utcnow()
+        datetime_now = datetime.now()
         new_order = Order(
             id=uuid.uuid4(),
             user_id=user_id,
@@ -30,7 +30,7 @@ class OrderService:
             ask=order_result.ask,
             bid=order_result.bid,
             volume=order_result.volume,
-            type='short_close',
+            type=OrderType.short_close,
             euro_amount=user_eur_amount,
             price=order_result.price,
             created_at=datetime_now,
@@ -42,7 +42,7 @@ class OrderService:
         if order_result is None:
             logger.error(f"[OrderService] Order result is None for user_id: {user_id}")
 
-        datetime_now = datetime.utcnow()
+        datetime_now = datetime.now()
         new_order = Order(
             id=uuid.uuid4(),
             user_id=user_id,
@@ -54,7 +54,7 @@ class OrderService:
             ask=order_result.ask,
             bid=order_result.bid,
             volume=order_result.volume,
-            type='short',
+            type=OrderType.short,
             euro_amount=user_eur_amount,
             price=order_result.price,
             created_at=datetime_now,

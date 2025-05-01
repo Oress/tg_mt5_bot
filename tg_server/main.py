@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 from logging.handlers import RotatingFileHandler
+from warnings import filterwarnings
 
 from ptbcontrib.postgres_persistence import PostgresPersistence
 from sqlalchemy.orm import sessionmaker, scoped_session
@@ -35,7 +36,11 @@ from tg_server.handlers.unblock_user import unblock_user_start, unblock_users_sh
     unblock_account_credentials
 from tg_server.services.InviteLinkService import InviteLinkService
 from tg_server.services.UserService import UserService
+from tg_server.sheets.SheetsSync import sync_with_google_sheets
+from telegram.warnings import PTBUserWarning
 
+# https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do
+filterwarnings(action="ignore", message=r".*CallbackQueryHandler", category=PTBUserWarning)
 
 def check_env_variables():
     required_env_vars = [
@@ -54,6 +59,10 @@ def check_env_variables():
         "MT5_SERVER",
 
         "HEDGE_CITIES",
+
+        "GGL_SHEET_SYNC_INVTERVAL",
+        "GGL_SPREADSHEET_ID",
+        "GGL_SA_FILE_LOCATION",
 
         "TG_BOT_TOKEN",
         "SUPERADMIN_ID"
@@ -130,23 +139,26 @@ def disable_edited_msg(filter=None):
     return filter & ~filters.UpdateType.EDITED_MESSAGE if filter else ~filters.UpdateType.EDITED_MESSAGE
 
 async def global_error_handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.error(f"[Global error handler] Error: {context.error}, chat_id: {update.effective_chat.id}, message: {update.effective_message.text}, username: {update.effective_user.username}, user_id {update.effective_user.id}" , exc_info=context.error)
-    view_msg_id = context.user_data.get(UD_KEY_MENU_MSG_ID)
+    if update:
+        logger.error(f"[Global error handler] Error: {context.error}, chat_id: {update.effective_chat.id}, message: {update.effective_message.text}, username: {update.effective_user.username}, user_id {update.effective_user.id}" , exc_info=context.error)
+        view_msg_id = context.user_data.get(UD_KEY_MENU_MSG_ID)
 
-    if view_msg_id is not None:
-        try:
-            await context.bot.edit_message_text(
-                chat_id=update.effective_chat.id,
-                message_id=view_msg_id,
-                text=helpers.escape_markdown("Произошла ошибка. Пожалуйста, попробуйте позже.", 2),
-                reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
-                parse_mode=ParseMode.MARKDOWN_V2
-            )
-        except Exception as e:
-            context.user_data.pop(UD_KEY_MENU_MSG_ID)
-            logger.error(f"[Start Registered User] Error deleting message: {e}")
-    else:
-        logger.error(f"[Global error handler] Error: {context.error}")
+        if view_msg_id is not None:
+            try:
+                await context.bot.edit_message_text(
+                    chat_id=update.effective_chat.id,
+                    message_id=view_msg_id,
+                    text=helpers.escape_markdown("Произошла ошибка. Пожалуйста, попробуйте позже.", 2),
+                    reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+                    parse_mode=ParseMode.MARKDOWN_V2
+                )
+            except Exception as e:
+                context.user_data.pop(UD_KEY_MENU_MSG_ID)
+                logger.error(f"[Start Registered User] Error deleting message: {e}")
+        else:
+            logger.error(f"[Global error handler] Error: {context.error}")
+    elif context:
+        logger.error(f"[Global error handler] Error: {context.error}", exc_info=context.error)
 
 
 if __name__ == '__main__':
@@ -160,8 +172,10 @@ if __name__ == '__main__':
 
     application.add_error_handler(global_error_handle)
 
+    sync_interval = int(os.getenv("GGL_SHEET_SYNC_INVTERVAL"))
     job_queue = application.job_queue
-    job_minute = job_queue.run_repeating(remove_expired_links, interval=30 * 60, first=10)
+    job_queue.run_repeating(remove_expired_links, interval=30 * 60, first=10)
+    job_queue.run_repeating(sync_with_google_sheets, interval=sync_interval * 60, first=5)
 
 
     main_menu_text_filter = filters.Text([MAIN_MENU.label])

@@ -8,4 +8,4 @@ db_name=os.getenv('POSTGRES_DB')
 db_user=os.getenv('POSTGRES_USER')
 db_pwd=os.getenv('POSTGRES_PASSWORD')
 
-engine = create_engine(f"postgresql+psycopg://{db_user}:{db_pwd}@{db_host}:{db_port}/{db_name}", echo=True)
+engine = create_engine(f"postgresql+psycopg://{db_user}:{db_pwd}@{db_host}:{db_port}/{db_name}", echo=False)

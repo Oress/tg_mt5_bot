@@ -1,16 +1,18 @@
 from datetime import datetime
 
 from sqlalchemy import select
+from typing import List
 
 from tg_server.constants.UserRole import UserRole
-from tg_server.database.models import TgUser
+from tg_server.database.models import TgUser, Order
+
 
 class UserService:
     def __init__(self, session):
         self.session = session
 
     def create_user(self, user_id: int, role: UserRole, invited_by: int, account_number: int, account_pwd_enc: bytes) -> TgUser:
-        datetime_now = datetime.utcnow()
+        datetime_now = datetime.now()
         if not self.contains_user(user_id):
             new_user = TgUser(tg_id=user_id, invited_by=invited_by, _role=role, disabled=False,
                               mt5_acc_number=account_number, mt5_acc_pwd_enc=account_pwd_enc,
@@ -59,3 +61,8 @@ class UserService:
             user.mt5_acc_pwd_enc = account_pwd_enc
         else:
             raise ValueError(f"User with ID {user_id} not found.")
+
+    def get_all_non_blocked_users(self) -> List[TgUser]:
+        stmt = select(TgUser).join(Order.user_id).where(TgUser.disabled == False)
+        users = self.session.execute(stmt).all()
+        return [x.TgUser for x in users]

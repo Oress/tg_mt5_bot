@@ -19,7 +19,7 @@ class InviteLinkService:
         if self.contains_invite_link(created_for):
             return None
 
-        datetime_now = datetime.utcnow()
+        datetime_now = datetime.now()
         expires_at = datetime_now + timedelta(minutes=expires_in_minutes)
 
         new_link = InviteLink(code=code, tg_userid_for=created_for, _created_by=created_by,
@@ -52,6 +52,6 @@ class InviteLinkService:
         return valid_invite_link.InviteLink if valid_invite_link else None
 
     def remove_expired_links(self):
-        now = datetime.utcnow()
+        now = datetime.now()
         stmt = delete(InviteLink).where(InviteLink.expires_at < now)
         self.session.execute(stmt)

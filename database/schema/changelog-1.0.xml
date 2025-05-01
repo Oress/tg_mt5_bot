@@ -107,4 +107,18 @@
         </addColumn>
     </changeSet>
 
+    <changeSet id="add username and name columns to tgb_users" author="oress">
+        <createSequence sequenceName="seq_tgb_users_sheet_id"
+                        dataType="int"
+                        incrementBy="1"
+                        startValue="1"/>
+
+        <addColumn tableName="tgb_users">
+            <column name="username" type="text"/>
+            <column name="first_name" type="text"/>
+            <column name="last_name" type="text"/>
+            <column name="sheet_id" type="int" defaultValue="nextval('seq_tgb_users_sheet_id')" />
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

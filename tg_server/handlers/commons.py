@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Union, Sequence, List
 
@@ -70,12 +71,18 @@ def main_menu_decorator(menu: List[Sequence[Union[str, InlineKeyboardButton]]]):
     return menu
 
 async def send_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
+    effective_user=update.effective_user
+    user_id = effective_user.id
+
     with Session(engine) as session:
         user_service = UserService(session)
         user = user_service.get_user_by_id(user_id)
         logger.info(f"[Send Main Menu] user_id: {user_id}, role: {user.role}")
         user_role = user.role
+
+        if sync_user_data(user, effective_user):
+            session.commit()
+
 
     msg = await context.bot.send_message(chat_id=update.effective_chat.id,
                                    parse_mode=ParseMode.MARKDOWN_V2,
@@ -132,17 +139,32 @@ async def purge_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data[UD_KEY_MSGS_IDS_TO_DELETE] = []
 
+# Sync username and first name and last name if they differ
+def sync_user_data(user, effective_user) -> bool:
+    utcnow = datetime.now()
+    if user.username != effective_user.username or user.first_name != effective_user.first_name or user.last_name != effective_user.last_name:
+        user.updated_at = utcnow
+        user.username = effective_user.username
+        user.first_name = effective_user.first_name
+        user.last_name = effective_user.last_name
+        return True
+    return False
+
 async def main_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
     await purge_messages(update, context)
 
-    user_id = update.effective_user.id
+    effective_user = update.effective_user
+    user_id = effective_user.id
     with Session(engine) as session:
         user_service = UserService(session)
         user = user_service.get_user_by_id(user_id)
         user_role = user.role
+
+        if sync_user_data(user, effective_user):
+            session.commit()
 
     await query.edit_message_text(
         text="Главное меню:",

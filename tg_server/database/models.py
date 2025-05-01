@@ -1,12 +1,11 @@
 import uuid
-
-from sqlalchemy import MetaData, LargeBinary, Boolean, String, BigInteger, TIMESTAMP, Float, Uuid
-from sqlalchemy.orm import DeclarativeBase
 from datetime import datetime
-
-from sqlalchemy.ext.hybrid import hybrid_property
-
+from enum import Enum
 from typing import Optional
+
+from sqlalchemy import MetaData, LargeBinary, Boolean, String, BigInteger, Integer, TIMESTAMP, Float, Uuid
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 
@@ -48,12 +47,16 @@ class InviteLink(Base):
 class TgUser(Base):
     __tablename__ = "tgb_users"
     tg_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    sheet_id: Mapped[int] = mapped_column(Integer)
     invited_by: Mapped[int] = mapped_column(BigInteger)
     disabled: Mapped[bool] = mapped_column(Boolean)
     _role: Mapped[str] = mapped_column(name="role", type_=String)
     disabled_reason: Mapped[Optional[str]] = mapped_column(String)
     mt5_acc_number: Mapped[Optional[int]] = mapped_column(BigInteger)
     mt5_acc_pwd_enc: Mapped[Optional[bytes]] = mapped_column(LargeBinary)
+    username: Mapped[str] = mapped_column(type_=String)
+    first_name: Mapped[str] = mapped_column(type_=String)
+    last_name: Mapped[str] = mapped_column(type_=String)
     created_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP)
     updated_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP)
 
@@ -67,6 +70,10 @@ class TgUser(Base):
 
     def __repr__(self):
         return f"TgUser(tg_id={self.tg_id}, invited_by={self.invited_by}, role={self._role})"
+
+class OrderType(str, Enum):
+    short = "short",
+    short_close = "short_close",
 
 class Order(Base):
     __tablename__ = "tgb_orders"

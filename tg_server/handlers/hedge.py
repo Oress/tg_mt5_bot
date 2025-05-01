@@ -1,6 +1,5 @@
 import logging
-import os
-from datetime import datetime
+from datetime import timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -537,12 +536,14 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
 def order_details_str(new_order: Order, operation, instrument, balance: Optional[Decimal]):
     amnt = new_order.euro_amount if operation.callback_data == BUY.callback_data else -new_order.euro_amount
     blnc = -balance if balance else Decimal(0)
+    order_dt_utc_str = new_order.created_at.astimezone(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
+
     return (
             f"✅Ордер размещен\n"
             + helpers.escape_markdown(f"{new_order.id}\n", 2)
             + f"Статус: *исполнен* \n"
             + helpers.escape_markdown(
-            f"Дата: {new_order.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
+            f"Дата: {order_dt_utc_str}\n"
                 f"Операция: {operation.label}\n"
                 f"Инструмент: {instrument.label}\n\n",
      2)
