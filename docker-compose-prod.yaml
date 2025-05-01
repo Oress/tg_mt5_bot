@@ -34,6 +34,7 @@ services:
         required: true
     volumes:
       - appLogs:${LOGS_FOLDER}
+      - ./tg_server:/keys
     environment:
       - PYTHONPATH=/
       - LOGS_FOLDER
@@ -50,6 +51,9 @@ services:
       - HEDGE_INSTRUMENTS
       - SUPERADMIN_ID
       - TG_BOT_TOKEN
+      - GGL_SA_FILE_LOCATION=/keys/key.json
+      - GGL_SPREADSHEET_ID
+      - GGL_SHEET_SYNC_INVTERVAL
 
   alloy:
     restart: unless-stopped
