@@ -34,7 +34,7 @@ services:
         required: true
     volumes:
       - appLogs:${LOGS_FOLDER}
-      - ./tg_server:/keys
+      - ./keys:/keys
     environment:
       - PYTHONPATH=/
       - LOGS_FOLDER
