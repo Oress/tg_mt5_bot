@@ -90,7 +90,7 @@ def create_metadata_sheet_if_not_exist(spreadsheet):
                     "addSheet": {
                         "properties": {
                             "title": METADATA_SHEET_NAME,
-                            "hidden": True,
+                            "hidden": False,
                             "gridProperties": {
                                 "rowCount": 1000,
                                 "columnCount": 26
