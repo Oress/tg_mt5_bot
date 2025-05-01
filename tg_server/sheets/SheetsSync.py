@@ -334,10 +334,10 @@ def create_row_data(order: Order) -> dict:
 def sync_data(users: List[TgUser], sync_dt: datetime):
     logger.info(f"[Google Sheets][data sync] syncing data for {len(users)} users dt: {sync_dt}")
 
-    last_sync_dt = epoch
 
     with Session(engine) as session:
         for user in users:
+            last_sync_dt = epoch
             logger.info(f"[Google Sheets][data sync] starting syncing data for {user.tg_id} sheetId {user.sheet_id}")
             create_metadata = True
             metadata_filters = [
