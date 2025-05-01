@@ -105,8 +105,12 @@ def create_metadata_sheet_if_not_exist(spreadsheet):
 
 # Username and first name, last name
 def get_sheet_title_for_user(user: TgUser) -> str:
-    return ", ".join([user.username or "-", user.first_name or "-", user.last_name or "-"])
-
+    if user.username:
+        return user.username
+    elif user.first_name and user.last_name:
+        return f"{user.first_name} {user.last_name} {user.tg_id}"
+    else:
+        return str(user.tg_id)
 
 # It should work with dev metadata to allow user to rename it.
 def create_sheets_for_users_if_not_exist(users_to_create: List[TgUser]):
