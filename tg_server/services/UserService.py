@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, Sequence
 from typing import List
 
 from tg_server.constants.UserRole import UserRole
@@ -19,7 +19,10 @@ class UserService:
             pwd_decrypted_bytes = pwd_encryptor.decrypt(account_pwd_enc)
             account_type = mt5service.determine_account_type(account_number, pwd_decrypted_bytes.decode())
 
-            new_user = TgUser(tg_id=user_id, invited_by=invited_by, _role=role, disabled=False,
+            seq = Sequence("seq_tgb_users_sheet_id")
+            nextid = self.session.execute(seq)
+            print("create_user gener next sequnce: ", nextid)
+            new_user = TgUser(tg_id=user_id, invited_by=invited_by, _role=role, disabled=False, sheet_id=nextid,
                               mt5_acc_number=account_number, mt5_acc_pwd_enc=account_pwd_enc, account_type=account_type,
                               disabled_reason=None, created_at=datetime_now, updated_at=datetime_now)
             self.session.add(new_user)
