@@ -48,6 +48,7 @@ class TgUser(Base):
     __tablename__ = "tgb_users"
     tg_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     sheet_id: Mapped[int] = mapped_column(Integer)
+    ggl_sheet_id: Mapped[str] = mapped_column(String)
     invited_by: Mapped[int] = mapped_column(BigInteger)
     disabled: Mapped[bool] = mapped_column(Boolean)
     _role: Mapped[str] = mapped_column(name="role", type_=String)

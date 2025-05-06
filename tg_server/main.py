@@ -63,6 +63,7 @@ def check_env_variables():
         "GGL_SHEET_SYNC_INVTERVAL",
         "GGL_SPREADSHEET_ID",
         "GGL_SA_FILE_LOCATION",
+        "GGL_SHARE_EMAILS",
 
         "TG_BOT_TOKEN",
         "SUPERADMIN_ID"

@@ -54,6 +54,7 @@ services:
       - GGL_SA_FILE_LOCATION=/keys/key.json
       - GGL_SPREADSHEET_ID
       - GGL_SHEET_SYNC_INVTERVAL
+      - GGL_SHARE_EMAILS
 
   alloy:
     restart: unless-stopped

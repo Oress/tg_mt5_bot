@@ -62,7 +62,12 @@ class UserService:
         else:
             raise ValueError(f"User with ID {user_id} not found.")
 
-    def get_all_non_blocked_users(self) -> List[TgUser]:
+    def get_all_users_wo_sheet(self) -> List[TgUser]:
+        stmt = select(TgUser).where(TgUser.disabled == False).where(TgUser.ggl_sheet_id == None)
+        users = self.session.execute(stmt).all()
+        return [x.TgUser for x in users]
+
+    def get_all_users(self) -> List[TgUser]:
         stmt = select(TgUser).where(TgUser.disabled == False)
         users = self.session.execute(stmt).all()
         return [x.TgUser for x in users]

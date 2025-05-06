@@ -121,4 +121,10 @@
         </addColumn>
     </changeSet>
 
+    <changeSet id="add ggl_sheet_id to tgb_users" author="oress">
+        <addColumn tableName="tgb_users">
+            <column name="ggl_sheet_id" type="text"/>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>
