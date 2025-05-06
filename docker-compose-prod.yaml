@@ -72,6 +72,7 @@ services:
     extends:
       file: docker-compose-base.yaml
       service: db_backup_cron_service
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
