@@ -127,4 +127,10 @@
         </addColumn>
     </changeSet>
 
+    <changeSet id="add account_type to tgb_users" author="oress">
+        <addColumn tableName="tgb_users">
+            <column name="account_type" type="text"/>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

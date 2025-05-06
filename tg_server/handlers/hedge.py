@@ -12,18 +12,19 @@ from tg_server.constants.Instruments import available_instruments, get_instrumen
 from tg_server.database.db import engine
 from tg_server.database.models import Order
 from tg_server.handlers.balance import get_balance_per_instrument
-from tg_server.handlers.commons import InlineKeyboardButton, remove_exponent, round_flt_to_4_decimal, \
+from tg_server.handlers.commons import InlineKeyboardButton, \
     main_menu_decorator, SELL, BUY, PLACE_ORDER, PREVIEW_EDIT, UD_KEY_MENU_MSG_ID
 from tg_server.handlers.states import ConversationStates, HedgeConvStates
 from tg_server.mt5.mt5service import mt5service
 from tg_server.security.encryptor import pwd_encryptor
 from tg_server.services.OrderService import OrderService
 from tg_server.services.UserService import UserService
+from tg_server.utils.decimals import round_flt_to_4_decimal, remove_exponent
 
 logger = logging.getLogger(__name__)
 
 # TODO: maybe add them to the DB tables instead.
-inst_btns = [InlineKeyboardButton(text=instr.label, callback_data=instr.symbol) for instr in available_instruments]
+inst_btns = [InlineKeyboardButton(text=instr.label, callback_data=instr.symbol_standard) for instr in available_instruments]
 
 # cities_env_str = os.getenv("HEDGE_CITIES")
 # cities_list = cities_env_str.split(";") if cities_env_str else []
@@ -136,8 +137,7 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
     logger.info(f"[Hedge][instrument selected][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][instrument: {query.data}]")
 
     # symbol e.g. EURUSDm
-    instrument_str = query.data
-    instrument = get_instrument_by_symbol(instrument_str)
+    instrument = get_instrument_by_symbol(query.data)
 
     sym_info = None
     with Session(engine) as session:
@@ -148,13 +148,14 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
         pwd_decrypted_bytes = pwd_encryptor.decrypt(user.mt5_acc_pwd_enc)
 
         operation = context.user_data[UD_KEY_HEDGE_OPERATION]
-        sym_info = mt5service.symbol_info(user.mt5_acc_number, pwd_decrypted_bytes.decode(), instrument_str)
+        symbol_to_use = user.select_symbol(instrument)
+        sym_info = mt5service.symbol_info(user.mt5_acc_number, pwd_decrypted_bytes.decode(), symbol_to_use)
 
         if operation == BUY.callback_data:
             logger.info(f"[Hedge][instrument selected][BUY][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][instrument: {query.data}]")
 
             avail_to_spend_dcm = Decimal(0)
-            open_positions = mt5service.positions_get(user.mt5_acc_number, pwd_decrypted_bytes.decode(), instrument_str)
+            open_positions = mt5service.positions_get(user.mt5_acc_number, pwd_decrypted_bytes.decode(), symbol_to_use)
             if len(open_positions) == 0:
                 logger.warning(f"[Hedge][No active positions][BUY][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][instrument: {query.data}]")
                 await query.edit_message_text(
@@ -173,7 +174,7 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
                                                ), 2)
             )
         elif operation == SELL.callback_data:
-            logger.info(f"[Hedge][instrument selected][SELL][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][instrument: {query.data}]")
+            logger.info(f"[Hedge][instrument selected][SELL][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][instrument: {symbol_to_use}]")
 
             symbol_info_msg = (
                     f"*Сколько {instrument.base}?* \(Напишите сумму в чат📝\)\n\n"
@@ -181,7 +182,7 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
             )
         else:
             # Ideally this should never happen, but just in case
-            logger.error(f"[Hedge][invalid operation][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][instrument: {query.data}][operation: {operation}]")
+            logger.error(f"[Hedge][invalid operation][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][instrument: {symbol_to_use}][operation: {operation}]")
             await query.edit_message_text(
                 text=helpers.escape_markdown("Неверный тип операции.", 2),
                 reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
@@ -189,13 +190,13 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
             )
             return HedgeConvStates.SELECT_VOLUME
 
-        context.user_data[UD_KEY_HEDGE_INSTRUMENT] = instrument_str
+        context.user_data[UD_KEY_HEDGE_INSTRUMENT] = symbol_to_use
 
         # To enable symbol in the MT5 terminal and get the price in the next step, otherwise it will return 0
         mt5service.get_price_for_short(
             user.mt5_acc_number,
             pwd_decrypted_bytes.decode(),
-            instrument_str
+            symbol_to_use
         )
 
     await query.edit_message_text(
@@ -234,13 +235,13 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
 
             pwd_decrypted_bytes = pwd_encryptor.decrypt(user.mt5_acc_pwd_enc)
 
-            instrument_str = context.user_data.get(UD_KEY_HEDGE_INSTRUMENT)
-            sym_info = mt5service.symbol_info(user.mt5_acc_number, pwd_decrypted_bytes.decode(), instrument_str)
+            symbol_str = context.user_data.get(UD_KEY_HEDGE_INSTRUMENT)
+            sym_info = mt5service.symbol_info(user.mt5_acc_number, pwd_decrypted_bytes.decode(), symbol_str)
 
             operation = context.user_data[UD_KEY_HEDGE_OPERATION]
 
             if operation == BUY.callback_data:
-                open_positions = mt5service.positions_get(user.mt5_acc_number, pwd_decrypted_bytes.decode(), instrument_str)
+                open_positions = mt5service.positions_get(user.mt5_acc_number, pwd_decrypted_bytes.decode(), symbol_str)
                 avail_to_spend = round_flt_to_4_decimal(open_positions[0].volume) * Decimal(sym_info.trade_contract_size)
 
         # Check the euro amnt is more than the min amount
@@ -440,12 +441,12 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
 
         operation = context.user_data[UD_KEY_HEDGE_OPERATION]
         if operation == BUY.callback_data:
-            positions = mt5service.positions_get(user.mt5_acc_number, pwd_decrypted_bytes.decode(), instrument.symbol)
+            positions = mt5service.positions_get(user.mt5_acc_number, pwd_decrypted_bytes.decode(), symbol)
             if len(positions) != 0:
                 order_result = mt5service.close_short_order(user.mt5_acc_number,
                                                             pwd_decrypted_bytes.decode(),
                                                             positions[0].ticket,
-                                                            instrument.symbol,
+                                                            symbol,
                                                             Decimal(context.user_data.get(UD_KEY_HEDGE_VOLUME)))
                 if order_result is None:
                     logger.error(f"[Hedge][BUY][no order rslt][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
@@ -468,14 +469,14 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
                 session.commit()
 
                 dict = get_balance_per_instrument(user)
-                order_msg = order_details_str(new_order, BUY, instrument, dict[EURUSD.symbol])
+                order_msg = order_details_str(new_order, BUY, instrument, dict[EURUSD.symbol_standard])
             else:
                 logger.error(f"[Hedge][BUY][no recent order fnd][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
                 raise RuntimeError(f"Incorrect trade account credentials")
         elif operation == SELL.callback_data:
             order_result = mt5service.place_short_order(user.mt5_acc_number,
                                                         pwd_decrypted_bytes.decode(),
-                                                        context.user_data.get(UD_KEY_HEDGE_INSTRUMENT),
+                                                        symbol,
                                                         Decimal(context.user_data.get(UD_KEY_HEDGE_VOLUME)))
 
             if order_result is None:
@@ -500,7 +501,7 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
             session.commit()
 
             dict = get_balance_per_instrument(user)
-            order_msg = order_details_str(new_order, SELL, instrument, dict[EURUSD.symbol])
+            order_msg = order_details_str(new_order, SELL, instrument, dict[EURUSD.symbol_standard])
         else:
             logger.error(f"[Hedge][place order invld op][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][operation: {operation}]")
             await query.edit_message_text(

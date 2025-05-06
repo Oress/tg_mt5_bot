@@ -1,11 +1,13 @@
 import logging
 import os
 from dataclasses import dataclass
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 
 from mt5linux import MetaTrader5
 
-from tg_server.handlers.commons import round_flt_to_4_decimal
+from tg_server.constants.AccountType import AccountType
+from tg_server.constants.Instruments import EURUSD
+from tg_server.utils.decimals import round_flt_to_4_decimal
 
 logger = logging.getLogger(__name__)
 
@@ -241,6 +243,31 @@ class MT5Service:
 
         return False
 
+    def determine_account_type(self, account_number: int, pwd: str) -> AccountType:
+        try:
+            with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
+                symbols=session.symbols_get()
+                for symbol in symbols:
+                    if symbol.currency_profit == EURUSD.quote and symbol.currency_base == EURUSD.base:
+                        print('determine_account_type Symbol: ', symbol)
+                        if symbol.name == EURUSD.symbol_standard:
+                            return AccountType.STANDARD
+                        elif symbol.name == EURUSD.symbol_zero:
+                            return AccountType.ZERO
+                        elif symbol.name == EURUSD.symbol_mini:
+                            return AccountType.MINI
+                        else:
+                            logger.error(f"[MT5|Symbol Info Failed], account_number: {account_number}, ")
+                            return None
+        except MT5InvalidCreds as e:
+            logger.error(f"[MT5|Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
+            print(f"determine_account_type Invalid credentials: {e}")
+        except Exception as e:
+            logger.error(f"[MT5|Unknown Exception]")
+            print(f"determine_account_type Exception caught: {e}")
+
+        return None
+
 
 class MT5Session:
     def __init__(self, host: str, port: int, account_number: int, pwd: str, server: str):
@@ -280,3 +307,11 @@ if is_none_or_empty(server_env) or is_none_or_empty(host_env) or is_none_or_empt
 
 mt5service = MT5Service(server_env, host_env, int(port_env))
 
+# if __name__ == '__main__':
+#     mt5service.determine_account_type(129404, '/0q2M/Jy')
+#     mt5service.get_balance(130541, 'I?F3.pq1')
+
+
+# currency_base='EUR'
+# currency_profit='USD'
+# SymbolInfo(custom=False, chart_mode=0, select=True, visible=True, session_deals=0, session_buy_orders=0, session_sell_orders=0, volume=0, volumehigh=0, volumelow=0, time=1746564222, digits=5, spread=16, spread_float=True, ticks_bookdepth=0, trade_calc_mode=0, trade_mode=4, start_time=0, expiration_time=0, trade_stops_level=0, trade_freeze_level=0, trade_exemode=2, swap_mode=1, swap_rollover3days=3, margin_hedged_use_leg=False, expiration_mode=15, filling_mode=3, order_mode=63, order_gtc_mode=0, option_mode=0, option_right=0, bid=1.13681, bidhigh=1.13696, bidlow=1.12792, ask=1.13697, askhigh=1.13712, asklow=1.12807, last=0.0, lasthigh=0.0, lastlow=0.0, volume_real=0.0, volumehigh_real=0.0, volumelow_real=0.0, option_strike=0.0, point=1e-05, trade_tick_value=1.0, trade_tick_value_profit=1.0, trade_tick_value_loss=1.0, trade_tick_size=1e-05, trade_contract_size=100000.0, trade_accrued_interest=0.0, trade_face_value=0.0, trade_liquidity_rate=0.0, volume_min=0.01, volume_max=10.0, volume_step=0.01, volume_limit=0.0, swap_long=-10.83, swap_short=3.92, margin_initial=0.0, margin_maintenance=0.0, session_volume=0.0, session_turnover=0.0, session_interest=0.0, session_buy_orders_volume=0.0, session_sell_orders_volume=0.0, session_open=1.13124, session_close=1.13124, session_aw=0.0, session_price_settlement=0.0, session_price_limit_min=0.0, session_price_limit_max=0.0, margin_hedged=0.0, price_change=0.4924, price_volatility=0.0, price_theoretical=0.0, price_greeks_delta=0.0, price_greeks_theta=0.0, price_greeks_gamma=0.0, price_greeks_vega=0.0, price_greeks_rho=0.0, price_greeks_omega=0.0, price_sensitivity=0.0, basis='', category='', currency_profit='USD', currency_margin='EUR', bank='', description='Euro vs US Dollar', exchange='', formula='', isin='', name='EURUSDz', page='', path='ForexZ\\Tier 1\\EURUSDz')

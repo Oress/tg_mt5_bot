@@ -9,11 +9,12 @@ from telegram.ext import ContextTypes
 from tg_server.constants.Instruments import get_instrument_by_symbol, available_instruments
 from tg_server.database.db import engine
 from tg_server.database.models import TgUser
-from tg_server.handlers.commons import remove_exponent, round_flt_to_4_decimal, main_menu_decorator
+from tg_server.handlers.commons import main_menu_decorator
 from tg_server.handlers.states import BalanceConvStates
 from tg_server.mt5.mt5service import mt5service
 from tg_server.security.encryptor import pwd_encryptor
 from tg_server.services.UserService import UserService
+from tg_server.utils.decimals import round_flt_to_4_decimal, remove_exponent
 
 logger = logging.getLogger(__name__)
 
@@ -23,14 +24,16 @@ def get_balance_per_instrument(user: TgUser):
     pwd_decrypted_bytes = pwd_encryptor.decrypt(user.mt5_acc_pwd_enc)
     result = {}
     for inst in available_instruments:
-        positions = mt5service.positions_get(user.mt5_acc_number, pwd_decrypted_bytes.decode(), inst.symbol)
+        symbol_to_use = user.select_symbol(inst)
+
+        positions = mt5service.positions_get(user.mt5_acc_number, pwd_decrypted_bytes.decode(), symbol_to_use)
         if len(positions) == 1:
             sym_info = mt5service.symbol_info(user.mt5_acc_number, pwd_decrypted_bytes.decode(), positions[0].symbol)
             base_equivalent = round_flt_to_4_decimal(positions[0].volume) * sym_info.trade_contract_size
-            result[inst.symbol] = base_equivalent
+            result[inst.symbol_standard] = base_equivalent
         else:
             logger.warning(f"[Balance][No open positions or >1][chat_id: {user.tg_id}][user_id: {user.tg_id}]")
-            result[inst.symbol] = None
+            result[inst.symbol_standard] = None
     return result
 
 async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -57,7 +60,8 @@ async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         inst_to_baseprice = get_balance_per_instrument(user)
         for inst in available_instruments:
-            positions = mt5service.positions_get(user.mt5_acc_number, pwd_decrypted_bytes.decode(), inst.symbol)
+            symbol_to_use = user.select_symbol(inst)
+            positions = mt5service.positions_get(user.mt5_acc_number, pwd_decrypted_bytes.decode(), symbol_to_use)
             if positions is None or len(positions) == 0:
                 logger.warning(f"[Balance][No open positions][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
                 balance_msg = "У вас нет открытых позиций."

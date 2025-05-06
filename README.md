@@ -36,10 +36,10 @@ Explain how to prepare the environment:
    cd tg_mt5_bot
 2. Install docker using convenience script (https://docs.docker.com/engine/install/ubuntu/#install-using-the-convenience-script:
 3. Create .env file (copy from dev.env):
-4. For the export to Google Sheets, you need to create a project in the Google Developer Console and enable the Google Sheets API. Follow these steps:
+4. For the export to Google Sheets, you need to create a project in the Google Developer Console and enable the Google Sheets API and Google Drive API. Follow these steps:
    - Go to the Google Developer Console.
    - Create a new project.
-   - Enable the Google Sheets API for your project.
+   - Enable the Google Sheets API and Google Drive API for your project.
    - Create credentials for a service account and download the JSON file.
    - Create a Google Sheet where you want to export the data.
    - Share the Google Sheet with the service account email address (found in the JSON file).

@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime
-from decimal import Decimal, ROUND_HALF_UP
 from typing import Union, Sequence, List
 
 from sqlalchemy.orm.session import Session
@@ -90,13 +89,6 @@ async def send_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                    reply_markup=user_main_menu_markup if user_role == UserRole.USER else admin_main_menu_markup)
     context.user_data[UD_KEY_MENU_MSG_ID] = msg.message_id
     return msg
-
-def remove_exponent(d):
-    return d.quantize(Decimal(1)) if d == d.to_integral() else d.normalize()
-
-reference = Decimal("0.0001")
-def round_flt_to_4_decimal(flt: float) -> Decimal:
-    return Decimal(flt).quantize(reference, rounding=ROUND_HALF_UP)
 
 async def main_menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=update.effective_message.message_id)

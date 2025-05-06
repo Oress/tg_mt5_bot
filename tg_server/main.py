@@ -34,6 +34,8 @@ from tg_server.handlers.states import ConversationStates, InviteUserConvStates, 
     ChangeCredsConvStates, BlockUserConvStates, UnblockUserConvStates, BalanceConvStates
 from tg_server.handlers.unblock_user import unblock_user_start, unblock_users_shared, \
     unblock_account_credentials
+from tg_server.mt5.mt5service import mt5service
+from tg_server.security.encryptor import pwd_encryptor
 from tg_server.services.InviteLinkService import InviteLinkService
 from tg_server.services.UserService import UserService
 from tg_server.sheets.SheetsSync import sync_with_google_sheets
@@ -94,6 +96,23 @@ async def remove_expired_links(context: ContextTypes.DEFAULT_TYPE):
         invite_link_service = InviteLinkService(session)
         invite_link_service.remove_expired_links()
         session.commit()
+
+async def update_account_types(context: ContextTypes.DEFAULT_TYPE):
+    logger.info("[Job|Update Account Types] start")
+    with Session(engine) as session:
+        user_service = UserService(session)
+        users = user_service.get_users_with_empty_account_types()
+        for user in users:
+            if user.mt5_acc_number is None or user.mt5_acc_pwd_enc is None:
+                logger.warning(f"[Job|Update Account Types] User {user.tg_id} has no related account")
+                continue
+            pwd_decrypted_bytes = pwd_encryptor.decrypt(user.mt5_acc_pwd_enc)
+            account_type = mt5service.determine_account_type(user.mt5_acc_number, pwd_decrypted_bytes.decode())
+            if account_type:
+                user.account_type = account_type
+                logger.info(f"[Job|Update Account Types] Updated account type for user {user.tg_id} to {account_type}")
+        session.commit()
+    logger.info("[Job|Update Account Types] end")
 
 
 async def user_has_been_blocked(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -176,7 +195,8 @@ if __name__ == '__main__':
     sync_interval = int(os.getenv("GGL_SHEET_SYNC_INVTERVAL"))
     job_queue = application.job_queue
     job_queue.run_repeating(remove_expired_links, interval=30 * 60, first=10)
-    job_queue.run_repeating(sync_with_google_sheets, interval=sync_interval * 60, first=5)
+    job_queue.run_repeating(sync_with_google_sheets, interval=sync_interval * 60, first=10)
+    job_queue.run_repeating(update_account_types, interval=3600 * 24, first=10)
 
 
     main_menu_text_filter = filters.Text([MAIN_MENU.label])

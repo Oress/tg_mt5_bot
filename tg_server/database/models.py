@@ -9,6 +9,9 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 
+from tg_server.constants.Instruments import Instrument
+from tg_server.mt5.mt5service import AccountType
+
 metadata_obj = MetaData()
 
 class Base(DeclarativeBase):
@@ -49,6 +52,7 @@ class TgUser(Base):
     tg_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     sheet_id: Mapped[int] = mapped_column(Integer)
     ggl_sheet_id: Mapped[str] = mapped_column(String)
+    account_type: Mapped[str] = mapped_column(String)
     invited_by: Mapped[int] = mapped_column(BigInteger)
     disabled: Mapped[bool] = mapped_column(Boolean)
     _role: Mapped[str] = mapped_column(name="role", type_=String)
@@ -60,6 +64,17 @@ class TgUser(Base):
     last_name: Mapped[str] = mapped_column(type_=String)
     created_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP)
     updated_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP)
+
+    def select_symbol(self, instrument: Instrument):
+        if self.account_type == AccountType.STANDARD:
+            return instrument.symbol_standard
+        elif self.account_type == AccountType.ZERO:
+            return instrument.symbol_zero
+        elif self.account_type == AccountType.MINI:
+            return instrument.symbol_mini
+        else:
+            raise ValueError(f"Invalid instrument: {instrument}")
+
 
     @hybrid_property
     def role(self):
