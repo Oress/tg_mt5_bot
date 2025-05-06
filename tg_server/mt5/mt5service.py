@@ -91,7 +91,7 @@ class MT5Service:
             logger.error(f"[MT5|Unknown Exception]")
             print(f"Exception caught: {e}")
 
-        return False
+        return Decimal(0)
 
     def positions_get(self, account_number: int, pwd: str, symbol: str) -> bool:
         logger.info(f"[MT5|orders_get] account_number: {account_number}, symbol: {symbol}")
@@ -178,13 +178,19 @@ class MT5Service:
 
         return False
 
-
     def symbol_info(self, account_number: int, pwd: str, symbol: str):
         logger.info(f"[MT5|symbol_info] account_number: {account_number}, symbol: {symbol}")
         try:
             with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
-                sym_info = session.symbol_info(symbol)
-                print(sym_info)
+                selected=session.symbol_select(symbol, True)
+
+                if not selected:
+                    logger.error(f"[MT5|Symbol Info Failed], account_number: {account_number}, ")
+                    print("[MT5|Symbol Info Failed] Failed to select symbol, error code =",session.last_error())
+                else:
+                    sym_info = session.symbol_info(symbol)
+                    print('sym_info', sym_info)
+                    logger.info(f"[MT5|Symbol Info Success]: {session.last_error()}")
 
                 sym_info_model = SymbolInfo(
                     description=sym_info.description,
