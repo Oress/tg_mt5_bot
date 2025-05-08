@@ -38,7 +38,7 @@ from tg_server.mt5.mt5service import mt5service
 from tg_server.security.encryptor import pwd_encryptor
 from tg_server.services.InviteLinkService import InviteLinkService
 from tg_server.services.UserService import UserService
-from tg_server.sheets.SheetsSync import sync_with_google_sheets
+from tg_server.sheets.SheetsSync import init_common_sheet
 from telegram.warnings import PTBUserWarning
 
 # https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do
@@ -195,9 +195,7 @@ if __name__ == '__main__':
     sync_interval = int(os.getenv("GGL_SHEET_SYNC_INVTERVAL"))
     job_queue = application.job_queue
     job_queue.run_repeating(remove_expired_links, interval=30 * 60, first=10)
-    job_queue.run_repeating(sync_with_google_sheets, interval=sync_interval * 60, first=10)
     job_queue.run_repeating(update_account_types, interval=3600 * 24, first=10)
-
 
     main_menu_text_filter = filters.Text([MAIN_MENU.label])
     start_menu_handler = CommandHandler(["start", "menu"], main_menu_command, filters=disable_edited_msg())
@@ -456,6 +454,7 @@ if __name__ == '__main__':
     temp_el = asyncio.new_event_loop()
     try:
         temp_el.run_until_complete(generate_superadmin_invite())
+        temp_el.run_until_complete(init_common_sheet())
         temp_el.close()
     finally:
         temp_el.close()

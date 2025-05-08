@@ -19,6 +19,7 @@ from tg_server.mt5.mt5service import mt5service
 from tg_server.security.encryptor import pwd_encryptor
 from tg_server.services.OrderService import OrderService
 from tg_server.services.UserService import UserService
+from tg_server.sheets.SheetsSync import sync_with_google_sheets
 from tg_server.utils.decimals import round_flt_to_4_decimal, remove_exponent, format_currency
 
 logger = logging.getLogger(__name__)
@@ -471,6 +472,7 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
 
                 dict = get_balance_per_instrument(user)
                 order_msg = order_details_str(new_order, BUY, instrument, dict[EURUSD.symbol_standard])
+                await sync_with_google_sheets(user.tg_id)
             else:
                 logger.error(f"[Hedge][BUY][no recent order fnd][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
                 raise RuntimeError(f"Incorrect trade account credentials")
@@ -503,6 +505,7 @@ async def hedge_preview_accepted(update: Update, context: ContextTypes.DEFAULT_T
 
             dict = get_balance_per_instrument(user)
             order_msg = order_details_str(new_order, SELL, instrument, dict[EURUSD.symbol_standard])
+            await sync_with_google_sheets(user.tg_id)
         else:
             logger.error(f"[Hedge][place order invld op][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][operation: {operation}]")
             await query.edit_message_text(

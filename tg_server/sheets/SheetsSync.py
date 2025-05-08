@@ -640,52 +640,59 @@ async def create_users_sheet_if_not_exist(spreadsheet):
         }
     ).execute()
 
+async def init_common_sheet():
+    logger.info(f"[Google Sheets][init_common_sheet] start")
+    sync_date = datetime.now()
+    try:
+        common_spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id, includeGridData=False,
+                                                        excludeTablesInBandedRanges=True).execute()
 
-async def sync_with_google_sheets(context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"[Google Sheets][sync] start")
+        # Prepare common spreadsheet. Create users and metadata tab, remove 0 tab if exist
+        await create_users_sheet_if_not_exist(common_spreadsheet)
+        await create_metadata_sheet_if_not_exist(common_spreadsheet)
+        await remove_0_sheet_if_exist(common_spreadsheet)
+    except Exception as e:
+        update_metadata_exception(sync_date, e)
+        logger.error(f"[Google Sheets][sync] failed error: {e}", exc_info=e)
+    logger.info(f"[Google Sheets][init_common_sheet] end")
+
+
+async def sync_with_google_sheets(user_id):
+    logger.info(f"[Google Sheets][sync] start user id : {user_id}")
 
     sync_date = datetime.now()
     try:
         common_spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id, includeGridData=False,
                                                  excludeTablesInBandedRanges=True).execute()
 
-        # Prepare common spreadsheet. Create users and metadata tab, remove 0 tab if exist
-        await create_users_sheet_if_not_exist(common_spreadsheet)
-        await create_metadata_sheet_if_not_exist(common_spreadsheet)
-        await remove_0_sheet_if_exist(common_spreadsheet)
-
-        users_to_create_ids = []
         with Session(engine) as session:
             user_service = UserService(session)
-            users_to_create = user_service.get_all_users_wo_sheet()
-            users_to_create_ids = [user.tg_id for user in users_to_create]
-            await create_spreadsheets(users_to_create)
+            user = user_service.get_user_by_id(user_id)
+
+            if not user.ggl_sheet_id:
+                await create_spreadsheets([user])
+                await add_users_to_main_spreadsheet(common_spreadsheet, [user])
+
+
+            user_spreadsheet = (service.spreadsheets()
+                                .get(spreadsheetId=user.ggl_sheet_id,
+                                     includeGridData=False,
+                                     excludeTablesInBandedRanges=True)
+                                .execute())
+
+            await create_sheets_for_users_if_not_exist(user_spreadsheet, user)
+            await remove_0_sheet_if_exist(user_spreadsheet)
+
+            await update_username_notes_in_sheets(user)
+            await create_tables_for_users_if_not_exist(user_spreadsheet, user)
+            await sync_data_for_user(session, user, sync_date)
+
             session.commit()
 
-        with Session(engine) as session:
-            user_service = UserService(session)
-            users = user_service.get_all_users()
-            users_to_create = [user for user in users if user.tg_id in users_to_create_ids]
-            await add_users_to_main_spreadsheet(common_spreadsheet, users_to_create)
-
-            for user in users:
-                user_spreadsheet = (service.spreadsheets()
-                                    .get(spreadsheetId=user.ggl_sheet_id,
-                                         includeGridData=False,
-                                         excludeTablesInBandedRanges=True)
-                                    .execute())
-
-                await create_sheets_for_users_if_not_exist(user_spreadsheet, user)
-                await remove_0_sheet_if_exist(user_spreadsheet)
-
-                await update_username_notes_in_sheets(user)
-                await create_tables_for_users_if_not_exist(user_spreadsheet, user)
-                await sync_data_for_user(session, user, sync_date)
-
-        await update_metadata_success(sync_date)
+        # await update_metadata_success(sync_date)
     except Exception as e:
         update_metadata_exception(sync_date, e)
         logger.error(f"[Google Sheets][sync] failed error: {e}", exc_info=e)
-    logger.info(f"[Google Sheets][sync] end")
+    logger.info(f"[Google Sheets][sync] end user id : {user_id}")
 
     return

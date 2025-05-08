@@ -133,4 +133,11 @@
         </addColumn>
     </changeSet>
 
+
+    <changeSet id="add idx_tgb_orders_created_at to tgb_orders" author="oress">
+        <createIndex indexName="idx_tgb_orders_created_at" tableName="tgb_orders">
+            <column name="created_at"/>
+        </createIndex>
+    </changeSet>
+
 </databaseChangeLog>
