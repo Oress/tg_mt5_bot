@@ -19,7 +19,7 @@ from tg_server.mt5.mt5service import mt5service
 from tg_server.security.encryptor import pwd_encryptor
 from tg_server.services.OrderService import OrderService
 from tg_server.services.UserService import UserService
-from tg_server.utils.decimals import round_flt_to_4_decimal, remove_exponent
+from tg_server.utils.decimals import round_flt_to_4_decimal, remove_exponent, format_currency
 
 logger = logging.getLogger(__name__)
 
@@ -170,7 +170,7 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
             symbol_info_msg = (
                     f"*Сколько {instrument.base}?* \(Напишите сумму в чат📝\)\n\n"
                     + helpers.escape_markdown((f"Инструмент: {instrument.label}\n"
-                                               f"Доступно для покупки: {remove_exponent(avail_to_spend_dcm)} {instrument.base}"
+                                               f"Доступно для покупки: {format_currency(remove_exponent(avail_to_spend_dcm))} {instrument.base}"
                                                ), 2)
             )
         elif operation == SELL.callback_data:
@@ -253,7 +253,7 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
                 await context.bot.edit_message_text(
                     chat_id=update.effective_chat.id,
                     message_id=upd_msg_id,
-                    text=helpers.escape_markdown(f"Минимальная сумма: {remove_exponent(min_amount_eur.normalize())}, введите допустимое число.", 2),
+                    text=helpers.escape_markdown(f"Минимальная сумма: {format_currency(remove_exponent(min_amount_eur.normalize()))}, введите допустимое число.", 2),
                     reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
                     parse_mode=ParseMode.MARKDOWN_V2
                 )
@@ -270,7 +270,7 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
                     await context.bot.edit_message_text(
                         chat_id=update.effective_chat.id,
                         message_id=upd_msg_id,
-                        text=helpers.escape_markdown(f"Доступная сумма: {remove_exponent(avail_to_spend.normalize())}, введите допустимое число.", 2),
+                        text=helpers.escape_markdown(f"Доступная сумма: {format_currency(remove_exponent(avail_to_spend.normalize()))}, введите допустимое число.", 2),
                         reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
                         parse_mode=ParseMode.MARKDOWN_V2
                     )
@@ -286,7 +286,7 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
                 await context.bot.edit_message_text(
                     chat_id=update.effective_chat.id,
                     message_id=upd_msg_id,
-                    text=helpers.escape_markdown(f"Максимальная сумма: {remove_exponent(max_amount_eur.normalize())}, введите допустимое число.", 2),
+                    text=helpers.escape_markdown(f"Максимальная сумма: {format_currency(remove_exponent(max_amount_eur.normalize()))}, введите допустимое число.", 2),
                     reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
                     parse_mode=ParseMode.MARKDOWN_V2
                 )
@@ -303,7 +303,7 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
                 await context.bot.edit_message_text(
                     chat_id=update.effective_chat.id,
                     message_id=upd_msg_id,
-                    text=helpers.escape_markdown(f"Сумма должна быть кратна: {remove_exponent(step_eur.normalize())}, введите допустимое число.", 2),
+                    text=helpers.escape_markdown(f"Сумма должна быть кратна: {format_currency(remove_exponent(step_eur.normalize()))}, введите допустимое число.", 2),
                     reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
                     parse_mode=ParseMode.MARKDOWN_V2
                 )
@@ -332,10 +332,11 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
 
     instrument = get_instrument_by_symbol(context.user_data.get(UD_KEY_HEDGE_INSTRUMENT))
     operation_str = BUY.label if BUY.callback_data == context.user_data.get(UD_KEY_HEDGE_OPERATION) else SELL.label
+    amnt = Decimal(context.user_data.get(UD_KEY_HEDGE_EURO))
     preview_msg = (f"Предварительный просмотр: \n\n"
                    f"Операция: {operation_str}\n"
                    f"Инструмент: {instrument.label}\n"
-                   f"Сколько: {context.user_data.get(UD_KEY_HEDGE_EURO)} {instrument.base}\n"
+                   f"Сколько: {format_currency(remove_exponent(amnt))} {instrument.base}\n"
                    f"Приблизительный курс: {price_per_unit}\n"
                    )
 
@@ -548,10 +549,10 @@ def order_details_str(new_order: Order, operation, instrument, balance: Optional
                 f"Операция: {operation.label}\n"
                 f"Инструмент: {instrument.label}\n\n",
      2)
-            + "Сумма: " + "*" + helpers.escape_markdown(f"{remove_exponent(round_flt_to_4_decimal(amnt))}\n\n", 2) + "*"
+            + "Сумма: " + "*" + helpers.escape_markdown(f"{format_currency(remove_exponent(round_flt_to_4_decimal(amnt)))}\n\n", 2) + "*"
             + "Цена: " + "*" + helpers.escape_markdown(f"{new_order.price}\n", 2) + "*"
             + '\-\-\-\n'
-            + "Общий баланс: " + "*" + helpers.escape_markdown(f"{remove_exponent(blnc)} {instrument.base}\n", 2) + "*"
+            + "Захеджировано: " + "*" + helpers.escape_markdown(f"{format_currency(remove_exponent(blnc))} {instrument.base}\n", 2) + "*"
     )
 
 def report_on_order_send(order_result) -> str:

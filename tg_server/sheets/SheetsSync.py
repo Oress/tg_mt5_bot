@@ -43,17 +43,17 @@ def date_to_serial(date):
 
 
 table_definition = [
-    {"label": "ДАТА", "type": "COLUMN_TYPE_UNSPECIFIED"},
-    {"label": "СУММА", "type": "DOUBLE"},
-    {"label": "ФИКС", "type": "DOUBLE"},
+    {"label": "Дата", "type": "COLUMN_TYPE_UNSPECIFIED"},
+    {"label": "Сумма", "type": "COLUMN_TYPE_UNSPECIFIED"},
+    {"label": "Фикс", "type": "COLUMN_TYPE_UNSPECIFIED"},
     {"label": "USDT", "type": "COLUMN_TYPE_UNSPECIFIED"},
-    {"label": "Ком 0,10%", "type": "COLUMN_TYPE_UNSPECIFIED"},
-    {"label": "В ПОЗИЦИИ", "type": "DOUBLE"},
-    {"label": "СТАВКА", "type": "DOUBLE"},
-    {"label": "ДЕПОЗИТ", "type": "COLUMN_TYPE_UNSPECIFIED"},
-    {"label": "ДЕПОЗИТ ВСЕГО", "type": "COLUMN_TYPE_UNSPECIFIED"},
-    {"label": "Сумма оплаты депозита", "type": "DOUBLE"},
-    {"label": "БАЛАНС", "type": "COLUMN_TYPE_UNSPECIFIED"},
+    {"label": "Ком. 0,10%", "type": "COLUMN_TYPE_UNSPECIFIED"},
+    {"label": "Захеджировано", "type": "COLUMN_TYPE_UNSPECIFIED"},
+    {"label": "Ставка", "type": "COLUMN_TYPE_UNSPECIFIED"},
+    {"label": "Депозин", "type": "COLUMN_TYPE_UNSPECIFIED"},
+    {"label": "Депозит всего", "type": "COLUMN_TYPE_UNSPECIFIED"},
+    {"label": "Сумма оплаты депозита", "type": "COLUMN_TYPE_UNSPECIFIED"},
+    {"label": "Баланс", "type": "COLUMN_TYPE_UNSPECIFIED"},
 ]
 
 column_properties = [
@@ -186,6 +186,12 @@ async def update_username_notes_in_sheets(user: TgUser):
         }
     ).execute()
 
+float_format = {
+    "type": "NUMBER",
+    "pattern": "0.00000"
+}
+
+
 currency_format = {
     "type": "NUMBER",
     "pattern": "#,##0.00"
@@ -234,6 +240,7 @@ def create_row_data(order: Order) -> dict:
                     "numberValue": order.price,
                 },
                 "userEnteredFormat": {
+                    "numberFormat": float_format,
                     "textFormat": text_format
                 }
             },
@@ -272,6 +279,7 @@ def create_row_data(order: Order) -> dict:
                     "formulaValue": f"={if_first_row('C:C', f'IF(B:B<0,({rel_cell(-1, 1)}*{rel_cell(0, 1)}+B:B*C:C)/F:F,{rel_cell(0, 1)})')}"
                 },
                 "userEnteredFormat": {
+                    "numberFormat": float_format,
                     "textFormat": text_format
                 }
             },

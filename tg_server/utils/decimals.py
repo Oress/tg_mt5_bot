@@ -7,3 +7,6 @@ def remove_exponent(d):
 reference = Decimal("0.0001")
 def round_flt_to_4_decimal(flt: float) -> Decimal:
     return Decimal(flt).quantize(reference, rounding=ROUND_HALF_UP)
+
+def format_currency(d: Decimal) -> str:
+    return f"{d:,}".replace(",", " ")

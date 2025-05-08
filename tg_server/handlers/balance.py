@@ -14,7 +14,7 @@ from tg_server.handlers.states import BalanceConvStates
 from tg_server.mt5.mt5service import mt5service
 from tg_server.security.encryptor import pwd_encryptor
 from tg_server.services.UserService import UserService
-from tg_server.utils.decimals import round_flt_to_4_decimal, remove_exponent
+from tg_server.utils.decimals import round_flt_to_4_decimal, remove_exponent, format_currency
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +81,7 @@ async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             instrument = get_instrument_by_symbol(positions[0].symbol)
 
             balance_msg = (
-                     f"Продано: -{remove_exponent(base_equivalent)} {instrument.base}\n\n"
+                     f"Захеджировано: -{format_currency(remove_exponent(base_equivalent))} {instrument.base}\n\n"
                      f"на {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}")
 
             await query.edit_message_text(
