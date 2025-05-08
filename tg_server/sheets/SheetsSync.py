@@ -52,7 +52,6 @@ table_definition = [
     {"label": "СТАВКА", "type": "DOUBLE"},
     {"label": "ДЕПОЗИТ", "type": "COLUMN_TYPE_UNSPECIFIED"},
     {"label": "ДЕПОЗИТ ВСЕГО", "type": "COLUMN_TYPE_UNSPECIFIED"},
-    {"label": "Дата оплаты", "type": "DATE_TIME"},
     {"label": "Сумма оплаты депозита", "type": "DOUBLE"},
     {"label": "БАЛАНС", "type": "COLUMN_TYPE_UNSPECIFIED"},
 ]
@@ -289,19 +288,10 @@ def create_row_data(order: Order) -> dict:
             {
                 # Deposit total
                 "userEnteredValue": {
-                    "formulaValue": f"={if_first_row('H:H', f'{rel_cell(0, 1)}+H:H+{rel_cell(+2, 1)}')}"
+                    "formulaValue": f"={if_first_row('H:H', f'{rel_cell(0, 1)}+H:H+{rel_cell(+1, 1)}')}"
                 },
                 "userEnteredFormat": {
                     "numberFormat": currency_format,
-                    "textFormat": text_format_bold
-                }
-            },
-            {
-                # Payment date
-                "userEnteredValue": {
-                    "stringValue": ""
-                },
-                "userEnteredFormat": {
                     "textFormat": text_format_bold
                 }
             },
@@ -318,7 +308,7 @@ def create_row_data(order: Order) -> dict:
             {
                 # Balance
                 "userEnteredValue": {
-                    "formulaValue": "=I:I+K:K"
+                    "formulaValue": "=I:I+J:J"
                 },
                 "userEnteredFormat": {
                     "numberFormat": currency_format,
