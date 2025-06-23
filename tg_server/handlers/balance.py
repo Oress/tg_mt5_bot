@@ -1,5 +1,7 @@
+from decimal import Decimal
 import logging
 from datetime import datetime
+from typing import Optional
 
 from sqlalchemy.orm.session import Session
 from telegram import helpers, Update, InlineKeyboardMarkup
@@ -23,17 +25,18 @@ BALANCE_PREFIX_MD2 = "*\[Баланс\]*\n"
 def get_balance_per_instrument(user: TgUser):
     pwd_decrypted_bytes = pwd_encryptor.decrypt(user.mt5_acc_pwd_enc)
     result = {}
-    for inst in available_instruments:
-        symbol_to_use = user.select_symbol(inst)
+    for instrument in available_instruments:
+        symbol_to_use = user.select_symbol(instrument)
 
+        # TODO: (optimization) batch get position instead of one by one
         positions = mt5service.positions_get(user.mt5_acc_number, pwd_decrypted_bytes.decode(), symbol_to_use)
         if len(positions) == 1:
             sym_info = mt5service.symbol_info(user.mt5_acc_number, pwd_decrypted_bytes.decode(), positions[0].symbol)
             base_equivalent = round_flt_to_4_decimal(positions[0].volume) * sym_info.trade_contract_size
-            result[inst.symbol_standard] = base_equivalent
+            result[instrument.symbol_standard] = base_equivalent
         else:
             logger.warning(f"[Balance][No open positions or >1][chat_id: {user.tg_id}][user_id: {user.tg_id}]")
-            result[inst.symbol_standard] = None
+            result[instrument.symbol_standard] = None
     return result
 
 async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -56,38 +59,29 @@ async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return BalanceConvStates.BALANCE_OPENED
 
-        pwd_decrypted_bytes = pwd_encryptor.decrypt(user.mt5_acc_pwd_enc)
-
+        balance_msg = ""
+        # Check if all values in inst_to_baseprice are None
         inst_to_baseprice = get_balance_per_instrument(user)
-        for inst in available_instruments:
-            symbol_to_use = user.select_symbol(inst)
-            positions = mt5service.positions_get(user.mt5_acc_number, pwd_decrypted_bytes.decode(), symbol_to_use)
-            if positions is None or len(positions) == 0:
-                logger.warning(f"[Balance][No open positions][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
-                balance_msg = "У вас нет открытых позиций."
-                await query.edit_message_text(
-                    text=f"{BALANCE_PREFIX_MD2}\n" + helpers.escape_markdown(balance_msg, 2),
-                    reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
-                    parse_mode=ParseMode.MARKDOWN_V2
-                )
-                # await send_main_menu(update, context)
-                return BalanceConvStates.BALANCE_OPENED
-            elif len(positions) > 1:
-                logger.error(f"[Balance][More than 1 open positions][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}]")
-                raise Exception("More than one position")
+        if all(value is None for value in inst_to_baseprice.values()):
+            balance_msg += "Нет открытых позиций по доступным инструментам.\n\n"
+        else:
+            for inst in inst_to_baseprice:
+                instrument = get_instrument_by_symbol(inst)
+                base_equivalent = inst_to_baseprice[inst]
 
-            sym_info = mt5service.symbol_info(user.mt5_acc_number, pwd_decrypted_bytes.decode(), positions[0].symbol)
-            base_equivalent = round_flt_to_4_decimal(positions[0].volume) * sym_info.trade_contract_size
-            instrument = get_instrument_by_symbol(positions[0].symbol)
+                if base_equivalent is None:
+                    continue
 
-            balance_msg = (
-                     f"Захеджировано: -{format_currency(remove_exponent(base_equivalent))} {instrument.base}\n\n"
-                     f"на {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}")
+                amount_amnt_str = format_currency(remove_exponent(-base_equivalent))
+                currency_str = instrument.currency_for_hedge()
+                balance_msg += (
+                        f"Захеджировано {instrument.label}:\n {amount_amnt_str} {currency_str}\n\n"
+                        )
 
-            await query.edit_message_text(
-                text=f"{BALANCE_PREFIX_MD2}\n" + helpers.escape_markdown(balance_msg, 2),
-                reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
-                parse_mode=ParseMode.MARKDOWN_V2
-            )
+        await query.edit_message_text(
+            text=f"{BALANCE_PREFIX_MD2}\n" + helpers.escape_markdown(balance_msg, 2),
+            reply_markup=InlineKeyboardMarkup(main_menu_decorator([])),
+            parse_mode=ParseMode.MARKDOWN_V2
+        )
 
         return BalanceConvStates.BALANCE_OPENED

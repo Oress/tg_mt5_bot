@@ -8,7 +8,7 @@ from telegram import helpers, Update, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
-from tg_server.constants.Instruments import available_instruments, get_instrument_by_symbol, EURUSD
+from tg_server.constants.Instruments import InstrumentMode, available_instruments, get_instrument_by_symbol, EURUSD
 from tg_server.database.db import engine
 from tg_server.database.models import Order
 from tg_server.handlers.balance import get_balance_per_instrument
@@ -38,10 +38,18 @@ UD_KEY_HEDGE_EURO = "UD_KEY_HEDGE_EURO"
 UD_KEY_HEDGE_PRICE = "UD_KEY_HEDGE_PRICE"
 UD_KEY_HEDGE_CITY = "UD_KEY_HEDGE_CITY"
 
-select_operation_menu_markup = InlineKeyboardMarkup(
+short_operation_menu_markup = InlineKeyboardMarkup(
     main_menu_decorator([[
         InlineKeyboardButton(text=SELL.label, callback_data=SELL.callback_data),
         InlineKeyboardButton(text=BUY.label, callback_data=BUY.callback_data)]
+    ]),
+)
+
+long_operation_menu_markup = InlineKeyboardMarkup(
+    main_menu_decorator([[
+        InlineKeyboardButton(text=BUY.label, callback_data=BUY.callback_data),
+        InlineKeyboardButton(text=SELL.label, callback_data=SELL.callback_data),
+        ]
     ]),
 )
 
@@ -86,8 +94,8 @@ async def hedge_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return HedgeConvStates.NO_ACCOUNT
 
     await query.edit_message_text(
-        text=helpers.escape_markdown("Операция?", 2),
-        reply_markup=select_operation_menu_markup,
+        text=helpers.escape_markdown("Инструмент?", 2),
+        reply_markup=select_instrument_menu_markup,
         parse_mode=ParseMode.MARKDOWN_V2
     )
 
@@ -109,13 +117,12 @@ async def hedge_operation_selected(update: Update, context: ContextTypes.DEFAULT
     await query.answer()
     logger.info(f"[Hedge][operation selected][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][operation: {query.data}]")
 
-    # HEDGE_SELL or HEDGE_BUY
-    type_str = query.data
-    context.user_data[UD_KEY_HEDGE_OPERATION] = type_str
+    instrument = get_instrument_by_symbol(query.data)
+    context.user_data[UD_KEY_HEDGE_INSTRUMENT] = instrument.symbol_standard
 
     await query.edit_message_text(
-        text=helpers.escape_markdown("Инструмент?", 2),
-        reply_markup=select_instrument_menu_markup,
+        text=helpers.escape_markdown("Операция?", 2),
+        reply_markup=short_operation_menu_markup,
         parse_mode=ParseMode.MARKDOWN_V2
     )
 
@@ -131,14 +138,31 @@ async def hedge_operation_selected(update: Update, context: ContextTypes.DEFAULT
 #     )
 #     return HedgeConvStates.SELECT_INSTRUMENT
 
+def can_hedge_out(instrument, operation):
+    if instrument.mode == InstrumentMode.SHORT and operation == BUY.callback_data:
+        return True
+    elif instrument.mode == InstrumentMode.LONG and operation == SELL.callback_data:
+        return True
+    else:
+        return False
+
+def can_hedge(instrument, operation):
+    if instrument.mode == InstrumentMode.SHORT and operation == SELL.callback_data:
+        return True
+    elif instrument.mode == InstrumentMode.LONG and operation == BUY.callback_data:
+        return True
+    else:
+        return False
 
 async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     logger.info(f"[Hedge][instrument selected][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][instrument: {query.data}]")
 
-    # symbol e.g. EURUSDm
-    instrument = get_instrument_by_symbol(query.data)
+    operation = query.data
+    context.user_data[UD_KEY_HEDGE_OPERATION] = operation
+
+    instrument = get_instrument_by_symbol(context.user_data[UD_KEY_HEDGE_INSTRUMENT])
 
     sym_info = None
     with Session(engine) as session:
@@ -148,11 +172,10 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
 
         pwd_decrypted_bytes = pwd_encryptor.decrypt(user.mt5_acc_pwd_enc)
 
-        operation = context.user_data[UD_KEY_HEDGE_OPERATION]
         symbol_to_use = user.select_symbol(instrument)
         sym_info = mt5service.symbol_info(user.mt5_acc_number, pwd_decrypted_bytes.decode(), symbol_to_use)
 
-        if operation == BUY.callback_data:
+        if can_hedge_out(instrument, operation):
             logger.info(f"[Hedge][instrument selected][BUY][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][instrument: {query.data}]")
 
             avail_to_spend_dcm = Decimal(0)
@@ -160,11 +183,11 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
             if len(open_positions) == 0:
                 logger.warning(f"[Hedge][No active positions][BUY][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][instrument: {query.data}]")
                 await query.edit_message_text(
-                    text=helpers.escape_markdown("Нет активных позиций, пожалуйста начните сначала.\n\nОперация?", 2),
-                    reply_markup=select_operation_menu_markup,
+                    text=helpers.escape_markdown("Нет активных позиций, пожалуйста начните сначала.\n\nИнструмент?", 2),
+                    reply_markup=short_operation_menu_markup,
                     parse_mode=ParseMode.MARKDOWN_V2
                 )
-                return HedgeConvStates.SELECT_OPERATION
+                return HedgeConvStates.SELECT_INSTRUMENT
             else:
                 avail_to_spend_dcm = round_flt_to_4_decimal(open_positions[0].volume) * Decimal(sym_info.trade_contract_size)
 
@@ -174,7 +197,7 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
                                                f"Доступно для покупки: {format_currency(remove_exponent(avail_to_spend_dcm))} {instrument.base}"
                                                ), 2)
             )
-        elif operation == SELL.callback_data:
+        elif can_hedge_out(instrument, operation):
             logger.info(f"[Hedge][instrument selected][SELL][chat_id: {update.effective_chat.id}][username: {update.effective_user.username}][user_id: {update.effective_user.id}][instrument: {symbol_to_use}]")
 
             symbol_info_msg = (

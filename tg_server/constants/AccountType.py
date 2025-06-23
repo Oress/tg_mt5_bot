@@ -1,6 +1,6 @@
 from enum import Enum
 
 class AccountType(str, Enum):
-    ZERO = "ZERO" # EURUSDz
-    MINI = "MINI" # EURUSDm
-    STANDARD = "STANDARD" # EURUSD
+    ZERO = "ZERO" # z suffix
+    MINI = "MINI" # m suffix
+    STANDARD = "STANDARD" # no suffix
