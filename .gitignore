@@ -1,3 +1,6 @@
+logs/
+cache/
+envs/
 
 .devcontainer/
 .env

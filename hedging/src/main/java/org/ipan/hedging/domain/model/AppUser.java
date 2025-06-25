@@ -1,0 +1,61 @@
+package org.ipan.hedging.domain.model;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.Instant;
+
+@Entity
+@Getter
+@Setter
+@Table(name = "hed_users")
+@Slf4j
+public class AppUser {
+    @Id
+    @Column(name = "tg_id")
+    private Long telegramId;
+
+    @Column(name = "username")
+    private String telegramUsername;
+
+    @Column(name = "first_name")
+    private String telegramFirstName;
+
+    @Column(name = "sheet_id")
+    private Integer sheetId;
+
+    @Column(name = "ggl_sheet_id")
+    private String googleSheetId;
+
+    @Column(name = "account_type")
+    @Enumerated(EnumType.STRING)
+    private AccountType accountType;
+
+    @Column(name = "mt5_acc_number")
+    private Integer mt5AccNumber;
+
+    @Column(name = "mt5_acc_pwd_enc")
+    private byte[] mt5AccPwdEnc;
+
+    @Enumerated(EnumType.STRING)
+    private UserRole role = UserRole.USER;
+
+    private Boolean disabled = Boolean.FALSE;
+
+    @Column(name = "language_code")
+    private String languageCode;
+
+    @Column(name = "disabled_reason")
+    private String disabledReason;
+
+    @CreationTimestamp
+    @Column(name = "created_at")
+    private Instant createdAt;
+
+    public boolean hasAccount() {
+        return mt5AccNumber != null && mt5AccPwdEnc != null;
+    }
+}

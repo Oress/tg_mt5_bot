@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="create table hed_users" author="oress">
+        <createSequence sequenceName="seq_hed_users_sheet_id"
+                        dataType="int"
+                        incrementBy="1"
+                        startValue="1"/>
+
+        <createTable tableName="hed_users">
+            <column name="tg_id" type="bigint">
+                <constraints primaryKey="true" nullable="true" unique="true"/>
+            </column>
+            <column name="role" type="text"/>
+
+            <!-- Can be null for administrators -->
+            <column name="mt5_acc_number" type="bigint" />
+            <column name="mt5_acc_pwd_enc" type="bytea" />
+
+            <column name="username" type="text"/>
+            <column name="first_name" type="text"/>
+            <column name="sheet_id" type="int" defaultValue="nextval('seq_hed_users_sheet_id')" />
+            <column name="ggl_sheet_id" type="text"/>
+            <column name="account_type" type="text"/>
+
+            <column name="invited_by" type="bigint"/>
+            <column name="disabled" type="boolean" defaultValue="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="disabled_reason" type="text" />
+            <column name="created_at" type="TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP"/>
+        </createTable>
+
+        <addForeignKeyConstraint constraintName="fk_user_invited_by"
+                                 baseTableName="hed_users"
+                                 baseColumnNames="invited_by"
+                                 referencedTableName="hed_users"
+                                 referencedColumnNames="tg_id"/>
+    </changeSet>
+
+    <changeSet id="create indexes for hed_users" author="oress">
+        <createIndex indexName="idx_hed_users_mt5_acc_number" tableName="hed_users">
+            <column name="mt5_acc_number"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="create table hed_orders" author="oress">
+        <createTable tableName="hed_orders">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="bigint" />
+            <column name="city" type="text" />
+            <column name="deal" type="text" />
+            <column name="order" type="text" />
+            <column name="type" type="text"/>
+            <column name="instrument" type="text"/>
+            <column name="acc_number" type="bigint"/>
+            <column name="euro_amount" type="decimal(19,6)"/>
+            <column name="volume" type="decimal(19,6)" />
+            <column name="price" type="decimal(19,6)" />
+            <column name="bid" type="decimal(19,6)" />
+            <column name="ask" type="decimal(19,6)" />
+            <column name="created_at" type="TIMESTAMP"/>
+        </createTable>
+
+        <addForeignKeyConstraint constraintName="fk_hed_orders_user_id"
+                                 baseTableName="hed_orders"
+                                 baseColumnNames="user_id"
+                                 referencedTableName="hed_users"
+                                 referencedColumnNames="tg_id"/>
+    </changeSet>
+
+    <changeSet id="add idx_hed_orders_created_at to hed_orders" author="oress">
+        <createIndex indexName="idx_hed_orders_created_at" tableName="hed_orders">
+            <column name="created_at"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
