@@ -10,6 +10,6 @@ public interface TelegramState {
     UserEdit removeUserEdit(Long userId); // TODO: cleanup after finishing workflow
 
     UserSearchState getOrCreateUserSearchState(Long userId);
-    UserSearchState updateUserSearchState(Long userId, UserSearchState groupSearchState);
+    UserSearchState updateUserSearchState(Long userId, UserSearchState userSearchState);
     UserSearchState removeUserSearchState(Long userId); // TODO: cleanup after finishing workflow
 }

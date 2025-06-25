@@ -7,21 +7,19 @@ services:
       - 3000:3000
       - 8001:8001
 
+  ptyhonhttpproxy:
+    extends:
+      file: docker-compose-base.yaml
+      service: pythonproxyservice
+    ports:
+      - 8000:8000
+
   postgres:
     extends:
       file: docker-compose-base.yaml
       service: postgresservice
     ports:
       - "5432:5432"
-
-  migration:
-    extends:
-      file: docker-compose-base.yaml
-      service: migrationservice
-    depends_on:
-      postgres:
-        condition: service_healthy
-        required: true
 
 volumes:
   data1: { }

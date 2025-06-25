@@ -8,6 +8,14 @@ services:
       - CUSTOM_USER
       - PASSWORD
 
+  pythonproxyservice:
+    build: proxy_server
+    image: mt5-python-http-proxy
+    environment:
+      - MT5_HOST
+      - MT5_PORT
+      - MT5_SERVER
+
   postgresservice:
     image: postgres:16.0
     healthcheck:
@@ -22,20 +30,6 @@ services:
       - POSTGRES_PASSWORD
     volumes:
       - data1:/var/lib/postgresql/data
-
-  migrationservice:
-    image: liquibase:4.30
-    command:
-      - /liquibase/docker-entrypoint.sh
-      - --search-path=/liquibase/changelog/
-      - update
-      - --url=jdbc:postgresql://${POSTGRES_DB_HOST}:${POSTGRES_DB_PORT}/${POSTGRES_DB}
-      - --driver=org.postgresql.Driver
-      - --changelog-file=changelog-root.xml
-      - --username=${POSTGRES_USER}
-      - --password=${POSTGRES_PASSWORD}
-    volumes:
-      - ./database/schema:/liquibase/changelog
 
   db_backup_cron_service:
     image: tgb_postgres_backup

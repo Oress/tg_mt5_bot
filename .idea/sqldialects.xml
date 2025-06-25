@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="SqlDialectMappings">
+    <file url="file://$PROJECT_DIR$/hedging/src/main/java/org/ipan/hedging/domain/model/repository/UserRepo.java" dialect="GenericSQL" />
     <file url="file://$PROJECT_DIR$/tg_server/main.py" dialect="GenericSQL" />
   </component>
 </project>

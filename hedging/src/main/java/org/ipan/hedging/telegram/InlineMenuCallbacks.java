@@ -2,11 +2,14 @@ package org.ipan.hedging.telegram;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class InlineMenuCallbacks {
+    public static final String HEDGE_PLACE_ORDER = "hedge_place_order";
+    public static final String HEDGE_CHANGE_ORDER = "hedge_change_order";
     private final static Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
     public static final String TO_MAIN_MENU = "action_main_menu";
@@ -27,10 +30,37 @@ public class InlineMenuCallbacks {
     public static final String MANAGE_USERS_PREV_PAGE = "manage_users_search_prev_page";
     public static final String MANAGE_USERS_NEXT_PAGE = "manage_users_search_next_page";
     public static final String MANAGE_USER_ACTION_DEACTIVATE = "manage_user_action_deactivate";
-    public static final String MANAGE_USER_ACTION_ADJUST_BALANCE_MANUALLY = "manage_user_action_adjust_balance_manually";
-    public static final String MANAGE_USER_ACTION_CHANGE_TARIFF = "manage_user_action_change_tariff";
-    public static final String MANAGE_USER_ACTION_CHANGE_REF_PROGRAM = "manage_user_action_change_ref_program";
+    public static final String MANAGE_USER_ACTION_CHANGE_INSTRUMENTS = "manage_user_action_change_instruments";
+    public static final String MANAGE_USER_ACTION_CHANGE_GERCHIK_CREDS = "manage_user_action_change_gerchik_creds";
 
     // menu actions
     public static final String MENU_SHOW_BALANCE = "menu_show_balance";
+    public static final String MENU_START_HEDGE = "menu_start_hedge";
+
+    private static final String TOGGLE_USER_INSTRUMENT = "/tusinst/";
+    public static String toggleInstrumentForUser(Long userId, String instrument) {
+        ToggleUserInstrumentPayload payload = new ToggleUserInstrumentPayload(userId, instrument);
+        return TOGGLE_USER_INSTRUMENT + gson.toJson(payload);
+    }
+
+    public static ToggleUserInstrumentPayload getToggleUserInstrument(String data) {
+        ToggleUserInstrumentPayload payload = null;
+        if (data.startsWith(TOGGLE_USER_INSTRUMENT)) {
+            String payloadStr = data.split(TOGGLE_USER_INSTRUMENT)[1];
+
+            try {
+                payload = gson.fromJson(payloadStr, ToggleUserInstrumentPayload.class);
+            } catch (Exception e) {
+                log.error("Cannot extract payload for ToggleWalletSessionPayload ", e);
+            }
+        }
+        return payload;
+    }
+
+    @AllArgsConstructor
+    @Getter
+    public static class ToggleUserInstrumentPayload {
+        private Long userId;
+        private String instrument;
+    }
 }

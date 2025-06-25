@@ -18,20 +18,9 @@ public class ManageUserLabels {
         return messageSource.getMessage(key, args, userLocale);
     }
 
-    public String preview(String telegramId, String valOrDash, String valOrDash2, String tariffLabel) {
-        return getLocalizedMessage("manage_users.preview", telegramId, valOrDash, valOrDash2, tariffLabel);
-    }
-
-    public String menuChangeTariff() {
-        return getLocalizedMessage("manage_users.menu.change_tariff");
-    }
-
-    public String menuChangeRefProgram() {
-        return getLocalizedMessage("manage_users.menu.change_ref_program");
-    }
-
-    public String menuChangeBalance() {
-        return getLocalizedMessage("manage_users.menu.change_balance");
+    public String preview(String telegramId, String username, String firstName,
+                          String accountNumber, String accountType, String disabled) {
+        return getLocalizedMessage("manage_users.preview", telegramId, username, firstName, accountNumber, accountType, disabled);
     }
 
     public String menuDeactivate() {
@@ -44,25 +33,5 @@ public class ManageUserLabels {
 
     public String deactivateSuccess() {
         return getLocalizedMessage("manage_users.deactivate.success");
-    }
-
-    public String changeBalancePromptAmount() {
-        return getLocalizedMessage("manage_users.change_balance.prompt_amount");
-    }
-
-    public String changeRefProgramSuccess() {
-        return getLocalizedMessage("manage_users.change_ref_program.success");
-    }
-
-    public String changeBalanceNegative() {
-        return getLocalizedMessage("manage_users.change_balance.negative");
-    }
-
-    public String changeBalanceSuccess() {
-        return getLocalizedMessage("manage_users.change_balance.success");
-    }
-
-    public String changeTariffSuccess() {
-        return getLocalizedMessage("manage_users.change_tariff.success");
     }
 }

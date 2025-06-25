@@ -26,7 +26,7 @@ public class BalanceHandler {
             @MatchState(state = States.MAIN_MENU, callbackData = InlineMenuCallbacks.MENU_SHOW_BALANCE),
     })
     public void showBalance(UserState userState, Update update) {
-        AppUser user = userRepo.getById(userState.getTelegramId());
+        AppUser user = userRepo.findById(userState.getTelegramId()).get();
 
         if (!user.hasAccount()) {
             log.warn("user has no account: {}", user.getTelegramUsername());

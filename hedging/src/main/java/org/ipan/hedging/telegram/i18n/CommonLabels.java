@@ -133,6 +133,14 @@ public class CommonLabels {
         return getLocalizedMessage("menu.settings");
     }
 
+    public String menuHedge() {
+        return getLocalizedMessage("menu.hedge");
+    }
+
+    public String menuBalance() {
+        return getLocalizedMessage("menu.balance");
+    }
+
     public String getMenuWallets() {
         return getLocalizedMessage("menu.wallets");
     }

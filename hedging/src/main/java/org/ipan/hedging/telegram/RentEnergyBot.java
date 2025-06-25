@@ -206,6 +206,7 @@ public class RentEnergyBot implements LongPollingSingleThreadUpdateConsumer {
                     }; */
                 }
                 Message newMenuMsg = telegramMessages.sendPromptLanguage(userState, update.getMessage().getChatId());
+//                Message newMenuMsg = telegramMessages.sendUserMainMenuBasedOnRole(userState, update.getMessage().getChatId(), user);
                 UserRole role = user != null ? user.getRole() : UserRole.USER;
 
                 // remove old menu message if exists

@@ -21,12 +21,12 @@
             <column name="mt5_acc_pwd_enc" type="bytea" />
 
             <column name="username" type="text"/>
+            <column name="language_code" type="text"/>
             <column name="first_name" type="text"/>
             <column name="sheet_id" type="int" defaultValue="nextval('seq_hed_users_sheet_id')" />
             <column name="ggl_sheet_id" type="text"/>
             <column name="account_type" type="text"/>
 
-            <column name="invited_by" type="bigint"/>
             <column name="disabled" type="boolean" defaultValue="false">
                 <constraints nullable="false"/>
             </column>
@@ -34,18 +34,61 @@
             <column name="created_at" type="TIMESTAMP"/>
             <column name="updated_at" type="TIMESTAMP"/>
         </createTable>
-
-        <addForeignKeyConstraint constraintName="fk_user_invited_by"
-                                 baseTableName="hed_users"
-                                 baseColumnNames="invited_by"
-                                 referencedTableName="hed_users"
-                                 referencedColumnNames="tg_id"/>
     </changeSet>
 
     <changeSet id="create indexes for hed_users" author="oress">
         <createIndex indexName="idx_hed_users_mt5_acc_number" tableName="hed_users">
             <column name="mt5_acc_number"/>
         </createIndex>
+    </changeSet>
+
+    <changeSet id="create table hed_instruments" author="oress">
+        <createTable tableName="hed_instruments">
+            <column name="label" type="text">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="symbol_zero" type="text" />
+            <column name="symbol_mini" type="text" />
+            <column name="symbol_standard" type="text" />
+            <column name="base" type="text" />
+            <column name="quote" type="text" />
+            <column name="mode" type="text" />
+            <column name="created_at" type="TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="create table hed_user_instruments" author="oress">
+        <createTable tableName="hed_user_instruments">
+            <column name="user_id" type="bigint" />
+            <column name="instrument_label" type="text" />
+            <column name="created_at" type="TIMESTAMP" defaultValue="now()"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="insert EUR/USD instrument" author="oress">
+        <insert tableName="hed_instruments">
+            <column name="label" value="EUR/USD" />
+            <column name="symbol_zero" value="EURUSDz" />
+            <column name="symbol_mini" value="EURUSDm" />
+            <column name="symbol_standard" value="EURUSD" />
+            <column name="base" value="EUR" />
+            <column name="quote" value="USD" />
+            <column name="mode" value="SHORT" />
+            <column name="created_at" value="now()"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="insert USD/CAD instrument" author="oress">
+        <insert tableName="hed_instruments">
+            <column name="label" value="USD/CAD" />
+            <column name="symbol_zero" value="USDCADz" />
+            <column name="symbol_mini" value="USDCADm" />
+            <column name="symbol_standard" value="USDCAD" />
+            <column name="base" value="USD" />
+            <column name="quote" value="CAD" />
+            <column name="mode" value="LONG" />
+            <column name="created_at" value="now()"/>
+        </insert>
     </changeSet>
 
     <changeSet id="create table hed_orders" author="oress">

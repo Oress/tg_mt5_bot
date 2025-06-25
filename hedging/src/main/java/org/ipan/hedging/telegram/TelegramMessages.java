@@ -179,11 +179,11 @@ public class TelegramMessages {
                 .builder()
                 .chatId(chatId)
                 .text("""
-                        👋 Добро пожаловать в Flash Tron Rent!
+                        👋 Добро пожаловать!
                         Пожалуйста, выберите предпочитаемый язык, чтобы продолжить.
                         Вы всегда можете изменить язык в меню настроек позже.
                         ────────
-                        👋 Welcome to the Flash Tron Rent!
+                        👋 Welcome!
                         Please select your preferred language to continue.
                         You can always change the preferred language in settings menu later.
                         """)
@@ -319,6 +319,18 @@ public class TelegramMessages {
     private InlineKeyboardMarkup getMainMenuReplyMarkup(Boolean isAdmin) {
         var builder = InlineKeyboardMarkup
                 .builder()
+                .keyboardRow(
+                        new InlineKeyboardRow(
+                                InlineKeyboardButton
+                                        .builder()
+                                        .text(commonLabels.menuHedge())
+                                        .callbackData(InlineMenuCallbacks.MENU_START_HEDGE)
+                                        .build(),
+                                InlineKeyboardButton
+                                        .builder()
+                                        .text(commonLabels.menuBalance())
+                                        .callbackData(InlineMenuCallbacks.MENU_SHOW_BALANCE)
+                                        .build()))
                 .keyboardRow(
                         new InlineKeyboardRow(
                                 InlineKeyboardButton

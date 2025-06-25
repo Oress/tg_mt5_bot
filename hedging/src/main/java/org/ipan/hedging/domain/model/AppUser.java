@@ -7,6 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Getter
@@ -17,6 +19,14 @@ public class AppUser {
     @Id
     @Column(name = "tg_id")
     private Long telegramId;
+
+    @ManyToMany
+    @JoinTable(
+            name = "hed_user_instruments",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "instrument_label")
+    )
+    private Set<Instrument> availableInstruments = new HashSet<>();
 
     @Column(name = "username")
     private String telegramUsername;

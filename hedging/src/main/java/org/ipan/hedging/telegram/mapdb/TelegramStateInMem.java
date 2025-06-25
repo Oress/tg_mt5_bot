@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-// TODO fix the map
 @Service
 public class TelegramStateInMem implements TelegramState {
     private final HTreeMap<Long, UserStateInMem> userStateMap;
@@ -48,31 +47,31 @@ public class TelegramStateInMem implements TelegramState {
 
     @Override
     public UserEdit getOrCreateUserEdit(Long userId) {
-        return null;
+        return this.userEditMap.computeIfAbsent(userId, key -> UserEditInMem.builder().build());
     }
 
     @Override
     public UserEdit updateUserEdit(Long userId, UserEdit userEdit) {
-        return null;// TODO;
+        return this.userEditMap.put(userId, UserEditInMem.of(userEdit));
     }
 
     @Override
     public UserEdit removeUserEdit(Long userId) {
-        return null;
+        return this.userEditMap.remove(userId);
     }
 
     @Override
     public UserSearchState getOrCreateUserSearchState(Long userId) {
-        return null;
+        return this.userSearchState.computeIfAbsent(userId, key -> UserSearchStateInMem.builder().build());
     }
 
     @Override
-    public UserSearchState updateUserSearchState(Long userId, UserSearchState groupSearchState) {
-        return null;
+    public UserSearchState updateUserSearchState(Long userId, UserSearchState userSearchState) {
+        return this.userSearchState.put(userId, UserSearchStateInMem.of(userSearchState));
     }
 
     @Override
     public UserSearchState removeUserSearchState(Long userId) {
-        return null;
+        return this.userSearchState.remove(userId);
     }
 }

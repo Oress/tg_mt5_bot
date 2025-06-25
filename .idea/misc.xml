@@ -3,5 +3,13 @@
   <component name="Black">
     <option name="sdkName" value="Python 3.11 (py_http_server)" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.8 virtualenv at ~/tg_mt5_bot/tg_server/venv" project-jdk-type="Python SDK" />
+  <component name="ExternalStorageConfigurationManager" enabled="true" />
+  <component name="MavenProjectsManager">
+    <option name="originalFiles">
+      <list>
+        <option value="$PROJECT_DIR$/hedging/pom.xml" />
+      </list>
+    </option>
+  </component>
+  <component name="ProjectRootManager" version="2" project-jdk-name="21" project-jdk-type="JavaSDK" />
 </project>

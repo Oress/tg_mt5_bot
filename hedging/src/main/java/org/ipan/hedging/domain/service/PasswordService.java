@@ -14,6 +14,7 @@ import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Base64;
 
@@ -30,25 +31,12 @@ public class PasswordService {
         this.key = Base64.getDecoder().decode(key);
     }
 
-    public ManagedWallet generateManagedWallet() throws IOException {
-        ManagedWallet managedWallet = new ManagedWallet();
-
-        ECKey privateKeyForNewWallet = WalletApi.generatePrivateKeyForNewWallet();
-        byte[] address = privateKeyForNewWallet.getAddress();
-        managedWallet.setBase58Address(WalletApi.encode58Check(address));
-
-        byte[] privateKey = privateKeyForNewWallet.getPrivKeyBytes();
-        byte[] encryptedPrivateKey = encrypt(privateKey, key);
-        managedWallet.setPrivateKeyEncrypted(encryptedPrivateKey);
-
-        return managedWallet;
+    public byte[] encrypt(String pwd) {
+        return encrypt(pwd.getBytes(), key);
     }
 
-    public String sign(ManagedWallet managedWallet, String hexString) {
-        byte[] dataToSign = ByteArray.fromHexString(hexString);
-        byte[] decryptedPrivateKey = decrypt(managedWallet.getPrivateKeyEncrypted(), key);
-        ECKey ecKey = ECKey.fromPrivate(decryptedPrivateKey);
-        return ecKey.sign(dataToSign).toHex();
+    public String decrypt(byte[] pwdEnc) {
+        return new String(decrypt(pwdEnc, key));
     }
 
     @SneakyThrows

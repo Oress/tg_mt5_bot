@@ -29,6 +29,10 @@ public class FormattingTools {
         return val == null ? "-": val;
     }
 
+    public static String valOrDash(Object val) {
+        return val == null ? "-": val.toString();
+    }
+
     public String formatUserForSearch(Long id, String login, String name) {
         String loginStr = login != null ? commonLabels.userLogin(login) : "";
         String nameStr = name != null ? commonLabels.userLogin(name) : "";

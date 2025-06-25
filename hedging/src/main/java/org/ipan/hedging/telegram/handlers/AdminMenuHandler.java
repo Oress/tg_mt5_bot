@@ -22,6 +22,7 @@ public class AdminMenuHandler {
 
     @MatchStates({
         @MatchState(forAdmin = true, state = States.MAIN_MENU, callbackData = InlineMenuCallbacks.ADMIN_MENU),
+        @MatchState(forAdmin = true, state = States.ADMIN_MANAGE_USERS, callbackData = InlineMenuCallbacks.GO_BACK),
     })
     public void handleAdminMenu(UserState userState, Update update) {
         adminViews.updMenuToAdminMenu(userState);

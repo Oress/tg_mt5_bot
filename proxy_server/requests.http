@@ -1,0 +1,50 @@
+###
+POST http://127.0.0.1:8000/check-credentials
+Content-Type: application/json
+
+{"account_number": 132776, "password": "T|nA46c,"}
+
+###
+POST http://127.0.0.1:8000/get-price-for-short
+Content-Type: application/json
+
+{"account_number": 132776, "password": "T|nA46c,", "symbol": "EURUSDm"}
+
+###
+POST http://127.0.0.1:8000/positions-get
+Content-Type: application/json
+
+{"account_number": 132776, "password": "T|nA46c,", "symbol": "EURUSDm"}
+
+###
+POST http://127.0.0.1:8000/place-short-order
+Content-Type: application/json
+
+{"account_number": 132776, "password": "T|nA46c,", "symbol": "EURUSDm", "volume": 0.01}
+
+###
+POST http://127.0.0.1:8000/close-short-order
+Content-Type: application/json
+
+{"account_number": 132776, "password": "T|nA46c,", "position_id": 22686665, "symbol": "EURUSDm", "volume": 0.01}
+
+###
+POST http://127.0.0.1:8000/symbol-info
+Content-Type: application/json
+
+{"account_number": 132776, "password": "T|nA46c,", "symbol": "EURUSDm"}
+
+####
+#POST http://127.0.0.1:8000/get-balance
+#Content-Type: application/json
+#
+#{"account_number": 132776, "password": "T|nA46c,"}
+
+###
+POST http://127.0.0.1:8000/determine-account-type
+Content-Type: application/json
+
+{"account_number": 132776, "password": "T|nA46c,"}
+
+###
+

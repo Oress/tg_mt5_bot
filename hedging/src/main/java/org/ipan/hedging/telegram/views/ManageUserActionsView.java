@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.ipan.hedging.domain.model.AppUser;
+import org.ipan.hedging.domain.model.projections.EnabledInstrumentPerUser;
 import org.ipan.hedging.telegram.InlineMenuCallbacks;
 import org.ipan.hedging.telegram.i18n.CommonLabels;
 import org.ipan.hedging.telegram.i18n.ManageUserLabels;
@@ -69,6 +70,18 @@ public class ManageUserActionsView {
     }
 
     @SneakyThrows
+    public void changeCredsSuccess(UserState userState) {
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(userState.getChatId())
+                .messageId(userState.getMenuMessageId())
+                .text("Credentials changed successfully")
+                .replyMarkup(commonViews.getToMainMenuAndBackMarkup())
+                .build();
+        tgClient.execute(message);
+    }
+
+    @SneakyThrows
     public void userDeleted(UserState userState) {
         EditMessageText message = EditMessageText
                 .builder()
@@ -81,41 +94,83 @@ public class ManageUserActionsView {
     }
 
     @SneakyThrows
+    public void promptAccountCreds(UserState userState) {
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(userState.getChatId())
+                .messageId(userState.getMenuMessageId())
+                .text("""
+                        Пожалуйста, предоставьте данные учетной записи Gerchik в следующем формате:
+                        ```формат <номер_аккаунта> <пароль> ```
+                        """)
+                .replyMarkup(commonViews.getToMainMenuAndBackMarkup())
+                .parseMode("MARKDOWN")
+                .build();
+        tgClient.execute(message);
+    }
+
+    @SneakyThrows
     public void confirmDeactivateUserMsg(UserState userState) {
         EditMessageText message = EditMessageText
                 .builder()
                 .chatId(userState.getChatId())
                 .messageId(userState.getMenuMessageId())
                 .text(manageUserLabels.deactivateConfirm())
-                .replyMarkup(confirmDeleteGroupMarkup())
+                .replyMarkup(commonViews.getYesNoMarkup())
                 .build();
         tgClient.execute(message);
     }
 
-    public InlineKeyboardMarkup confirmDeleteGroupMarkup() {
-        return InlineKeyboardMarkup
+    @SneakyThrows
+    public void showEnabledInstruments(UserState userState, List<EnabledInstrumentPerUser> instrumentPerUsers) {
+        EditMessageText message = EditMessageText
                 .builder()
+                .chatId(userState.getChatId())
+                .messageId(userState.getMenuMessageId())
+                .text("Инструменты, доступные пользователю:")
+                .replyMarkup(instrumentPerUsersMarkup(userState.getTelegramId(), instrumentPerUsers))
+                .build();
+        tgClient.execute(message);
+    }
+
+    public InlineKeyboardMarkup instrumentPerUsersMarkup(Long userId, List<EnabledInstrumentPerUser> instrumentPerUsers) {
+        var builder = InlineKeyboardMarkup.builder();
+
+        for (EnabledInstrumentPerUser instrumentPerUser : instrumentPerUsers) {
+            builder.keyboardRow(
+                    new InlineKeyboardRow(
+                            InlineKeyboardButton
+                                    .builder()
+                                    .text("%s %s".formatted(
+                                            instrumentPerUser.getIsEnabled() ? commonLabels.greenCircle() : commonLabels.redCircle(),
+                                            instrumentPerUser.getLabel()))
+                                    .callbackData(InlineMenuCallbacks.toggleInstrumentForUser(userId, instrumentPerUser.getLabel()))
+                                    .build()));
+        }
+
+        return builder
                 .keyboardRow(
                         new InlineKeyboardRow(
                                 InlineKeyboardButton
                                         .builder()
-                                        .text(commonLabels.no())
-                                        .callbackData(InlineMenuCallbacks.CONFIRM_NO)
+                                        .text(commonLabels.toMainMenu())
+                                        .callbackData(InlineMenuCallbacks.TO_MAIN_MENU)
                                         .build(),
                                 InlineKeyboardButton
                                         .builder()
-                                        .text(commonLabels.yes())
-                                        .callbackData(InlineMenuCallbacks.CONFIRM_YES)
+                                        .text(commonLabels.goBack())
+                                        .callbackData(InlineMenuCallbacks.GO_BACK)
                                         .build()))
                 .build();
     }
 
     private String getBalanceDescription(AppUser user) {
-        // TODO:
         return manageUserLabels.preview(
                 user.getTelegramId().toString(),
                 ParseUtils.escapeMarkdown(FormattingTools.valOrDash(user.getTelegramUsername())),
                 ParseUtils.escapeMarkdown(FormattingTools.valOrDash(user.getTelegramFirstName())),
+                FormattingTools.valOrDash(user.getMt5AccNumber()),
+                FormattingTools.valOrDash(user.getAccountType()),
                 user.getDisabled() ? commonLabels.cross() : commonLabels.check()
                 );
     }
@@ -127,22 +182,15 @@ public class ManageUserActionsView {
                         new InlineKeyboardRow(
                                 InlineKeyboardButton
                                         .builder()
-                                        .text(manageUserLabels.menuChangeRefProgram())
-                                        .callbackData(InlineMenuCallbacks.MANAGE_USER_ACTION_CHANGE_REF_PROGRAM)
+                                        .text("Change Gerchik Account")
+                                        .callbackData(InlineMenuCallbacks.MANAGE_USER_ACTION_CHANGE_GERCHIK_CREDS)
                                         .build()))
                 .keyboardRow(
                         new InlineKeyboardRow(
                                 InlineKeyboardButton
                                         .builder()
-                                        .text(manageUserLabels.menuChangeTariff())
-                                        .callbackData(InlineMenuCallbacks.MANAGE_USER_ACTION_CHANGE_TARIFF)
-                                        .build()))
-                .keyboardRow(
-                        new InlineKeyboardRow(
-                                InlineKeyboardButton
-                                        .builder()
-                                        .text(manageUserLabels.menuChangeBalance())
-                                        .callbackData(InlineMenuCallbacks.MANAGE_USER_ACTION_ADJUST_BALANCE_MANUALLY)
+                                        .text("Change Available Instruments")
+                                        .callbackData(InlineMenuCallbacks.MANAGE_USER_ACTION_CHANGE_INSTRUMENTS)
                                         .build()));
 
         if (showDeactivateBtn) {

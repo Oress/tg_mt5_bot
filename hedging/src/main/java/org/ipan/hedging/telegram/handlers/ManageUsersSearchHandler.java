@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.model.AppUser_;
 import org.ipan.hedging.domain.model.repository.UserRepo;
+import org.ipan.hedging.domain.service.PasswordService;
 import org.ipan.hedging.telegram.InlineMenuCallbacks;
 import org.ipan.hedging.telegram.States;
 import org.ipan.hedging.telegram.TelegramMessages;
@@ -40,9 +41,9 @@ public class ManageUsersSearchHandler {
     private final ManageUserActionsView manageUserActionsView;
 
     @MatchStates({
-        @MatchState(forAdmin = true, state = States.ADMIN_MENU, callbackData = InlineMenuCallbacks.MANAGE_USERS),
-        @MatchState(forAdmin = true, state = States.ADMIN_MANAGE_USERS, callbackData = InlineMenuCallbacks.MANAGE_USERS_SEARCH_RESET),
-        @MatchState(forAdmin = true, state = States.ADMIN_MANAGE_USERS_ACTION_PREVIEW, callbackData = InlineMenuCallbacks.GO_BACK),
+            @MatchState(forAdmin = true, state = States.ADMIN_MENU, callbackData = InlineMenuCallbacks.MANAGE_USERS),
+            @MatchState(forAdmin = true, state = States.ADMIN_MANAGE_USERS, callbackData = InlineMenuCallbacks.MANAGE_USERS_SEARCH_RESET),
+            @MatchState(forAdmin = true, state = States.ADMIN_MANAGE_USERS_ACTION_PREVIEW, callbackData = InlineMenuCallbacks.GO_BACK),
     })
     public void resetUserSearch(UserState userState, Update update) {
         UserSearchState searchState = telegramState.getOrCreateUserSearchState(userState.getTelegramId());
@@ -56,7 +57,7 @@ public class ManageUsersSearchHandler {
 
 
     @MatchStates({
-        @MatchState(state = States.ADMIN_MANAGE_USERS, callbackData = InlineMenuCallbacks.MANAGE_USERS_NEXT_PAGE)
+            @MatchState(state = States.ADMIN_MANAGE_USERS, callbackData = InlineMenuCallbacks.MANAGE_USERS_NEXT_PAGE)
     })
     public void nextPage(UserState userState, Update update) {
         UserSearchState searchState = telegramState.getOrCreateUserSearchState(userState.getTelegramId());
@@ -64,14 +65,14 @@ public class ManageUsersSearchHandler {
         String queryStr = searchState.getQuery();
         telegramState.updateUserSearchState(userState.getTelegramId(), searchState.withCurrentPage(pageNumber));
         Page<AppUser> nextPage = appUserRepo.searchByUsernameAndFirstname(
-            SearchingUtils.paramterContains(queryStr),
-            SearchingUtils.paramterContains(queryStr),
-            PageRequest.of(pageNumber, pageSize));
+                SearchingUtils.paramterContains(queryStr),
+                SearchingUtils.paramterContains(queryStr),
+                PageRequest.of(pageNumber, pageSize));
         manageUserActionsView.updMenuToManageUsersSearchResult(nextPage, userState);
     }
 
     @MatchStates({
-        @MatchState(state = States.ADMIN_MANAGE_USERS, callbackData = InlineMenuCallbacks.MANAGE_USERS_PREV_PAGE)
+            @MatchState(state = States.ADMIN_MANAGE_USERS, callbackData = InlineMenuCallbacks.MANAGE_USERS_PREV_PAGE)
     })
     public void prevPage(UserState userState, Update update) {
         UserSearchState searchState = telegramState.getOrCreateUserSearchState(userState.getTelegramId());
@@ -79,16 +80,18 @@ public class ManageUsersSearchHandler {
         String queryStr = searchState.getQuery();
         telegramState.updateUserSearchState(userState.getTelegramId(), searchState.withCurrentPage(pageNumber));
         Page<AppUser> prevPage = appUserRepo.searchByUsernameAndFirstname(
-            SearchingUtils.paramterContains(queryStr),
-            SearchingUtils.paramterContains(queryStr),
-             PageRequest.of(pageNumber, pageSize));
+                SearchingUtils.paramterContains(queryStr),
+                SearchingUtils.paramterContains(queryStr),
+                PageRequest.of(pageNumber, pageSize));
         manageUserActionsView.updMenuToManageUsersSearchResult(prevPage, userState);
     }
 
-
     @MatchStates({
-        @MatchState(forAdmin = true, state = States.ADMIN_MANAGE_USERS, updateTypes = UpdateType.CALLBACK_QUERY),
-        @MatchState(forAdmin = true, state = States.ADMIN_MANAGE_USER_ACTION_DEACTIVATE_CONFIRM, callbackData = InlineMenuCallbacks.CONFIRM_NO),
+            @MatchState(forAdmin = true, state = States.ADMIN_MANAGE_USERS, updateTypes = UpdateType.CALLBACK_QUERY),
+            @MatchState(forAdmin = true, state = States.ADMIN_MANAGE_USER_ACTION_DEACTIVATE_CONFIRM, callbackData = InlineMenuCallbacks.CONFIRM_NO),
+            @MatchState(forAdmin = true, state = States.ADMIN_MANAGE_USER_ACTION_CHANGE_CREDS_SUCCESS, callbackData = InlineMenuCallbacks.GO_BACK),
+            @MatchState(forAdmin = true, state = States.ADMIN_MANAGE_USER_ACTION_PROMPT_CREDS, callbackData = InlineMenuCallbacks.GO_BACK),
+            @MatchState(forAdmin = true, state = States.ADMIN_MANAGE_USER_ACTION_CHANGE_INSTUMENTS, callbackData = InlineMenuCallbacks.GO_BACK),
     })
     public void openUserByCallback(UserState userState, Update update) {
         CallbackQuery callbackQuery = update.getCallbackQuery();

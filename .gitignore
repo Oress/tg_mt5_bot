@@ -3,6 +3,6 @@ cache/
 envs/
 
 .devcontainer/
-.env
+envs/.env
 config/
 keys/
