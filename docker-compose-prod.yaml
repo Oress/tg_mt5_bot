@@ -15,59 +15,49 @@ services:
       file: docker-compose-base.yaml
       service: postgresservice
 
-  migration:
+  ptyhonhttpproxy:
+    restart: unless-stopped
     extends:
       file: docker-compose-base.yaml
-      service: migrationservice
-    depends_on:
-      postgres:
-        condition: service_healthy
-        required: true
+      service: pythonproxyservice
 
   server:
     restart: unless-stopped
     image: oress/tg_bot
-    build: ./tg_server
+    build: ./hedging
     depends_on:
-      migration:
-        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
         required: true
     volumes:
       - appLogs:${LOGS_FOLDER}
       - ./keys:/keys
     environment:
-      - PYTHONPATH=/
       - LOGS_FOLDER
-      - ENCRYPTION_KEY
+      - POSTGRES_URL
       - POSTGRES_DB
       - POSTGRES_USER
       - POSTGRES_PASSWORD
       - POSTGRES_DB_HOST
       - POSTGRES_DB_PORT
-      - MT5_HOST
-      - MT5_PORT
-      - MT5_SERVER
-      - HEDGE_CITIES
-      - HEDGE_INSTRUMENTS
-      - SUPERADMIN_ID
-      - TG_BOT_TOKEN
-      - GGL_SA_FILE_LOCATION=/keys/key.json
-      - GGL_SPREADSHEET_ID
-      - GGL_SHEET_SYNC_INVTERVAL
-      - GGL_SHARE_EMAILS
+      - APP_ENCRYPTION_KEY_BASE64
+      - APP_TELEGRAM_BOT_TOKEN
+      - APP_PYTHON_PROXY_URL
+      - APP_GGL_SA_FILE_LOCATION
+      - APP_GGL_SHARE_EMAILS
 
-  alloy:
-    restart: unless-stopped
-    image: grafana/alloy:latest
-    depends_on:
-      - server
-    environment:
-      - ALLOY_USERNAME
-      - GRAFANA_TOKEN
-    volumes:
-      - ./config.alloy:/etc/alloy/config.alloy
-      - appLogs:${LOGS_FOLDER}
-    command: 'run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy'
+#  alloy:
+#    restart: unless-stopped
+#    image: grafana/alloy:latest
+#    depends_on:
+#      - server
+#    environment:
+#      - ALLOY_USERNAME
+#      - GRAFANA_TOKEN
+#    volumes:
+#      - ./config.alloy:/etc/alloy/config.alloy
+#      - appLogs:${LOGS_FOLDER}
+#    command: 'run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy'
 
   db_backup_cron:
     extends:
