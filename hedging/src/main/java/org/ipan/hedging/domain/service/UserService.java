@@ -65,6 +65,7 @@ public class UserService {
         AppUser appUser = userRepo.findById(selectedUserId).orElse(null);
         if (appUser != null) {
             appUser.setAccountType(null);
+            appUser.setMt5AccNumber(null);
             appUser.setMt5AccPwdEnc(null);
             appUser.setDisabled(true);
         }
