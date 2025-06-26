@@ -5,6 +5,7 @@ import lombok.NonNull;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.Locale;
 
 @Component
@@ -23,27 +24,80 @@ public class HedgeLabels {
     }
 
 
-    public String promptInstuments() {
-        return "Instrument:";
+    public String promptInstruments() {
+        return "Please select an instrument from the list below:";
     }
 
-    public @NonNull String promptOperation() {
-        return "Operation:";
+    public String promptOperation() {
+        return "Please select an operation from the list below:";
     }
 
-    public @NonNull String promptVolume() {
-        return "Volume:";
+    public String promptVolumeForOut(String unit, String label, String avail) {
+        return """
+                *Сколько %s?* (Напишите сумму в чат📝)
+                Инструмент: %s
+                Доступно для покупки: %s %s
+                """.formatted(unit, label, avail, unit);
     }
 
-    public @NonNull String preview() {
-        return "Preview:";
+
+    public String promptVolume(String unit, String label) {
+        return """
+                *Сколько %s?* (Напишите сумму в чат📝)
+                Инструмент: %s
+                """.formatted(unit, label);
     }
 
-    public @NonNull String placeOrder() {
+    public String preview(String operation, String instrument, String amount, String unit, String rate) {
+        return """
+               Предварительный просмотр:
+
+               Операция: %s
+               Инструмент: %s
+               Сколько: %s %s
+               Приблизительный курс: %s
+        """.formatted(
+                operation,
+                instrument,
+                amount,
+                unit,
+                rate
+        );
+    }
+
+    public String placeOrder() {
         return "Place order";
     }
 
-    public @NonNull String changeOrder() {
+    public String changeOrder() {
         return "Change order";
+    }
+
+    public String noInstruments() {
+        return "You don't have instruments to use. Please contact the admin.";
+    }
+
+    public String sell() {
+        return "Sell";
+    }
+
+    public String buy() {
+        return "Buy";
+    }
+
+    public String minAmountWarning(Double minAmount) {
+        return "The amount is less than the minimum required: " + minAmount + ". Please enter a valid amount.";
+    }
+
+    public String greaterThatAvail(BigDecimal availToSpend) {
+        return "The amount exceeds your available balance: " + availToSpend + ". Please enter a valid amount.";
+    }
+
+    public String stepWarning(Double step) {
+        return "The amount must be a multiple of " + step + ". Please enter a valid amount.";
+    }
+
+    public String noActivePositions() {
+        return "Нет активных позиций, пожалуйста начните сначала.";
     }
 }

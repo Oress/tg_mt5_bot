@@ -47,39 +47,6 @@ public class TelegramMessages {
         }
     }
 
-    @SneakyThrows
-    public void sendWithdrawalSuccessful(UserState userState) {
-        SendMessage message = SendMessage
-                .builder()
-                .chatId(userState.getChatId())
-                .text(commonLabels.withdrawSuccess(userState.getLocaleOrDefault()))
-                .replyMarkup(getOkNotificationMarkup())
-                .build();
-        tgClient.execute(message);
-    }
-
-    @SneakyThrows
-    public void sendWithdrawalFail(UserState userState) {
-        SendMessage message = SendMessage
-                .builder()
-                .chatId(userState.getChatId())
-                .text(commonLabels.withdrawFail(userState.getLocaleOrDefault()))
-                .replyMarkup(getOkNotificationMarkup())
-                .build();
-        tgClient.execute(message);
-    }
-
-    @SneakyThrows
-    public void sendTopupNotification(UserState userState) {
-        SendMessage message = SendMessage
-                .builder()
-                .chatId(userState.getChatId())
-                .text(commonLabels.topup(userState.getLocaleOrDefault()))
-                .replyMarkup(getOkNotificationMarkup())
-                .build();
-        tgClient.execute(message);
-    }
-
     public void deleteMessage(Long chatId, Integer messageId) {
         DeleteMessage deleteMessage = DeleteMessage
                 .builder()
@@ -291,14 +258,6 @@ public class TelegramMessages {
         var builder = InlineKeyboardMarkup.builder();
 
         builder
-                .keyboardRow(
-                        new InlineKeyboardRow(
-                                InlineKeyboardButton
-                                        .builder()
-                                        .text(commonLabels.settingsTxHistory())
-                                        .callbackData(InlineMenuCallbacks.HISTORY)
-                                        .build()))
-
                 .keyboardRow(
                         new InlineKeyboardRow(
                                 InlineKeyboardButton

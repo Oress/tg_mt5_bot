@@ -110,6 +110,45 @@ public class ManageUserActionsView {
     }
 
     @SneakyThrows
+    public void userWithTheSameAccAlreadyExists(UserState userState, String existingUser) {
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(userState.getChatId())
+                .messageId(userState.getMenuMessageId())
+                .text("""
+                        ❌Пользователь с таким аккаунт № уже существует: %s.
+                        Выберете другого пользователя.
+
+                        Пожалуйста, предоставьте данные учетной записи Gerchik в следующем формате:
+                        ```формат <номер_аккаунта> <пароль> ```
+                        """.formatted(existingUser))
+                .replyMarkup(commonViews.getToMainMenuAndBackMarkup())
+                .parseMode("MARKDOWN")
+                .build();
+        tgClient.execute(message);
+
+    }
+
+    @SneakyThrows
+    public void invalidCredentials(UserState userState) {
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(userState.getChatId())
+                .messageId(userState.getMenuMessageId())
+                .text("""
+                        ❌Учетные данные неверные, попробуйте еще раз
+
+                        Пожалуйста, предоставьте данные учетной записи Gerchik в следующем формате:
+                        ```формат <номер_аккаунта> <пароль> ```
+                        """)
+                .replyMarkup(commonViews.getToMainMenuAndBackMarkup())
+                .parseMode("MARKDOWN")
+                .build();
+        tgClient.execute(message);
+
+    }
+
+    @SneakyThrows
     public void confirmDeactivateUserMsg(UserState userState) {
         EditMessageText message = EditMessageText
                 .builder()
@@ -129,6 +168,17 @@ public class ManageUserActionsView {
                 .messageId(userState.getMenuMessageId())
                 .text("Инструменты, доступные пользователю:")
                 .replyMarkup(instrumentPerUsersMarkup(userState.getTelegramId(), instrumentPerUsers))
+                .build();
+        tgClient.execute(message);
+    }
+
+    @SneakyThrows
+    public void credsVerifyInProgress(UserState userState) {
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(userState.getChatId())
+                .messageId(userState.getMenuMessageId())
+                .text("Проверяем учетные данные...")
                 .build();
         tgClient.execute(message);
     }
@@ -182,14 +232,14 @@ public class ManageUserActionsView {
                         new InlineKeyboardRow(
                                 InlineKeyboardButton
                                         .builder()
-                                        .text("Change Gerchik Account")
+                                        .text("#️⃣ Change Gerchik Account")
                                         .callbackData(InlineMenuCallbacks.MANAGE_USER_ACTION_CHANGE_GERCHIK_CREDS)
                                         .build()))
                 .keyboardRow(
                         new InlineKeyboardRow(
                                 InlineKeyboardButton
                                         .builder()
-                                        .text("Change Available Instruments")
+                                        .text("💲Change Available Instruments")
                                         .callbackData(InlineMenuCallbacks.MANAGE_USER_ACTION_CHANGE_INSTRUMENTS)
                                         .build()));
 

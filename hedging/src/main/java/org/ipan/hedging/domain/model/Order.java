@@ -24,15 +24,17 @@ public class Order {
     @JoinColumn(name = "user_id")
     private AppUser user;
 
-    private String deal;
-    private String order;
+    private Long deal;
+
+    @Column(name = "mt5_order")
+    private Long order;
 
     @Enumerated(EnumType.STRING)
     private OrderType type;
     private String instrument;
 
     @Column(name = "acc_number")
-    private Long mt5AccNumber;
+    private Integer mt5AccNumber;
 
     @Column(name = "euro_amount")
     private BigDecimal euroAmount;

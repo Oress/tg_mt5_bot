@@ -1,46 +1,70 @@
 package org.ipan.hedging.telegram.handlers;
 
-import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.ipan.hedging.application.service.Mt5Service;
 import org.ipan.hedging.domain.model.AppUser;
+import org.ipan.hedging.domain.model.Instrument;
+import org.ipan.hedging.domain.model.InstrumentMode;
+import org.ipan.hedging.domain.model.Order;
 import org.ipan.hedging.domain.model.repository.UserRepo;
+import org.ipan.hedging.domain.service.OrderService;
 import org.ipan.hedging.telegram.InlineMenuCallbacks;
 import org.ipan.hedging.telegram.States;
+import org.ipan.hedging.telegram.TelegramMessages;
+import org.ipan.hedging.telegram.i18n.HedgeLabels;
+import org.ipan.hedging.telegram.state.HedgeOpState;
 import org.ipan.hedging.telegram.state.TelegramState;
 import org.ipan.hedging.telegram.state.UserState;
 import org.ipan.hedging.telegram.statetransitions.MatchState;
 import org.ipan.hedging.telegram.statetransitions.MatchStates;
 import org.ipan.hedging.telegram.statetransitions.TransitionHandler;
 import org.ipan.hedging.telegram.statetransitions.UpdateType;
+import org.ipan.hedging.telegram.utils.FormattingTools;
 import org.ipan.hedging.telegram.views.BalanceViews;
 import org.ipan.hedging.telegram.views.HedgeViews;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 @TransitionHandler
 @AllArgsConstructor
 @Slf4j
 public class HedgingHandler {
+    public static final List<Integer> SUCCESS_CODES = List.of(10008, 10009, 10010);
+    private final OrderService orderService;
     private final UserRepo userRepo;
     private final TelegramState telegramState;
     private final BalanceViews balanceViews;
     private final HedgeViews hedgeViews;
+    private final HedgeLabels hedgeLabels;
+    private final Mt5Service mt5Service;
+    private final TelegramMessages telegramMessages;
 
     @MatchStates({
             @MatchState(state = States.MAIN_MENU, callbackData = InlineMenuCallbacks.MENU_START_HEDGE),
             @MatchState(state = States.HEDGE_PREVIEW, callbackData = InlineMenuCallbacks.HEDGE_CHANGE_ORDER)
     })
-    @Transactional
     public void start_hedge(UserState userState, Update update) {
-        AppUser user = userRepo.findById(userState.getTelegramId()).get();
+        AppUser user = userRepo.findByIdWithInstruments(userState.getTelegramId());
+
         if (!user.hasAccount()) {
-            log.warn("user has no account: {}", user.getTelegramUsername());
+            log.warn("user has no account: {}", user.getTelegramId());
             balanceViews.noAccount(userState, user);
+            return;
         }
 
-        hedgeViews.promptInstruments(userState, new ArrayList<>(user.getAvailableInstruments()));
+        if (!user.hasInstruments()) {
+            log.warn("user has no available instruments: {}", user.getTelegramId());
+            hedgeViews.noInstruments(userState, user);
+            return;
+        }
+
+        hedgeViews.promptInstruments(userState, new ArrayList<>(user.getAvailableInstruments().stream().sorted(Comparator.comparing(i -> i.getLabel())).toList()));
         telegramState.updateUserState(userState.getTelegramId(), userState.withState(States.HEDGE_INSTRUMENT));
     }
 
@@ -48,15 +72,20 @@ public class HedgingHandler {
             @MatchState(state = States.HEDGE_INSTRUMENT, updateTypes = UpdateType.CALLBACK_QUERY),
     })
     public void handleInstrument(UserState userState, Update update) {
-        AppUser user = userRepo.findById(userState.getTelegramId()).get();
+        AppUser user = userRepo.findByIdWithInstruments(userState.getTelegramId());
 
-        // TODO: save instrument
+        String instrumentLabel = update.getCallbackQuery().getData();
 
-        // TODO: mt5 get symbol info
+        if (!user.containsInstument(instrumentLabel)) {
+            log.error("User has selected instrument that should not be available to them {} {}", userState.getTelegramId(), instrumentLabel);
+            return;
+        }
+        HedgeOpState hedgeOp = telegramState.getOrCreateHedgeOp(userState.getTelegramId());
+        String symbol = user.getSymbolByLabelAndAccType(instrumentLabel);
+        telegramState.updateHedgeOp(userState.getTelegramId(), hedgeOp.withSymbol(symbol));
+        mt5Service.symbolInfo(user, symbol);
 
-        // TODO: check if can hedge out then
-
-        hedgeViews.showOperations(userState);
+        hedgeViews.showOperationsForShort(userState);
         telegramState.updateUserState(userState.getTelegramId(), userState.withState(States.HEDGE_OPERATION));
     }
 
@@ -64,12 +93,41 @@ public class HedgingHandler {
             @MatchState(state = States.HEDGE_OPERATION, updateTypes = UpdateType.CALLBACK_QUERY),
     })
     public void handleOperation(UserState userState, Update update) {
-        AppUser user = userRepo.findById(userState.getTelegramId()).get();
+        AppUser user = userRepo.findByIdWithInstruments(userState.getTelegramId());
 
-        // TODO: mt5 get symbol info
-        // TODO: check if can hedge out then
+        // Check if the operation is valid for the selected instrument
+        String operation = update.getCallbackQuery().getData();
 
-        hedgeViews.promptVolume(userState);
+        if (!InlineMenuCallbacks.HEDGE_OP_SELL.equals(operation) && !InlineMenuCallbacks.HEDGE_OP_BUY.equals(operation)) {
+            log.error("Invalid operation selected: {}", operation);
+            return;
+        }
+
+        HedgeOpState hedgeOp = telegramState.getOrCreateHedgeOp(userState.getTelegramId());
+        var symbolInfo = mt5Service.symbolInfo(user, hedgeOp.getSymbol());
+        Instrument instrumentBySymbol = user.findInstrumentBySymbol(hedgeOp.getSymbol());
+
+        if (canHedgeOut(instrumentBySymbol, operation)) {
+            Mt5Service.TradePos tradePos = mt5Service.positionsGet(user, hedgeOp.getSymbol());
+            if (tradePos == null) {
+                hedgeViews.noActivePositions(userState);
+                return;
+            } else {
+                Double availToSpend = tradePos.getVolume() * symbolInfo.getTrade_contract_size();
+                hedgeViews.promptVolumeForHedgeOut(userState,
+                        instrumentBySymbol.getSymbolByMode(),
+                        instrumentBySymbol.getLabel(),
+                        availToSpend.toString()
+                );
+            }
+        } else if (canHedge(instrumentBySymbol, operation)) {
+            hedgeViews.promptVolumeForHedge(userState,
+                    instrumentBySymbol.getSymbolByMode(),
+                    instrumentBySymbol.getLabel()
+                    );
+        }
+        telegramState.updateHedgeOp(userState.getTelegramId(), hedgeOp.withOperation(operation));
+        mt5Service.getPriceForShort(user, hedgeOp.getSymbol());
         telegramState.updateUserState(userState.getTelegramId(), userState.withState(States.HEDGE_VOLUME));
     }
 
@@ -77,23 +135,133 @@ public class HedgingHandler {
             @MatchState(state = States.HEDGE_VOLUME, updateTypes = UpdateType.MESSAGE),
     })
     public void handleVolume(UserState userState, Update update) {
-        AppUser user = userRepo.findById(userState.getTelegramId()).get();
+        AppUser user = userRepo.findByIdWithInstruments(userState.getTelegramId());
 
-        // TODO: mt5 get symbol info
-        // TODO: check if can hedge out then
-        hedgeViews.showPreview(userState);
-        telegramState.updateUserState(userState.getTelegramId(), userState.withState(States.HEDGE_VOLUME));
+        BigDecimal availToSpend = BigDecimal.ZERO;
+        String amountStr = update.getMessage().getText();
+
+        try {
+            Integer amount = Integer.parseInt(amountStr);
+            HedgeOpState hedgeOp = telegramState.getOrCreateHedgeOp(userState.getTelegramId());
+            var symbolInfo = mt5Service.symbolInfo(user, hedgeOp.getSymbol());
+
+            if ("BUY".equals(hedgeOp.getOperation())) {
+                var tradePos = mt5Service.positionsGet(user, hedgeOp.getSymbol());
+                availToSpend = new BigDecimal(tradePos.getVolume()).multiply(new BigDecimal(symbolInfo.getTrade_contract_size()));
+
+                if (amount > availToSpend.intValue()) {
+                    hedgeViews.greaterThanAvailable(userState, availToSpend);
+                    return;
+                }
+            }
+
+            Double minAmount = symbolInfo.getVolume_min() * symbolInfo.getTrade_contract_size();
+            Double maxAmount = symbolInfo.getVolume_max() * symbolInfo.getTrade_contract_size();
+            Double stepAmount = symbolInfo.getVolume_step() * symbolInfo.getTrade_contract_size();
+            if (amount < minAmount) {
+                hedgeViews.lessThanMinAmount(userState, minAmount);
+                return;
+            } else if (amount > maxAmount) {
+                hedgeViews.greaterThanAvailable(userState, BigDecimal.valueOf(maxAmount));
+                return;
+            } else if (amount % stepAmount != 0) {
+                hedgeViews.stepWarning(userState, stepAmount);
+                return;
+            }
+
+            Double price = mt5Service.getPriceForShort(user, hedgeOp.getSymbol());
+            telegramState.updateHedgeOp(userState.getTelegramId(), hedgeOp.withVolume(new BigDecimal(1.0 * amount / symbolInfo.getTrade_contract_size())));
+
+            Instrument instrumentBySymbol = user.findInstrumentBySymbol(hedgeOp.getSymbol());
+            hedgeViews.showPreview(userState,
+                    InlineMenuCallbacks.HEDGE_OP_SELL.equals(hedgeOp.getOperation()) ? hedgeLabels.sell() : hedgeLabels.buy(),
+                    instrumentBySymbol.getLabel(),
+                    amountStr,
+                    instrumentBySymbol.getSymbolByMode(),
+                    price);
+            telegramState.updateUserState(userState.getTelegramId(), userState.withState(States.HEDGE_PREVIEW));
+        } catch (NumberFormatException e) {
+            log.error("User {} has entered invalid volume: {}", userState.getTelegramId(), amountStr, e);
+        }
     }
 
     @MatchStates({
             @MatchState(state = States.HEDGE_PREVIEW, callbackData = InlineMenuCallbacks.HEDGE_PLACE_ORDER),
     })
     public void handlePreviewPlace(UserState userState, Update update) {
+        // TODO: amount change it
+        Integer amount = 1000;
         AppUser user = userRepo.findById(userState.getTelegramId()).get();
+        HedgeOpState hedgeOp = telegramState.getOrCreateHedgeOp(userState.getTelegramId());
 
-        log.info("User place order...");
-        // TODO: mt5 get symbol info
-        // TODO: check if can hedge out then
-        // todo: show previwe
+        log.info("Handling hedge preview place for user: {}, {}", userState.getTelegramId(), hedgeOp);
+
+        if (InlineMenuCallbacks.HEDGE_OP_BUY.equals(hedgeOp.getOperation())) {
+            var tradePos = mt5Service.positionsGet(user, hedgeOp.getSymbol());
+            if (tradePos != null) {
+                var orderDetails = mt5Service.closeShortOrder(user, tradePos.getTicket(), hedgeOp.getSymbol(), hedgeOp.getVolume().doubleValue());
+
+                if (orderDetails == null) {
+                    log.error("Failed to CLOSE short order for user: {}, symbol: {}, volume: {}", userState.getTelegramId(), hedgeOp.getSymbol(), hedgeOp.getVolume());
+                    return;
+                } else if (!SUCCESS_CODES.contains(orderDetails.getRetcode())) {
+                    log.error("RETURN CODE IS NOT SUCCESSFUL CLOSE order for user: {}, symbol: {}, volume: {}, {}", userState.getTelegramId(), hedgeOp.getSymbol(), hedgeOp.getVolume(), orderDetails);
+                    hedgeViews.orderFailed(userState, orderDetails.getRetcode(), orderDetails.getComment());
+                    return;
+                }
+
+                Order order = orderService.saveCloseOrder(userState.getTelegramId(), amount, orderDetails);
+
+                // TODO: balance
+                hedgeViews.successOrder(userState, order.getId().toString(), FormattingTools.formatDateToUtc(order.getCreatedAt()),
+                        order.getType().toString(),
+                        order.getInstrument(),
+                        order.getEuroAmount().toString(),
+                        order.getPrice().toString(),
+                        "TODO: BALANCE"
+                        );
+            }
+        } else if (InlineMenuCallbacks.HEDGE_OP_SELL.equals(hedgeOp.getOperation())) {
+            var orderDetails = mt5Service.placeShortOrder(user, hedgeOp.getSymbol(), hedgeOp.getVolume().doubleValue());
+
+            if (orderDetails == null) {
+                log.error("Failed to OPEN short order for user: {}, symbol: {}, volume: {}", userState.getTelegramId(), hedgeOp.getSymbol(), hedgeOp.getVolume());
+                return;
+            } else if (!SUCCESS_CODES.contains(orderDetails.getRetcode())) {
+                log.error("RETURN CODE IS NOT SUCCESSFUL OPEN order for user: {}, symbol: {}, volume: {}, {}", userState.getTelegramId(), hedgeOp.getSymbol(), hedgeOp.getVolume(), orderDetails);
+                hedgeViews.orderFailed(userState, orderDetails.getRetcode(), orderDetails.getComment());
+                return;
+            }
+
+            Order order = orderService.saveOpenOrder(userState.getTelegramId(), amount, orderDetails);
+            hedgeViews.successOrder(userState,
+                    order.getId().toString(),
+                    FormattingTools.formatDateToUtc(order.getCreatedAt()),
+                    order.getType().toString(),
+                    order.getInstrument(),
+                    order.getEuroAmount().toString(),
+                    order.getPrice().toString(),
+                    "TODO: BALANCE"
+            );
+        } else {
+            log.error("Invalid operation in hedge preview: {}", hedgeOp.getOperation());
+        }
+
+        Message newMenuMsg = telegramMessages.sendUserMainMenuBasedOnRole(userState, userState.getChatId(), user);
+        telegramState.updateUserState(userState.getTelegramId(), userState
+                .withState(States.MAIN_MENU)
+                .withChatId(newMenuMsg.getChatId())
+                .withMenuMessageId(newMenuMsg.getMessageId()));
+    }
+
+
+    private boolean canHedge(Instrument instrument, String operation) {
+        return (InstrumentMode.SHORT.equals(instrument.getMode()) && InlineMenuCallbacks.HEDGE_OP_SELL.equals(operation))
+                || (InstrumentMode.LONG.equals(instrument.getMode()) && InlineMenuCallbacks.HEDGE_OP_BUY.equals(operation));
+    }
+
+    private boolean canHedgeOut(Instrument instrument, String operation) {
+        return (InstrumentMode.SHORT.equals(instrument.getMode()) && InlineMenuCallbacks.HEDGE_OP_BUY.equals(operation))
+                || (InstrumentMode.LONG.equals(instrument.getMode()) && InlineMenuCallbacks.HEDGE_OP_SELL.equals(operation));
     }
 }

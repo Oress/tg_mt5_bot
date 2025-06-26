@@ -34,8 +34,15 @@ public class Instrument {
     @Enumerated(EnumType.STRING)
     private InstrumentMode mode;
 
-
     @CreationTimestamp
     @Column(name = "created_at")
     private Instant createdAt;
+
+    public String getSymbolByMode() {
+        return switch (mode) {
+            case LONG -> base;
+            case SHORT -> quote;
+            default -> symbolStandard;
+        };
+    }
 }

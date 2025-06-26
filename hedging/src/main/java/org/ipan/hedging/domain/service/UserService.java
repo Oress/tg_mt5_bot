@@ -1,5 +1,6 @@
 package org.ipan.hedging.domain.service;
 
+import org.ipan.hedging.domain.model.AccountType;
 import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.model.Instrument;
 import org.ipan.hedging.domain.model.repository.InstrumentRepo;
@@ -68,10 +69,11 @@ public class UserService {
     }
 
     @Transactional
-    public AppUser changeGerchikCreds(Long userId, int accountNumber, String accountPwd) {
+    public AppUser changeGerchikCreds(Long userId, int accountNumber, String accountPwd, AccountType accountType) {
         AppUser appUser = userRepo.findById(userId).orElse(null);
 
         appUser.setMt5AccNumber(accountNumber);
+        appUser.setAccountType(accountType);
         appUser.setMt5AccPwdEnc(passwordService.encrypt(accountPwd));
 
         return appUser;

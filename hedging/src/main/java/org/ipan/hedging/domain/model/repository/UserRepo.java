@@ -20,6 +20,9 @@ public interface UserRepo extends JpaRepository<AppUser, Long> {
             )
     Page<AppUser> searchByUsernameAndFirstname(String username, String firstName, PageRequest of);
 
+    @Query("select u from AppUser u left join fetch u.availableInstruments where u.telegramId = :userId")
+    AppUser findByIdWithInstruments(Long userId);
+
     List<AppUser> findByMt5AccNumber(Integer mt5AccNumber);
 
     @Query(nativeQuery = true,

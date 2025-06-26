@@ -2,6 +2,7 @@ package org.ipan.hedging.telegram.i18n;
 
 import java.util.Locale;
 
+import lombok.NonNull;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Component;
 
@@ -32,14 +33,6 @@ public class CommonLabels {
 
     public String getMainWelcome() {
         return getLocalizedMessage("main.welcome");
-    }
-
-    public String getCommonGroupBalance(String trx) {
-        return getLocalizedMessage("common.balance.group", trx);
-    }
-
-    public String getCommonPersonalBalance(String trx) {
-        return getLocalizedMessage("common.balance.personal", trx);
     }
 
     public String yes() {
@@ -89,44 +82,8 @@ public class CommonLabels {
     }
 
     // MAIN MENU START
-    public String getTxType1(String amount) {
-        return getLocalizedMessage("menu.tx_type1", amount);
-    }
-
-    public String getTxType2(String amount) {
-        return getLocalizedMessage("menu.tx_type2", amount);
-    }
-
-    public String getTxCustomAmnt(String amount) {
-        return getLocalizedMessage("menu.tx_custom_amnt", amount);
-    }
-
-    public String getAutoDelegation() {
-        return getLocalizedMessage("menu.auto_delegation");
-    }
-
-    public String getMenuManageGroup() {
-        return getLocalizedMessage("menu.manage_group");
-    }
-
-    public String getMenuManageReferals() {
-        return getLocalizedMessage("menu.manage_referals");
-    }
-
-    public String getMenuWithdraw() {
-        return getLocalizedMessage("menu.withdraw_trx");
-    }
-
-    public String getMenuDeposit() {
-        return getLocalizedMessage("menu.deposit");
-    }
-
     public String getMenuAdminMenu() {
         return getLocalizedMessage("menu.admin_menu");
-    }
-
-    public String getMenuTxHistory() {
-        return getLocalizedMessage("menu.transactions_history");
     }
 
     public String menuSettings() {
@@ -137,19 +94,7 @@ public class CommonLabels {
         return getLocalizedMessage("menu.hedge");
     }
 
-    public String menuBalance() {
-        return getLocalizedMessage("menu.balance");
-    }
-
-    public String getMenuWallets() {
-        return getLocalizedMessage("menu.wallets");
-    }
-
     // END MAIN MENU
-
-    public String settingsTxHistory() {
-        return getLocalizedMessage("settings.transactions_history");
-    }
 
     public String settingsChangeLanguage() {
         return getLocalizedMessage("settings.change_language");
@@ -159,28 +104,8 @@ public class CommonLabels {
         return getLocalizedMessage("settings.description");
     }
 
-    public String settingsShowWalletsEnabled() {
-        return getLocalizedMessage("settings.show_wallets_in_menu.enabled");
-    }
-
-    public String settingsShowWalletsDisabled() {
-        return getLocalizedMessage("settings.show_wallets_in_menu.disabled");
-    }
-
     public String somethingWentWrong() {
         return getLocalizedMessage("common.something_went_wrong");
-    }
-
-    public String topup(Locale loc) {
-        return getLocalizedMessage("notification.topup", loc);
-    }
-
-    public String withdrawFail(Locale loc) {
-        return getLocalizedMessage("notification.withdraw.fail", loc);
-    }
-
-    public String withdrawSuccess(Locale loc) {
-        return getLocalizedMessage("notification.withdraw.success", loc);
     }
 
     public String userLogin(String login) {
@@ -191,38 +116,6 @@ public class CommonLabels {
         return getLocalizedMessage("user_format.name", name);
     }
 
-    public String defaultTariffWarning() {
-        return getLocalizedMessage("warning.default_tariff");
-    }
-
-    public String historyWaiting() {
-        return getLocalizedMessage("history.waiting");
-    }
-
-    public String historyComplete() {
-        return getLocalizedMessage("history.success");
-    }
-
-    public String historyRefund() {
-        return getLocalizedMessage("history.refund");
-    }
-
-    public String referalsSummary(String pendingCommission, String referalProgramDescr, String referals) {
-        return getLocalizedMessage("referals.summary", pendingCommission, referalProgramDescr, referals);
-    }
-
-    public String referalPayment(Locale locale, String amount) {
-        return getLocalizedMessage("referal.payment", locale, amount);
-    }
-
-    public String noReferrals() {
-        return getLocalizedMessage("referal.no_referrals");
-    }
-
-    public String refProgramNotSet() {
-        return getLocalizedMessage("referal.not_set");
-    }
-
     public String greenCircle() {
         return "🟢";
     }
@@ -231,4 +124,7 @@ public class CommonLabels {
         return "🔴";
     }
 
+    public  String menuBalance() {
+        return "Баланс";
+    }
 }

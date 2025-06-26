@@ -2,10 +2,12 @@ package org.ipan.hedging.telegram.views;
 
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
+import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.model.Instrument;
 import org.ipan.hedging.telegram.InlineMenuCallbacks;
 import org.ipan.hedging.telegram.i18n.CommonLabels;
 import org.ipan.hedging.telegram.i18n.HedgeLabels;
+import org.ipan.hedging.telegram.state.HedgeOpState;
 import org.ipan.hedging.telegram.state.UserState;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
@@ -14,6 +16,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardRow;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Component
@@ -30,44 +33,165 @@ public class HedgeViews {
                 .builder()
                 .chatId(userState.getChatId())
                 .messageId(userState.getMenuMessageId())
-                .text(hedgeLabels.promptInstuments())
+                .text(hedgeLabels.promptInstruments())
                 .replyMarkup(getInstrumentsMarkup(instruments))
                 .build();
         tgClient.execute(message);
     }
 
     @SneakyThrows
-    public void showOperations(UserState userState) {
+    public void showOperationsForShort(UserState userState) {
         EditMessageText message = EditMessageText
                 .builder()
                 .chatId(userState.getChatId())
                 .messageId(userState.getMenuMessageId())
                 .text(hedgeLabels.promptOperation())
+                .replyMarkup(shortOperationsMarkup())
+                .build();
+        tgClient.execute(message);
+    }
+
+    @SneakyThrows
+    public void promptVolumeForHedge(UserState userState, String unit, String label) {
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(userState.getChatId())
+                .messageId(userState.getMenuMessageId())
+                .text(hedgeLabels.promptVolume(unit, label))
+                .replyMarkup(commonViews.getToMainMenuMarkup())
+                .parseMode("MARKDOWN")
+                .build();
+        tgClient.execute(message);
+    }
+
+    @SneakyThrows
+    public void promptVolumeForHedgeOut(UserState userState, String unit, String label, String avail) {
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(userState.getChatId())
+                .messageId(userState.getMenuMessageId())
+                .text(hedgeLabels.promptVolumeForOut(unit, label, avail))
+                .replyMarkup(commonViews.getToMainMenuMarkup())
+                .parseMode("MARKDOWN")
+                .build();
+        tgClient.execute(message);
+    }
+
+    @SneakyThrows
+    public void showPreview(UserState userState, String operation, String instrument, String amount, String unit, Double price) {
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(userState.getChatId())
+                .messageId(userState.getMenuMessageId())
+                .text(hedgeLabels.preview(
+                        operation,
+                        instrument,
+                        amount,
+                        unit,
+                        price == null ? "N/A" : price.toString(
+                )))
                 .replyMarkup(getAdminMenuReplyMarkup())
                 .build();
         tgClient.execute(message);
     }
 
     @SneakyThrows
-    public void promptVolume(UserState userState) {
+    public void lessThanMinAmount(UserState userState, Double minAmount) {
         EditMessageText message = EditMessageText
                 .builder()
                 .chatId(userState.getChatId())
                 .messageId(userState.getMenuMessageId())
-                .text(hedgeLabels.promptVolume())
+                .text(hedgeLabels.minAmountWarning(minAmount))
                 .replyMarkup(getAdminMenuReplyMarkup())
                 .build();
         tgClient.execute(message);
     }
 
     @SneakyThrows
-    public void showPreview(UserState userState) {
+    public void noActivePositions(UserState userState) {
         EditMessageText message = EditMessageText
                 .builder()
                 .chatId(userState.getChatId())
                 .messageId(userState.getMenuMessageId())
-                .text(hedgeLabels.preview())
+                .text(hedgeLabels.noActivePositions())
                 .replyMarkup(getAdminMenuReplyMarkup())
+                .build();
+        tgClient.execute(message);
+    }
+
+    @SneakyThrows
+    public void greaterThanAvailable(UserState userState, BigDecimal availToSpend) {
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(userState.getChatId())
+                .messageId(userState.getMenuMessageId())
+                .text(hedgeLabels.greaterThatAvail(availToSpend))
+                .replyMarkup(getAdminMenuReplyMarkup())
+                .build();
+        tgClient.execute(message);
+    }
+
+    @SneakyThrows
+    public void stepWarning(UserState userState, Double minAmount) {
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(userState.getChatId())
+                .messageId(userState.getMenuMessageId())
+                .text(hedgeLabels.stepWarning(minAmount))
+                .replyMarkup(getAdminMenuReplyMarkup())
+                .build();
+        tgClient.execute(message);
+    }
+
+    @SneakyThrows
+    public void noInstruments(UserState userState, AppUser user) {
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(userState.getChatId())
+                .messageId(userState.getMenuMessageId())
+                .text(hedgeLabels.noInstruments())
+                .replyMarkup(commonViews.getToMainMenuMarkup())
+                .build();
+        tgClient.execute(message);
+    }
+
+    @SneakyThrows
+    public void orderFailed(UserState userState, Integer retcode, String comment) {
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(userState.getChatId())
+                .messageId(userState.getMenuMessageId())
+                .text(hedgeLabels.noInstruments())
+                .replyMarkup(commonViews.getToMainMenuMarkup())
+                .build();
+        tgClient.execute(message);
+    }
+
+    @SneakyThrows
+    public void successOrder(UserState userState, String orderId, String date, String operation,
+                             String instrument, String amount, String price, String balance) {
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(userState.getChatId())
+                .messageId(userState.getMenuMessageId())
+                .parseMode("MARKDOWN")
+                .text("""
+                        ✅Ордер размещен
+
+                        %s
+                        Статус: *исполнен*
+                        Дата: %s
+                        Операция: %s
+                        Инструмент: %s
+                        
+                        Сумма: %s
+                        Цена: %s
+                        Захеджировано: %s
+                        """.formatted(
+                        orderId, date, operation,instrument,
+                        amount, price, balance
+                        )
+                )
                 .build();
         tgClient.execute(message);
     }
@@ -96,6 +220,32 @@ public class HedgeViews {
                                         .build()))
                 .build();
     }
+
+    private InlineKeyboardMarkup shortOperationsMarkup() {
+        return InlineKeyboardMarkup
+                .builder()
+                .keyboardRow(
+                        new InlineKeyboardRow(
+                                InlineKeyboardButton
+                                        .builder()
+                                        .text(hedgeLabels.sell())
+                                        .callbackData(InlineMenuCallbacks.HEDGE_OP_SELL)
+                                        .build(),
+                                InlineKeyboardButton
+                                        .builder()
+                                        .text(hedgeLabels.buy())
+                                        .callbackData(InlineMenuCallbacks.HEDGE_OP_BUY)
+                                        .build()))
+                .keyboardRow(
+                        new InlineKeyboardRow(
+                                InlineKeyboardButton
+                                        .builder()
+                                        .text(commonLabels.toMainMenu())
+                                        .callbackData(InlineMenuCallbacks.TO_MAIN_MENU)
+                                        .build()))
+                .build();
+    }
+
 
 
     private InlineKeyboardMarkup getAdminMenuReplyMarkup() {

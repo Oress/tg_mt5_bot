@@ -68,4 +68,38 @@ public class AppUser {
     public boolean hasAccount() {
         return mt5AccNumber != null && mt5AccPwdEnc != null;
     }
+
+    public boolean hasInstruments() {
+        return !availableInstruments.isEmpty();
+    }
+
+    public boolean containsInstument(String instrumentLabel) {
+        return availableInstruments.stream().anyMatch(i -> i.getLabel().equals(instrumentLabel));
+    }
+
+    public String getSymbolByLabelAndAccType(String symbol) {
+        for (Instrument instrument : availableInstruments) {
+            if (instrument.getLabel().equals(symbol)) {
+                return switch (accountType) {
+                    case STANDARD -> instrument.getSymbolStandard();
+                    case MINI -> instrument.getSymbolMini();
+                    case ZERO -> instrument.getSymbolZero();
+                    default -> instrument.getSymbolMini();
+                };
+            }
+        }
+        return null;
+    }
+
+    public Instrument findInstrumentBySymbol(String symbol) {
+        for (Instrument instrument : availableInstruments) {
+            if (instrument.getSymbolZero().equals(symbol)
+                    || instrument.getSymbolMini().equals(symbol)
+                    || instrument.getSymbolStandard().equals(symbol)) {
+                return instrument;
+            }
+        }
+        return null;
+    }
+
 }

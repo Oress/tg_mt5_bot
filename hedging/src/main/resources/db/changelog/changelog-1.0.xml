@@ -98,8 +98,8 @@
             </column>
             <column name="user_id" type="bigint" />
             <column name="city" type="text" />
-            <column name="deal" type="text" />
-            <column name="order" type="text" />
+            <column name="deal" type="bigint" />
+            <column name="mt5_order" type="bigint" />
             <column name="type" type="text"/>
             <column name="instrument" type="text"/>
             <column name="acc_number" type="bigint"/>

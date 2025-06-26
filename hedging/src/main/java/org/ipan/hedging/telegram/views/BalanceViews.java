@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.ipan.hedging.domain.model.AppUser;
+import org.ipan.hedging.telegram.i18n.BalanceLabels;
 import org.ipan.hedging.telegram.i18n.CommonLabels;
 import org.ipan.hedging.telegram.state.UserState;
 import org.springframework.retry.annotation.Retryable;
@@ -24,11 +25,21 @@ public class BalanceViews {
     private final TelegramClient tgClient;
     private final CommonViews commonViews;
     private final CommonLabels commonLabels;
+    private final BalanceLabels balanceLabels;
 
+    @SneakyThrows
     public void noAccount(UserState userState, AppUser user) {
-
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(userState.getChatId())
+                .messageId(userState.getMenuMessageId())
+                .text(balanceLabels.noAccount())
+                .replyMarkup(commonViews.getToMainMenuMarkup())
+                .build();
+        tgClient.execute(message);
     }
 
+    @SneakyThrows
     public void showBalance(UserState userState, AppUser user) {
 
     }

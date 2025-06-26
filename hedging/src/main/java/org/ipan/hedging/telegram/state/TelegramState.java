@@ -12,4 +12,7 @@ public interface TelegramState {
     UserSearchState getOrCreateUserSearchState(Long userId);
     UserSearchState updateUserSearchState(Long userId, UserSearchState userSearchState);
     UserSearchState removeUserSearchState(Long userId); // TODO: cleanup after finishing workflow
+
+    HedgeOpState getOrCreateHedgeOp(Long userId);
+    HedgeOpState updateHedgeOp(Long userId, HedgeOpState hedgeOpState);
 }
