@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 @Service
 @AllArgsConstructor
@@ -33,7 +34,7 @@ public class OrderService {
         order.setVolume(BigDecimal.valueOf(orderDetails.getVolume()));
         order.setType(OrderType.CLOSE);
         order.setEuroAmount(amount);
-        order.setPrice(BigDecimal.valueOf(orderDetails.getPrice()));
+        order.setPrice(BigDecimal.valueOf(orderDetails.getPrice()).setScale(5, RoundingMode.HALF_DOWN));
 
         orderRepo.save(order);
 

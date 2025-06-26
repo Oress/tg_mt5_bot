@@ -118,7 +118,7 @@ public class ManageUserActionsView {
                 .text("""
                         ❌Пользователь с таким аккаунт № уже существует: %s.
                         Выберете другого пользователя.
-
+                        
                         Пожалуйста, предоставьте данные учетной записи Gerchik в следующем формате:
                         ```формат <номер_аккаунта> <пароль> ```
                         """.formatted(existingUser))
@@ -137,7 +137,7 @@ public class ManageUserActionsView {
                 .messageId(userState.getMenuMessageId())
                 .text("""
                         ❌Учетные данные неверные, попробуйте еще раз
-
+                        
                         Пожалуйста, предоставьте данные учетной записи Gerchik в следующем формате:
                         ```формат <номер_аккаунта> <пароль> ```
                         """)
@@ -221,28 +221,31 @@ public class ManageUserActionsView {
                 ParseUtils.escapeMarkdown(FormattingTools.valOrDash(user.getTelegramFirstName())),
                 FormattingTools.valOrDash(user.getMt5AccNumber()),
                 FormattingTools.valOrDash(user.getAccountType()),
-                user.getGoogleSheetId() == null ? "Нет" : "https://docs.google.com/spreadsheets/d/"+user.getGoogleSheetId(),
+                user.getGoogleSheetId() == null ? "Нет" : "https://docs.google.com/spreadsheets/d/" + user.getGoogleSheetId(),
                 user.getDisabled() ? commonLabels.cross() : commonLabels.check()
-                );
+        );
     }
 
-    private InlineKeyboardMarkup getManageUserActionsMarkup(Boolean showDeactivateBtn) {
+    private InlineKeyboardMarkup getManageUserActionsMarkup(Boolean isDisabled) {
         InlineKeyboardMarkup.InlineKeyboardMarkupBuilder builder = InlineKeyboardMarkup
-                .builder()
-                .keyboardRow(
-                        new InlineKeyboardRow(
-                                InlineKeyboardButton
-                                        .builder()
-                                        .text("#️⃣ Изменить аккаунт Герчик")
-                                        .callbackData(InlineMenuCallbacks.MANAGE_USER_ACTION_CHANGE_GERCHIK_CREDS)
-                                        .build()))
-                .keyboardRow(
-                        new InlineKeyboardRow(
-                                InlineKeyboardButton
-                                        .builder()
-                                        .text("💲Изменить доступные инструменты")
-                                        .callbackData(InlineMenuCallbacks.MANAGE_USER_ACTION_CHANGE_INSTRUMENTS)
-                                        .build()))
+                .builder();
+
+        if (isDisabled) {
+            builder
+                    .keyboardRow(
+                            new InlineKeyboardRow(
+                                    InlineKeyboardButton
+                                            .builder()
+                                            .text("#️⃣ Изменить аккаунт Герчик")
+                                            .callbackData(InlineMenuCallbacks.MANAGE_USER_ACTION_CHANGE_GERCHIK_CREDS)
+                                            .build()))
+                    .keyboardRow(
+                            new InlineKeyboardRow(
+                                    InlineKeyboardButton
+                                            .builder()
+                                            .text("💲Изменить доступные инструменты")
+                                            .callbackData(InlineMenuCallbacks.MANAGE_USER_ACTION_CHANGE_INSTRUMENTS)
+                                            .build()))
 /*                .keyboardRow(
                         new InlineKeyboardRow(
                                 InlineKeyboardButton
@@ -250,16 +253,15 @@ public class ManageUserActionsView {
                                         .text("📈 Посмотреть позиции")
                                         .callbackData(InlineMenuCallbacks.MANAGE_USER_ACTION_VIEW_POSITIONS)
                                         .build()))*/
-                ;
+            ;
 
-        if (showDeactivateBtn) {
-                builder.keyboardRow(
-                        new InlineKeyboardRow(
-                                InlineKeyboardButton
-                                        .builder()
-                                        .text(manageUserLabels.menuDeactivate())
-                                        .callbackData(InlineMenuCallbacks.MANAGE_USER_ACTION_DEACTIVATE)
-                                        .build()));
+            builder.keyboardRow(
+                    new InlineKeyboardRow(
+                            InlineKeyboardButton
+                                    .builder()
+                                    .text(manageUserLabels.menuDeactivate())
+                                    .callbackData(InlineMenuCallbacks.MANAGE_USER_ACTION_DEACTIVATE)
+                                    .build()));
         }
         return builder
                 .keyboardRow(
@@ -308,17 +310,17 @@ public class ManageUserActionsView {
             List<InlineKeyboardButton> buttons = new ArrayList<>();
             if (hasPrev) {
                 buttons.add(InlineKeyboardButton
-                                .builder()
-                                .text(commonLabels.searchPrevPage())
-                                .callbackData(InlineMenuCallbacks.MANAGE_USERS_PREV_PAGE)
-                                .build());
+                        .builder()
+                        .text(commonLabels.searchPrevPage())
+                        .callbackData(InlineMenuCallbacks.MANAGE_USERS_PREV_PAGE)
+                        .build());
             }
             if (hasNext) {
                 buttons.add(InlineKeyboardButton
-                                .builder()
-                                .text(commonLabels.searchNextPage())
-                                .callbackData(InlineMenuCallbacks.MANAGE_USERS_NEXT_PAGE)
-                                .build());
+                        .builder()
+                        .text(commonLabels.searchNextPage())
+                        .callbackData(InlineMenuCallbacks.MANAGE_USERS_NEXT_PAGE)
+                        .build());
             }
             builder.keyboardRow(new InlineKeyboardRow(buttons));
         }

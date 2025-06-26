@@ -298,15 +298,16 @@ public class HedgingHandler {
         if (order != null) {
             Mt5Service.TradePos tp = mt5Service.positionsGet(user, hedgeOp.getSymbol());
             BigDecimal baseEquivalent = tp == null ? BigDecimal.ZERO : BigDecimal.valueOf(tp.getVolume() * symbolInfo.getTrade_contract_size()).setScale(0, RoundingMode.HALF_DOWN);
+            Instrument instrumentBySymbol = user.findInstrumentBySymbol(order.getInstrument());
             hedgeViews.successOrder(userState,
                     order.getId().toString(),
                     FormattingTools.formatDateToUtc(order.getCreatedAt()),
                     InlineMenuCallbacks.HEDGE_OP_SELL.equals(hedgeOp.getOperation()) ? hedgeLabels.sell() : hedgeLabels.buy(),
-                    order.getInstrument(),
+                    instrumentBySymbol.getLabel(),
                     order.getEuroAmount().toString(),
-                    order.getPrice().toString(),
+                    order.getPrice().setScale(5, RoundingMode.HALF_DOWN).toString(),
                     baseEquivalent.toString(),
-                    user.findInstrumentBySymbol(order.getInstrument()).getSymbolByMode()
+                    instrumentBySymbol.getSymbolByMode()
             );
             googleSheetsService.syncUser(userState.getTelegramId());
         }

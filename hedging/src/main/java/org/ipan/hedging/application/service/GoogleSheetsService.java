@@ -28,6 +28,8 @@ import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -175,6 +177,7 @@ public class GoogleSheetsService {
         }
     }
 
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private RowData createRowDataFromOrder(Order order) {
         BigDecimal euroAmount = order.getEuroAmount().multiply(OrderType.OPEN.equals(order.getType()) ? BigDecimal.valueOf(-1) : BigDecimal.ONE);
 
@@ -184,12 +187,14 @@ public class GoogleSheetsService {
         String depTotalInnerPart = "%s+H:H+%s".formatted(relCell(0, -1), relCell(+1, -1));
         String depTotalOuterPart = "=%s".formatted(isFirstRow("H:H", depTotalInnerPart));
 
+        CellFormat currencyFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("#,##0.00"));
+        CellFormat numberFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("0.00000"));
         return new RowData()
                 .setValues(List.of(
                         // Дата
                         new CellData()
                                 .setUserEnteredValue(
-                                        new ExtendedValue().setStringValue(order.getCreatedAt().toString())
+                                        new ExtendedValue().setStringValue(formatter.format(order.getCreatedAt().atZone(ZoneId.of("UTC"))))
                                 ),
                         // Сумма
                         new CellData()
@@ -200,16 +205,22 @@ public class GoogleSheetsService {
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setNumberValue(order.getPrice().doubleValue())
+                                ).setUserEnteredFormat(
+                                        numberFormat
                                 ),
                         // USDT
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue("=IF(B:B<>0,B:B*C:C,\"\")")
+                                ).setUserEnteredFormat(
+                                        currencyFormat
                                 ),
                         // Ком. 0,10
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue("=IF(D:D<0,D:D*-0.1%,\"\")")
+                                ).setUserEnteredFormat(
+                                        currencyFormat
                                 ),
                         // Захеджировано
                         new CellData()
@@ -220,27 +231,27 @@ public class GoogleSheetsService {
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue(rateOuterPart)
-                                ),
+                                ).setUserEnteredFormat(numberFormat),
                         // Deposit
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue("=IF(B:B>0,-B:B*(C:C-G:G),-E:E)")
-                                ),
+                                ).setUserEnteredFormat(currencyFormat),
                         // Deposit total
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue(depTotalOuterPart)
-                                ),
+                                ).setUserEnteredFormat(currencyFormat),
                         // Payment deposit amount
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setStringValue("")
-                                ),
+                                ).setUserEnteredFormat(currencyFormat),
                         // Balance
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue("=I:I+J:J")
-                                )
+                                ).setUserEnteredFormat(currencyFormat)
                 ));
     }
 
@@ -394,14 +405,14 @@ public class GoogleSheetsService {
     }
 
     private static final List<ColumnDefinition> SHORT_COLUMNS = List.of(
-            new ColumnDefinition("Дата", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Дата (UTC)", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Сумма", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Фикс", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("USDT", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Ком. 0.1%", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Захеджировано", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Ставка", "COLUMN_TYPE_UNSPECIFIED"),
-            new ColumnDefinition("Депозин", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Депозит", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Депозит  всего", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Сумма оплаты депозита", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Баланс", "COLUMN_TYPE_UNSPECIFIED")
