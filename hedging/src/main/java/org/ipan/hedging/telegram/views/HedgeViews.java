@@ -9,7 +9,9 @@ import org.ipan.hedging.telegram.i18n.CommonLabels;
 import org.ipan.hedging.telegram.i18n.HedgeLabels;
 import org.ipan.hedging.telegram.state.HedgeOpState;
 import org.ipan.hedging.telegram.state.UserState;
+import org.ipan.hedging.telegram.utils.ParseUtils;
 import org.springframework.stereotype.Component;
+import org.telegram.telegrambots.meta.api.methods.ParseMode;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -52,6 +54,18 @@ public class HedgeViews {
     }
 
     @SneakyThrows
+    public void showOperationsForLong(UserState userState) {
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(userState.getChatId())
+                .messageId(userState.getMenuMessageId())
+                .text(hedgeLabels.promptOperation())
+                .replyMarkup(longOperationsMarkup())
+                .build();
+        tgClient.execute(message);
+    }
+
+    @SneakyThrows
     public void promptVolumeForHedge(UserState userState, String unit, String label) {
         EditMessageText message = EditMessageText
                 .builder()
@@ -89,7 +103,7 @@ public class HedgeViews {
                         amount,
                         unit,
                         price == null ? "N/A" : price.toString(
-                )))
+                        )))
                 .replyMarkup(getAdminMenuReplyMarkup())
                 .build();
         tgClient.execute(message);
@@ -102,7 +116,7 @@ public class HedgeViews {
                 .chatId(userState.getChatId())
                 .messageId(userState.getMenuMessageId())
                 .text(hedgeLabels.minAmountWarning(minAmount))
-                .replyMarkup(getAdminMenuReplyMarkup())
+                .replyMarkup(commonViews.getToMainMenuMarkup())
                 .build();
         tgClient.execute(message);
     }
@@ -114,7 +128,7 @@ public class HedgeViews {
                 .chatId(userState.getChatId())
                 .messageId(userState.getMenuMessageId())
                 .text(hedgeLabels.noActivePositions())
-                .replyMarkup(getAdminMenuReplyMarkup())
+                .replyMarkup(commonViews.getToMainMenuMarkup())
                 .build();
         tgClient.execute(message);
     }
@@ -126,7 +140,7 @@ public class HedgeViews {
                 .chatId(userState.getChatId())
                 .messageId(userState.getMenuMessageId())
                 .text(hedgeLabels.greaterThatAvail(availToSpend))
-                .replyMarkup(getAdminMenuReplyMarkup())
+                .replyMarkup(commonViews.getToMainMenuMarkup())
                 .build();
         tgClient.execute(message);
     }
@@ -138,7 +152,7 @@ public class HedgeViews {
                 .chatId(userState.getChatId())
                 .messageId(userState.getMenuMessageId())
                 .text(hedgeLabels.stepWarning(minAmount))
-                .replyMarkup(getAdminMenuReplyMarkup())
+                .replyMarkup(commonViews.getToMainMenuMarkup())
                 .build();
         tgClient.execute(message);
     }
@@ -169,7 +183,7 @@ public class HedgeViews {
 
     @SneakyThrows
     public void successOrder(UserState userState, String orderId, String date, String operation,
-                             String instrument, String amount, String price, String balance) {
+                             String instrument, String amount, String price, String balance, String unit) {
         EditMessageText message = EditMessageText
                 .builder()
                 .chatId(userState.getChatId())
@@ -186,10 +200,10 @@ public class HedgeViews {
                         
                         Сумма: %s
                         Цена: %s
-                        Захеджировано: %s
+                        Захеджировано: *%s %s*
                         """.formatted(
-                        orderId, date, operation,instrument,
-                        amount, price, balance
+                        orderId, date, ParseUtils.escapeMarkdown(operation), instrument,
+                        amount, price, balance, unit
                         )
                 )
                 .build();
@@ -221,6 +235,33 @@ public class HedgeViews {
                 .build();
     }
 
+    private InlineKeyboardMarkup longOperationsMarkup() {
+        return InlineKeyboardMarkup
+                .builder()
+                .keyboardRow(
+                        new InlineKeyboardRow(
+                                InlineKeyboardButton
+                                        .builder()
+                                        .text(hedgeLabels.buy())
+                                        .callbackData(InlineMenuCallbacks.HEDGE_OP_BUY)
+                                        .build(),
+                                InlineKeyboardButton
+                                        .builder()
+                                        .text(hedgeLabels.sell())
+                                        .callbackData(InlineMenuCallbacks.HEDGE_OP_SELL)
+                                        .build()
+                        ))
+                .keyboardRow(
+                        new InlineKeyboardRow(
+                                InlineKeyboardButton
+                                        .builder()
+                                        .text(commonLabels.toMainMenu())
+                                        .callbackData(InlineMenuCallbacks.TO_MAIN_MENU)
+                                        .build()))
+                .build();
+    }
+
+
     private InlineKeyboardMarkup shortOperationsMarkup() {
         return InlineKeyboardMarkup
                 .builder()
@@ -245,7 +286,6 @@ public class HedgeViews {
                                         .build()))
                 .build();
     }
-
 
 
     private InlineKeyboardMarkup getAdminMenuReplyMarkup() {

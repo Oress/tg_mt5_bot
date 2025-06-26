@@ -6,6 +6,7 @@ import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Locale;
 
 @Component
@@ -25,11 +26,11 @@ public class HedgeLabels {
 
 
     public String promptInstruments() {
-        return "Please select an instrument from the list below:";
+        return "Выберите инструмент:";
     }
 
     public String promptOperation() {
-        return "Please select an operation from the list below:";
+        return "Выберите операцию:";
     }
 
     public String promptVolumeForOut(String unit, String label, String avail) {
@@ -50,51 +51,58 @@ public class HedgeLabels {
 
     public String preview(String operation, String instrument, String amount, String unit, String rate) {
         return """
-               Предварительный просмотр:
-
-               Операция: %s
-               Инструмент: %s
-               Сколько: %s %s
-               Приблизительный курс: %s
-        """.formatted(
-                operation,
-                instrument,
-                amount,
-                unit,
+                Предварительный просмотр:
+                
+                Операция: %s
+                Инструмент: %s
+                Сколько: %s %s
+                Приблизительный курс: %s
+                """.formatted(
+                operation, instrument,
+                amount, unit,
                 rate
         );
     }
 
     public String placeOrder() {
-        return "Place order";
+        return "Разместить ордер";
     }
 
     public String changeOrder() {
-        return "Change order";
+        return "Изменить ордер";
     }
 
     public String noInstruments() {
-        return "You don't have instruments to use. Please contact the admin.";
+        return "Нет доступных инструментов для хеджирования. Пожалуйста, обратитесь к админу.";
     }
 
     public String sell() {
-        return "Sell";
+        return "Продать";
     }
 
     public String buy() {
-        return "Buy";
+        return "Купить";
     }
 
     public String minAmountWarning(Double minAmount) {
-        return "The amount is less than the minimum required: " + minAmount + ". Please enter a valid amount.";
+        return """
+                Число меньше минимума: %s.
+                 Пожалуйста, введите корректное число."""
+                .formatted(BigDecimal.valueOf(minAmount).setScale(0, RoundingMode.HALF_DOWN));
     }
 
     public String greaterThatAvail(BigDecimal availToSpend) {
-        return "The amount exceeds your available balance: " + availToSpend + ". Please enter a valid amount.";
+        return """
+                Число превышает доступный баланс: %s.
+                Пожалуйста, введите корректное число.
+                """.formatted(availToSpend.setScale(0, RoundingMode.HALF_DOWN));
     }
 
     public String stepWarning(Double step) {
-        return "The amount must be a multiple of " + step + ". Please enter a valid amount.";
+        return """
+                Число должно быть кратно %s.
+                 Пожалуйста, введите корректное число."""
+                .formatted(BigDecimal.valueOf(step).setScale(0, RoundingMode.HALF_DOWN));
     }
 
     public String noActivePositions() {

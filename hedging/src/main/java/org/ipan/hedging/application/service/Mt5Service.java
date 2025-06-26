@@ -82,6 +82,20 @@ public class Mt5Service {
         return resp.getBody().getPositions().isEmpty() ? null : resp.getBody().getPositions().get(0);
     }
 
+    public List<TradePos> positionsGetAll(AppUser user) {
+        UriComponentsBuilder componentsBuilder = UriComponentsBuilder
+                .fromUriString(pythonProxyConfig.getUrl())
+                .path("/positions-get-all");
+
+        GetSymbolReq request = GetSymbolReq.builder()
+                .account_number(user.getMt5AccNumber())
+                .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
+                .build();
+        ResponseEntity<PositionsGetResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, PositionsGetResp.class);
+        log.info("positionsGet response {}", resp.toString());
+        return resp.getBody().getPositions();
+    }
+
     public Double getPriceForShort(AppUser user, String symbol) {
         UriComponentsBuilder componentsBuilder = UriComponentsBuilder
                 .fromUriString(pythonProxyConfig.getUrl())

@@ -22,32 +22,7 @@ public class BalanceLabels {
         return messageSource.getMessage(key, args, userLocale);
     }
 
-
-    public String promptInstruments() {
-        return "Please select an instrument from the list below:";
-    }
-
-    public @NonNull String promptOperation() {
-        return "Please select an operation from the list below:";
-    }
-
-    public @NonNull String promptVolume() {
-        return "Volume:";
-    }
-
-    public @NonNull String preview() {
-        return "Preview:";
-    }
-
-    public @NonNull String placeOrder() {
-        return "Place order";
-    }
-
-    public @NonNull String changeOrder() {
-        return "Change order";
-    }
-
-    public @NonNull String noAccount() {
-        return "You don't have access, please contact the admin.";
+    public String noAccount() {
+        return "У вас нет доступа. Пожалуйста, свяжитесь с администратором для получения доступа.";
     }
 }

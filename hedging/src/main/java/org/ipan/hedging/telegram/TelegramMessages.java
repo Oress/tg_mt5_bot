@@ -284,18 +284,13 @@ public class TelegramMessages {
                                         .builder()
                                         .text(commonLabels.menuHedge())
                                         .callbackData(InlineMenuCallbacks.MENU_START_HEDGE)
-                                        .build(),
-                                InlineKeyboardButton
-                                        .builder()
-                                        .text(commonLabels.menuBalance())
-                                        .callbackData(InlineMenuCallbacks.MENU_SHOW_BALANCE)
                                         .build()))
                 .keyboardRow(
                         new InlineKeyboardRow(
                                 InlineKeyboardButton
                                         .builder()
-                                        .text(commonLabels.menuSettings())
-                                        .callbackData(InlineMenuCallbacks.SETTINGS)
+                                        .text(commonLabels.menuBalance())
+                                        .callbackData(InlineMenuCallbacks.MENU_SHOW_BALANCE)
                                         .build()));
 
         if (isAdmin) {

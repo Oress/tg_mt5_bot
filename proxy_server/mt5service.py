@@ -152,6 +152,51 @@ class MT5Service:
 
         return Decimal(0)
 
+    def positions_get_all(self, account_number: int, pwd: str) -> List[MyTradePosition]:
+            logger.info(f"[MT5|orders_get] account_number: {account_number}")
+            selected = []
+            try:
+                with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
+                    selected = session.positions_get()
+                    if selected is None:
+                        logger.warning(f"[MT5|orders_get], No orders for the account_number: {account_number}")
+                        return []
+
+                    positions = []
+                    for pos in selected:
+                        positions.append(MyTradePosition(
+                            ticket=pos.ticket,
+                            time=pos.time,
+                            time_msc=pos.time_msc,
+                            time_update=pos.time_update,
+                            time_update_msc=pos.time_update_msc,
+                            type=pos.type,
+                            magic=pos.magic,
+                            identifier=pos.identifier,
+                            reason=pos.reason,
+                            volume=pos.volume,
+                            price_open=pos.price_open,
+                            sl=pos.sl,
+                            tp=pos.tp,
+                            price_current=pos.price_current,
+                            swap=pos.swap,
+                            profit=pos.profit,
+                            symbol=pos.symbol,
+                            comment=pos.comment,
+                            external_id=pos.external_id
+                        ))
+                    print(positions)
+                    return positions
+
+            except MT5InvalidCreds as e:
+                logger.error(f"[MT5|Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
+                print(f"Invalid credentials: {e}")
+            except Exception as e:
+                logger.error(f"[MT5|Unknown Exception]")
+                print(f"Exception caught: {e}")
+
+            return selected
+
     def positions_get(self, account_number: int, pwd: str, symbol: str) -> List[MyTradePosition]:
         logger.info(f"[MT5|orders_get] account_number: {account_number}, symbol: {symbol}")
         selected = []

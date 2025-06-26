@@ -75,7 +75,7 @@ public class ManageUserActionsView {
                 .builder()
                 .chatId(userState.getChatId())
                 .messageId(userState.getMenuMessageId())
-                .text("Credentials changed successfully")
+                .text("Учетные данные успешно изменены!")
                 .replyMarkup(commonViews.getToMainMenuAndBackMarkup())
                 .build();
         tgClient.execute(message);
@@ -232,14 +232,14 @@ public class ManageUserActionsView {
                         new InlineKeyboardRow(
                                 InlineKeyboardButton
                                         .builder()
-                                        .text("#️⃣ Change Gerchik Account")
+                                        .text("#️⃣ Изменить аккаунт Герчик")
                                         .callbackData(InlineMenuCallbacks.MANAGE_USER_ACTION_CHANGE_GERCHIK_CREDS)
                                         .build()))
                 .keyboardRow(
                         new InlineKeyboardRow(
                                 InlineKeyboardButton
                                         .builder()
-                                        .text("💲Change Available Instruments")
+                                        .text("💲Изменить доступные инструменты")
                                         .callbackData(InlineMenuCallbacks.MANAGE_USER_ACTION_CHANGE_INSTRUMENTS)
                                         .build()));
 

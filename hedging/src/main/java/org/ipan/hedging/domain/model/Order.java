@@ -31,6 +31,7 @@ public class Order {
 
     @Enumerated(EnumType.STRING)
     private OrderType type;
+
     private String instrument;
 
     @Column(name = "acc_number")

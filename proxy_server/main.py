@@ -48,6 +48,23 @@ def positions_get():
 
     return jsonify({"positions": positions_dict})
 
+@app.route('/positions-get-all', methods=['POST'])
+def positions_get_all():
+    data = request.get_json()
+    positions = mt5service.positions_get_all(data['account_number'], data['password'])
+
+    # Convert positions to dictionary format if it's a single position
+    positions_dict={}
+    if hasattr(positions, '__dict__'):
+        positions_dict = positions.__dict__
+    # If positions is a list/tuple of positions, convert each one
+    elif isinstance(positions, (list, tuple)):
+        positions_dict = [pos.__dict__ if hasattr(pos, '__dict__') else pos for pos in positions]
+    else:
+        positions_dict = positions
+
+    return jsonify({"positions": positions_dict})
+
 @app.route('/place-short-order', methods=['POST'])
 def place_short_order():
     data = request.get_json()

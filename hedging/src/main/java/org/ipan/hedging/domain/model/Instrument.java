@@ -40,8 +40,8 @@ public class Instrument {
 
     public String getSymbolByMode() {
         return switch (mode) {
-            case LONG -> base;
-            case SHORT -> quote;
+            case LONG -> quote;
+            case SHORT -> base;
             default -> symbolStandard;
         };
     }

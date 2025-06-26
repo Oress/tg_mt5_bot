@@ -125,6 +125,6 @@ public class CommonLabels {
     }
 
     public  String menuBalance() {
-        return "Баланс";
+        return "⚖️ Баланс";
     }
 }
