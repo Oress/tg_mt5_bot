@@ -12,33 +12,41 @@ import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.api.services.sheets.v4.model.*;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
+import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.ipan.hedging.GoogleSheetsConfig;
 import org.ipan.hedging.domain.model.AppUser;
+import org.ipan.hedging.domain.model.Order;
+import org.ipan.hedging.domain.model.OrderType;
+import org.ipan.hedging.domain.model.repository.OrderRepo;
 import org.ipan.hedging.domain.model.repository.UserRepo;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @Slf4j
 public class GoogleSheetsService {
+    private static final String MD_KEY_SHEET_LAST_SYNC_DT = "last_sheet_sync_dt";
     private static final String APPLICATION_NAME = "Hedging Bot";
-
     private static final List<String> SCOPES = List.of(SheetsScopes.SPREADSHEETS, DriveScopes.DRIVE, DriveScopes.DRIVE_FILE);
 
     private final GoogleSheetsConfig config;
     private final UserRepo userRepo;
     private final Sheets sheets;
     private final Drive drive;
+    private final OrderRepo orderRepo;
 
-    public GoogleSheetsService(GoogleSheetsConfig config, UserRepo userRepo) throws IOException {
+    public GoogleSheetsService(GoogleSheetsConfig config, UserRepo userRepo, OrderRepo orderRepo) throws IOException {
         this.config = config;
         this.userRepo = userRepo;
 
@@ -58,12 +66,14 @@ public class GoogleSheetsService {
                 requestInitializer)
                 .setApplicationName(APPLICATION_NAME)
                 .build();
+        this.orderRepo = orderRepo;
     }
 
     @Transactional
     @Async
     public void syncUser(Long userId) {
         try {
+            Instant syncDt = Instant.now();
             AppUser user = userRepo.findById(userId).get();
 
             if (user.getGoogleSheetId() == null) {
@@ -74,18 +84,183 @@ public class GoogleSheetsService {
             createSheetsForUserIfNotExist(spreadsheet, user);
             remove0SheetIfExists(spreadsheet, user);
 
-            create_tables_for_users_if_not_exist(spreadsheet, user);
-
-
-
-
+            createTablesForUsersIfNotExist(spreadsheet, user);
+            syncDataForUser(user, syncDt);
 
         } catch (Exception e) {
             log.error("Something went wrong during sync ", e);
         }
     }
 
-    private void create_tables_for_users_if_not_exist(Spreadsheet spreadsheet, AppUser user) {
+    @SneakyThrows
+    private void syncDataForUser(AppUser user, Instant syncDt) {
+        Instant lastSyncDt = Instant.EPOCH;
+        Boolean createMeta = true;
+
+        List<DataFilter> metadataFilters = List.of(
+                new DataFilter()
+                        .setDeveloperMetadataLookup(
+                                new DeveloperMetadataLookup()
+                                        .setMetadataKey(MD_KEY_SHEET_LAST_SYNC_DT)
+                                        .setMetadataLocation(
+                                                new DeveloperMetadataLocation()
+                                                        .setSheetId(user.getSheetId())
+                                        )
+                        )
+        );
+        SearchDeveloperMetadataResponse execute = sheets.spreadsheets().developerMetadata().search(user.getGoogleSheetId(),
+                new SearchDeveloperMetadataRequest().setDataFilters(metadataFilters)
+        ).execute();
+
+        List<MatchedDeveloperMetadata> matchedDeveloperMetadata = execute.getMatchedDeveloperMetadata();
+        if (matchedDeveloperMetadata != null && !matchedDeveloperMetadata.isEmpty()) {
+            String metadataValue = matchedDeveloperMetadata.get(0).getDeveloperMetadata().getMetadataValue();
+            lastSyncDt = Instant.parse(metadataValue);
+            createMeta = false;
+        }
+
+        List<Order> ordersForSync = orderRepo.findAllForSync(lastSyncDt, user.getTelegramId());
+
+        if (ordersForSync.isEmpty()) {
+            log.info("No orders to sync for user {}", user.getTelegramId());
+            return;
+        }
+
+        CreateDeveloperMetadataRequest createMt = new CreateDeveloperMetadataRequest()
+                .setDeveloperMetadata(new DeveloperMetadata()
+                        .setVisibility("DOCUMENT")
+                        .setMetadataId(user.getSheetId())
+                        .setMetadataKey(MD_KEY_SHEET_LAST_SYNC_DT)
+                        .setMetadataValue(syncDt.toString())
+                        .setLocation(
+                                new DeveloperMetadataLocation()
+                                        .setSheetId(user.getSheetId())
+                        )
+                );
+
+        UpdateDeveloperMetadataRequest updateMt = new UpdateDeveloperMetadataRequest()
+                .setDataFilters(metadataFilters)
+                .setDeveloperMetadata(new DeveloperMetadata()
+                        .setVisibility("DOCUMENT")
+                        .setMetadataId(user.getSheetId())
+                        .setMetadataKey(MD_KEY_SHEET_LAST_SYNC_DT)
+                        .setMetadataValue(syncDt.toString())
+                        .setLocation(
+                                new DeveloperMetadataLocation()
+                                        .setSheetId(user.getSheetId())
+                        )
+                );
+
+        InsertRangeRequest insertRangeRequest = new InsertRangeRequest()
+                .setShiftDimension("ROWS")
+                .setRange(
+                        new GridRange()
+                                .setSheetId(user.getSheetId())
+                                .setStartRowIndex(1)
+                                .setEndRowIndex(1 + ordersForSync.size())
+                );
+
+        UpdateCellsRequest updateCellsRequest = new UpdateCellsRequest()
+                .setFields("*")
+                .setRows(ordersForSync.stream().map(this::createRowDataFromOrder).toList())
+                .setStart(
+                        new GridCoordinate()
+                                .setSheetId(user.getSheetId())
+                                .setRowIndex(1)
+                                .setColumnIndex(0)
+                );
+
+        BatchUpdateSpreadsheetResponse batchUpdate = sheets.spreadsheets().batchUpdate(
+                user.getGoogleSheetId(),
+                new BatchUpdateSpreadsheetRequest()
+                        .setRequests(
+                                List.of(
+                                        new Request().setInsertRange(insertRangeRequest),
+                                        new Request().setUpdateCells(updateCellsRequest),
+                                        createMeta
+                                                ? new Request().setCreateDeveloperMetadata(createMt)
+                                                : new Request().setUpdateDeveloperMetadata(updateMt)
+                                )
+                        )
+        ).execute();
+        log.info("result batchUpdate {}", batchUpdate);
+    }
+
+    private RowData createRowDataFromOrder(Order order) {
+        BigDecimal euroAmount = order.getEuroAmount().multiply(OrderType.OPEN.equals(order.getType()) ? BigDecimal.valueOf(-1) : BigDecimal.ONE);
+
+        String rateInnerPart = "IF(B:B<0,(%s*%s+B:B*C:C)/F:F,%s)".formatted(relCell(-1, 1), relCell(0, 1), relCell(0, 1));
+        String rateOuterPart = "=%s".formatted(isFirstRow("C:C", rateInnerPart));
+
+        String depTotalInnerPart = "%s+H:H+%s".formatted(relCell(0, 1), relCell(+1, 1));
+        String depTotalOuterPart = "=%s".formatted(isFirstRow("H:H", depTotalInnerPart));
+
+        return new RowData()
+                .setValues(List.of(
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setStringValue(order.getCreatedAt().toString())
+                                ),
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setNumberValue(euroAmount.doubleValue())
+                                ),
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setNumberValue(order.getPrice().doubleValue())
+                                ),
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setFormulaValue("=IF(B:B<>0,B:B*C:C,\"\")")
+                                ),
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setFormulaValue("=IF(D:D<0,D:D*-0.1%,\"\")")
+                                ),
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setFormulaValue("=B:B+%s".formatted(isFirstRow("0", relCell(0, 1))))
+                                ),
+                        // Rate
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setFormulaValue(rateOuterPart)
+                                ),
+                        // Deposit
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setFormulaValue("=IF(B:B>0,-B:B*(C:C-G:G),-E:E)")
+                                ),
+                        // Deposit total
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setFormulaValue(depTotalOuterPart)
+                                ),
+                        // Payment deposit amount
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setStringValue("")
+                                ),
+                        // Balance
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setFormulaValue("=I:I+J:J")
+                                )
+                ));
+    }
+
+    private String isFirstRow(String tStm, String fStm) {
+        return "IF(%s=\"\",%s,%s)".formatted(relCell(0, 1), tStm, fStm);
+    }
+
+    private String relCell(Integer x, Integer y) {
+        String yStr = y != 0 ? String.format("%+d", y) : "";
+        String xStr = x != 0 ? String.format("%+d", x) : "";
+        return "INDIRECT(ADDRESS(ROW()%s,COLUMN()%s))".formatted(yStr, xStr);
+    }
+
+    @SneakyThrows
+    private void createTablesForUsersIfNotExist(Spreadsheet spreadsheet, AppUser user) {
         String expectedId = getTableIdForUser(user);
         for (Sheet sheet : spreadsheet.getSheets()) {
             List<ArrayMap<String, Object>> tables = (List<ArrayMap<String, Object>>) sheet.get("tables");
@@ -97,16 +272,28 @@ public class GoogleSheetsService {
                     }
                 }
             }
-
         }
 
+        ArrayMap<String, Object> addTableRequest = new ArrayMap<>();
+        addTableRequest.put("table", new ArrayMap<String, Object>() {{
+            put("name", getTableNameForUser(user));
+            put("tableId", expectedId);
+            put("range", new ArrayMap<String, Object>() {{
+                put("sheetId", user.getSheetId());
+                put("startColumnIndex", 0);
+                put("endColumnIndex", SHORT_COLUMNS_PROPS.size());
+                put("startRowIndex", 0);
+            }});
+            put("columnProperties", SHORT_COLUMNS_PROPS);
+        }});
 
-//        sheets.spreadsheets().batchUpdate(user.getGoogleSheetId(),
-//                new BatchUpdateSpreadsheetRequest().setRequests(
-//                        List.of(
-//                                new AddTable
-//                        )
-//                ))
+        BatchUpdateSpreadsheetResponse execute = sheets.spreadsheets().batchUpdate(user.getGoogleSheetId(),
+                new BatchUpdateSpreadsheetRequest().setRequests(
+                        List.of(
+                                new Request().set("addTable", addTableRequest)
+                        )
+                )).execute();
+        log.info("Table created for user {} with id {}, {}", user.getTelegramId(), expectedId, execute);
     }
 
     @SneakyThrows
@@ -124,9 +311,9 @@ public class GoogleSheetsService {
                                 List.of(
                                         new Request()
                                                 .setDeleteSheet(new DeleteSheetRequest().setSheetId(0)
+                                                )
                                 )
-                        )
-                )).execute();
+                        )).execute();
     }
 
     @SneakyThrows
@@ -140,20 +327,19 @@ public class GoogleSheetsService {
 
         AddSheetRequest addSheetRequest = new AddSheetRequest()
                 .setProperties(new SheetProperties()
-                    .setTitle(getSpreadsheetTitle(user))
-                    .setSheetId(user.getSheetId())
-                    .setGridProperties(
-                            new GridProperties()
-                                    .setRowCount(1000)
-                                    .setColumnCount(26)
-                    )
+                        .setTitle(getSpreadsheetTitle(user))
+                        .setSheetId(user.getSheetId())
+                        .setGridProperties(
+                                new GridProperties()
+                                        .setRowCount(1000)
+                                        .setColumnCount(26)
+                        )
                 );
         BatchUpdateSpreadsheetResponse execute = sheets.spreadsheets().batchUpdate(user.getGoogleSheetId(),
                 new BatchUpdateSpreadsheetRequest().setRequests(
                         List.of(new Request().setAddSheet(addSheetRequest))
                 )
         ).execute();
-
     }
 
     @SneakyThrows
@@ -170,7 +356,7 @@ public class GoogleSheetsService {
                             .setType("user")
                             .setRole("writer")
                             .setEmailAddress(email)
-                    ).setSendNotificationEmail(true).execute();
+            ).setSendNotificationEmail(true).execute();
         }
         user.setGoogleSheetId(spreadsheet.getSpreadsheetId());
     }
@@ -189,4 +375,34 @@ public class GoogleSheetsService {
         return user.getTelegramId().toString();
     }
 
+    private String getTableNameForUser(AppUser user) {
+        return "HEDGE_%s".formatted(user.getTelegramId());
+    }
+
+    @AllArgsConstructor
+    private static class ColumnDefinition {
+        private String columnName;
+        private String columnType;
+    }
+
+    private static final List<ColumnDefinition> SHORT_COLUMNS = List.of(
+            new ColumnDefinition("Дата", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Сумма", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Фикс", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("USDT", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Ком. 0.1%", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Захеджировано", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Ставка", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Депозин", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Депозит  всего", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Сумма оплаты депозита", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Баланс", "COLUMN_TYPE_UNSPECIFIED")
+    );
+
+    AtomicInteger ai = new AtomicInteger(0);
+    List<? extends ArrayMap<String, Object>> SHORT_COLUMNS_PROPS = SHORT_COLUMNS.stream().map(c -> new ArrayMap<String, Object>() {{
+        put("columnIndex", ai.getAndIncrement());
+        put("columnName", c.columnName);
+        put("columnType", c.columnType);
+    }}).toList();
 }
