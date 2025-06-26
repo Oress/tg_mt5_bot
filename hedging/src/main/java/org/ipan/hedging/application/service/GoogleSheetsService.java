@@ -140,6 +140,7 @@ public class GoogleSheetsService {
 
         UpdateDeveloperMetadataRequest updateMt = new UpdateDeveloperMetadataRequest()
                 .setDataFilters(metadataFilters)
+                .setFields("*")
                 .setDeveloperMetadata(new DeveloperMetadata()
                         .setVisibility("DOCUMENT")
                         .setMetadataId(user.getSheetId())
@@ -151,32 +152,17 @@ public class GoogleSheetsService {
                         )
                 );
 
-        InsertRangeRequest insertRangeRequest = new InsertRangeRequest()
-                .setShiftDimension("ROWS")
-                .setRange(
-                        new GridRange()
-                                .setSheetId(user.getSheetId())
-                                .setStartRowIndex(1)
-                                .setEndRowIndex(1 + ordersForSync.size())
-                );
-
-        UpdateCellsRequest updateCellsRequest = new UpdateCellsRequest()
-                .setFields("*")
-                .setRows(ordersForSync.stream().map(this::createRowDataFromOrder).toList())
-                .setStart(
-                        new GridCoordinate()
-                                .setSheetId(user.getSheetId())
-                                .setRowIndex(1)
-                                .setColumnIndex(0)
-                );
-
         BatchUpdateSpreadsheetResponse batchUpdate = sheets.spreadsheets().batchUpdate(
                 user.getGoogleSheetId(),
                 new BatchUpdateSpreadsheetRequest()
                         .setRequests(
                                 List.of(
-                                        new Request().setInsertRange(insertRangeRequest),
-                                        new Request().setUpdateCells(updateCellsRequest),
+                                        new Request().setAppendCells(
+                                                new AppendCellsRequest()
+                                                        .setFields("*")
+                                                        .setSheetId(user.getSheetId())
+                                                        .setRows(ordersForSync.stream().map(this::createRowDataFromOrder).toList())
+                                        ),
                                         createMeta
                                                 ? new Request().setCreateDeveloperMetadata(createMt)
                                                 : new Request().setUpdateDeveloperMetadata(updateMt)
@@ -189,37 +175,43 @@ public class GoogleSheetsService {
     private RowData createRowDataFromOrder(Order order) {
         BigDecimal euroAmount = order.getEuroAmount().multiply(OrderType.OPEN.equals(order.getType()) ? BigDecimal.valueOf(-1) : BigDecimal.ONE);
 
-        String rateInnerPart = "IF(B:B<0,(%s*%s+B:B*C:C)/F:F,%s)".formatted(relCell(-1, 1), relCell(0, 1), relCell(0, 1));
+        String rateInnerPart = "IF(B:B<0,(%s*%s+B:B*C:C)/F:F,%s)".formatted(relCell(-1, -1), relCell(0, -1), relCell(0, -1));
         String rateOuterPart = "=%s".formatted(isFirstRow("C:C", rateInnerPart));
 
-        String depTotalInnerPart = "%s+H:H+%s".formatted(relCell(0, 1), relCell(+1, 1));
+        String depTotalInnerPart = "%s+H:H+%s".formatted(relCell(0, -1), relCell(+1, -1));
         String depTotalOuterPart = "=%s".formatted(isFirstRow("H:H", depTotalInnerPart));
 
         return new RowData()
                 .setValues(List.of(
+                        // Дата
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setStringValue(order.getCreatedAt().toString())
                                 ),
+                        // Сумма
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setNumberValue(euroAmount.doubleValue())
                                 ),
+                        // Фикс
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setNumberValue(order.getPrice().doubleValue())
                                 ),
+                        // USDT
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue("=IF(B:B<>0,B:B*C:C,\"\")")
                                 ),
+                        // Ком. 0,10
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue("=IF(D:D<0,D:D*-0.1%,\"\")")
                                 ),
+                        // Захеджировано
                         new CellData()
                                 .setUserEnteredValue(
-                                        new ExtendedValue().setFormulaValue("=B:B+%s".formatted(isFirstRow("0", relCell(0, 1))))
+                                        new ExtendedValue().setFormulaValue("=B:B+%s".formatted(isFirstRow("0", relCell(0, -1))))
                                 ),
                         // Rate
                         new CellData()
@@ -250,7 +242,7 @@ public class GoogleSheetsService {
     }
 
     private String isFirstRow(String tStm, String fStm) {
-        return "IF(%s=\"\",%s,%s)".formatted(relCell(0, 1), tStm, fStm);
+        return "IF(ROW()=2,%s,%s)".formatted(tStm, fStm);
     }
 
     private String relCell(Integer x, Integer y) {
