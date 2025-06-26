@@ -26,6 +26,9 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         generate_statistics: false
 app:
+  gsheets:
+    sa-json: ${APP_GGL_SA_FILE_LOCATION}
+    emails: ${APP_GGL_SHARE_EMAILS}
   python-http-proxy:
     url: ${APP_PYTHON_PROXY_URL:http://127.0.0.1:8000}
   encryption:

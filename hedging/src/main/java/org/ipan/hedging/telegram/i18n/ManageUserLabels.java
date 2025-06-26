@@ -19,8 +19,9 @@ public class ManageUserLabels {
     }
 
     public String preview(String telegramId, String username, String firstName,
-                          String accountNumber, String accountType, String disabled) {
-        return getLocalizedMessage("manage_users.preview", telegramId, username, firstName, accountNumber, accountType, disabled);
+                          String accountNumber, String accountType, String googleSheetUrl,
+                          String disabled) {
+        return getLocalizedMessage("manage_users.preview", telegramId, username, firstName, accountNumber, accountType, googleSheetUrl, disabled);
     }
 
     public String menuDeactivate() {

@@ -30,6 +30,7 @@ public class UserService {
         }
 
         appUser = new AppUser();
+        appUser.setSheetId(userRepo.getNextSheetId());
         updateModelFromCommand(command, appUser);
 
         userRepo.save(appUser);

@@ -17,7 +17,7 @@ public interface UserRepo extends JpaRepository<AppUser, Long> {
                 WHERE LOWER(u.telegramUsername) LIKE LOWER(:username) OR LOWER(u.telegramFirstName) LIKE LOWER(:firstName)
                 ORDER BY u.telegramUsername, u.telegramFirstName, u.id
             """
-            )
+    )
     Page<AppUser> searchByUsernameAndFirstname(String username, String firstName, PageRequest of);
 
     @Query("select u from AppUser u left join fetch u.availableInstruments where u.telegramId = :userId")
@@ -27,15 +27,21 @@ public interface UserRepo extends JpaRepository<AppUser, Long> {
 
     @Query(nativeQuery = true,
             value = """
-            select
-                i.label,
-                u.tg_id is not null as enabled
-            from
-                hed_instruments i
-                    left join hed_user_instruments ui on i.label = ui.instrument_label
-                    left join hed_users u on ui.instrument_label = i.label
-            where u.tg_id = :userId or u.tg_id is null
-            order by i.label
-    """)
+                            select
+                                i.label,
+                                u.tg_id is not null as enabled
+                            from
+                                hed_instruments i
+                                    left join hed_user_instruments ui on i.label = ui.instrument_label
+                                    left join hed_users u on ui.instrument_label = i.label
+                            where u.tg_id = :userId or u.tg_id is null
+                            order by i.label
+                    """)
     List<EnabledInstrumentPerUser> getEnabledInstruments(Long userId);
+
+    @Query(nativeQuery = true,
+            value = """
+                    select nextval('seq_hed_users_sheet_id')
+                    """)
+    Integer getNextSheetId();
 }

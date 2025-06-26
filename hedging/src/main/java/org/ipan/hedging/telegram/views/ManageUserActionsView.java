@@ -221,6 +221,7 @@ public class ManageUserActionsView {
                 ParseUtils.escapeMarkdown(FormattingTools.valOrDash(user.getTelegramFirstName())),
                 FormattingTools.valOrDash(user.getMt5AccNumber()),
                 FormattingTools.valOrDash(user.getAccountType()),
+                user.getGoogleSheetId() == null ? "Нет" : "https://docs.google.com/spreadsheets/d/"+user.getGoogleSheetId(),
                 user.getDisabled() ? commonLabels.cross() : commonLabels.check()
                 );
     }

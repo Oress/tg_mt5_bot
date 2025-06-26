@@ -2,6 +2,7 @@ package org.ipan.hedging.telegram.handlers;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.ipan.hedging.application.service.GoogleSheetsService;
 import org.ipan.hedging.application.service.Mt5Service;
 import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.model.Instrument;
@@ -45,6 +46,7 @@ public class HedgingHandler {
     private final HedgeLabels hedgeLabels;
     private final Mt5Service mt5Service;
     private final TelegramMessages telegramMessages;
+    private final GoogleSheetsService googleSheetsService;
 
     @MatchStates({
             @MatchState(state = States.MAIN_MENU, callbackData = InlineMenuCallbacks.MENU_START_HEDGE),
@@ -253,6 +255,7 @@ public class HedgingHandler {
                     baseEquivalent.toString(),
                     user.findInstrumentBySymbol(order.getInstrument()).getSymbolByMode()
             );
+            googleSheetsService.syncUser(userState.getTelegramId());
         }
 
         Message newMenuMsg = telegramMessages.sendUserMainMenuBasedOnRole(userState, userState.getChatId(), user);
