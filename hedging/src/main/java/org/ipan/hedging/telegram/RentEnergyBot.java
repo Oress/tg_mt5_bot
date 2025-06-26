@@ -185,6 +185,7 @@ public class RentEnergyBot implements LongPollingSingleThreadUpdateConsumer {
                 telegramMessages.deleteMessage(message);
 
                 if (user == null) {
+                    TgUserLocaleHolder.setUserLocale(Locale.of("ru"));
                     User from = message.getFrom();
 //                    String languageCode = extractLangFromUser(from);
                     user = userService.createUser(

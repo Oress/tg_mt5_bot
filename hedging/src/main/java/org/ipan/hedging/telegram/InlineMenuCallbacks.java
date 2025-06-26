@@ -12,6 +12,7 @@ public class InlineMenuCallbacks {
     public static final String HEDGE_CHANGE_ORDER = "hedge_change_order";
     public static final String HEDGE_OP_SELL = "hedge_op_sell";
     public static final String HEDGE_OP_BUY = "hedge_op_buy";
+    public static final String MANAGE_USER_ACTION_VIEW_POSITIONS = "manage_user_action_view_positions";
     private final static Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
     public static final String TO_MAIN_MENU = "action_main_menu";

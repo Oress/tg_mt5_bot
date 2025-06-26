@@ -134,6 +134,19 @@ public class HedgeViews {
     }
 
     @SneakyThrows
+    public void greaterThanMaxAvailable(UserState userState, BigDecimal availToSpend) {
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(userState.getChatId())
+                .messageId(userState.getMenuMessageId())
+                .text(hedgeLabels.greaterThatMax(availToSpend))
+                .replyMarkup(commonViews.getToMainMenuMarkup())
+                .build();
+        tgClient.execute(message);
+    }
+
+
+    @SneakyThrows
     public void greaterThanAvailable(UserState userState, BigDecimal availToSpend) {
         EditMessageText message = EditMessageText
                 .builder()
@@ -175,7 +188,7 @@ public class HedgeViews {
                 .builder()
                 .chatId(userState.getChatId())
                 .messageId(userState.getMenuMessageId())
-                .text(hedgeLabels.noInstruments())
+                .text(hedgeLabels.orderFailed())
                 .replyMarkup(commonViews.getToMainMenuMarkup())
                 .build();
         tgClient.execute(message);

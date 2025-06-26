@@ -8,6 +8,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -20,22 +21,14 @@ public class AppUser {
     @Column(name = "tg_id")
     private Long telegramId;
 
-    @ManyToMany
-    @JoinTable(
-            name = "hed_user_instruments",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "instrument_label")
-    )
-    private Set<Instrument> availableInstruments = new HashSet<>();
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<AppUserInstrument> availableInstruments = new HashSet<>();
 
     @Column(name = "username")
     private String telegramUsername;
 
     @Column(name = "first_name")
     private String telegramFirstName;
-
-    @Column(name = "sheet_id")
-    private Integer sheetId;
 
     @Column(name = "ggl_sheet_id")
     private String googleSheetId;
@@ -65,6 +58,12 @@ public class AppUser {
     @Column(name = "created_at")
     private Instant createdAt;
 
+    public List<Instrument> getInstruments() {
+        return availableInstruments.stream()
+                .map(AppUserInstrument::getInstrument)
+                .toList();
+    }
+
     public boolean hasAccount() {
         return mt5AccNumber != null && mt5AccPwdEnc != null;
     }
@@ -74,12 +73,27 @@ public class AppUser {
     }
 
     public boolean containsInstument(String instrumentLabel) {
-        return availableInstruments.stream().anyMatch(i -> i.getLabel().equals(instrumentLabel));
+        return availableInstruments.stream().anyMatch(i -> i.getInstrument().getLabel().equals(instrumentLabel));
     }
 
-    public String getSymbolByLabelAndAccType(String symbol) {
-        for (Instrument instrument : availableInstruments) {
-            if (instrument.getLabel().equals(symbol)) {
+    public boolean containsInstumentBySymbol(String symbol) {
+        for (Instrument instrument : availableInstruments.stream().map(AppUserInstrument::getInstrument).toList()) {
+            if (switch (accountType) {
+                case STANDARD -> symbol.equals(instrument.getSymbolStandard());
+                case MINI -> symbol.equals(instrument.getSymbolMini());
+                case ZERO -> symbol.equals(instrument.getSymbolZero());
+                default -> symbol.equals(instrument.getSymbolMini());
+            }) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    public String getSymbolByLabelAndAccType(String label) {
+        for (Instrument instrument : availableInstruments.stream().map(AppUserInstrument::getInstrument).toList()) {
+            if (instrument.getLabel().equals(label)) {
                 return switch (accountType) {
                     case STANDARD -> instrument.getSymbolStandard();
                     case MINI -> instrument.getSymbolMini();
@@ -92,7 +106,7 @@ public class AppUser {
     }
 
     public Instrument findInstrumentBySymbol(String symbol) {
-        for (Instrument instrument : availableInstruments) {
+        for (Instrument instrument : availableInstruments.stream().map(AppUserInstrument::getInstrument).toList()) {
             if (instrument.getSymbolZero().equals(symbol)
                     || instrument.getSymbolMini().equals(symbol)
                     || instrument.getSymbolStandard().equals(symbol)) {
@@ -102,4 +116,12 @@ public class AppUser {
         return null;
     }
 
+    public AppUserInstrument addInstrument(Instrument instrument) {
+        AppUserInstrument userInstrument = new AppUserInstrument();
+        userInstrument.setInstrument(instrument);
+        userInstrument.setUser(this);
+        userInstrument.setSheetId(instrument.getSheetId());
+        availableInstruments.add(userInstrument);
+        return userInstrument;
+    }
 }

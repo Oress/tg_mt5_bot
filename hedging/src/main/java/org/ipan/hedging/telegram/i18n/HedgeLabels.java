@@ -51,7 +51,7 @@ public class HedgeLabels {
 
     public String preview(String operation, String instrument, String amount, String unit, String rate) {
         return """
-                Предварительный просмотр:
+                🔎 Предварительный просмотр:
                 
                 Операция: %s
                 Инструмент: %s
@@ -65,47 +65,58 @@ public class HedgeLabels {
     }
 
     public String placeOrder() {
-        return "Разместить ордер";
+        return "✅ Разместить ордер";
     }
 
     public String changeOrder() {
-        return "Изменить ордер";
+        return "✏️ Изменить ордер";
     }
 
     public String noInstruments() {
-        return "Нет доступных инструментов для хеджирования. Пожалуйста, обратитесь к админу.";
+        return "⚠️ Нет доступных инструментов для хеджирования. Пожалуйста, обратитесь к админу.";
     }
 
     public String sell() {
-        return "Продать";
+        return "\uD83D\uDD3D Продать";
     }
 
     public String buy() {
-        return "Купить";
+        return "\uD83D\uDD3C Купить";
     }
 
     public String minAmountWarning(Double minAmount) {
         return """
-                Число меньше минимума: %s.
+                ❗Число меньше минимума: %s.
                  Пожалуйста, введите корректное число."""
                 .formatted(BigDecimal.valueOf(minAmount).setScale(0, RoundingMode.HALF_DOWN));
     }
 
     public String greaterThatAvail(BigDecimal availToSpend) {
         return """
-                Число превышает доступный баланс: %s.
+                ❗Число превышает доступный баланс: %s.
                 Пожалуйста, введите корректное число.
                 """.formatted(availToSpend.setScale(0, RoundingMode.HALF_DOWN));
     }
 
+    public String greaterThatMax(BigDecimal maxToSpend) {
+        return """
+                ❗Число превышает макс/ доступную сумму за 1 операцию: %s.
+                Пожалуйста, введите корректное число.
+                """.formatted(maxToSpend.setScale(0, RoundingMode.HALF_DOWN));
+    }
+
     public String stepWarning(Double step) {
         return """
-                Число должно быть кратно %s.
+                ❗Число должно быть кратно %s.
                  Пожалуйста, введите корректное число."""
                 .formatted(BigDecimal.valueOf(step).setScale(0, RoundingMode.HALF_DOWN));
     }
 
     public String noActivePositions() {
         return "Нет активных позиций, пожалуйста начните сначала.";
+    }
+
+    public String orderFailed() {
+        return "❌ Не удалось выполнить ордер. Пожалуйста, попробуйте позже или обратитесь к администратору.";
     }
 }

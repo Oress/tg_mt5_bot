@@ -2,6 +2,7 @@ package org.ipan.hedging.domain.service;
 
 import org.ipan.hedging.domain.model.AccountType;
 import org.ipan.hedging.domain.model.AppUser;
+import org.ipan.hedging.domain.model.AppUserInstrument;
 import org.ipan.hedging.domain.model.Instrument;
 import org.ipan.hedging.domain.model.repository.InstrumentRepo;
 import org.ipan.hedging.domain.model.repository.UserRepo;
@@ -30,7 +31,6 @@ public class UserService {
         }
 
         appUser = new AppUser();
-        appUser.setSheetId(userRepo.getNextSheetId());
         updateModelFromCommand(command, appUser);
 
         userRepo.save(appUser);
@@ -60,11 +60,12 @@ public class UserService {
         return appUser;
     }
 
-    // TODO: redo
     @Transactional
     public void deactivateUser(Long selectedUserId) {
         AppUser appUser = userRepo.findById(selectedUserId).orElse(null);
         if (appUser != null) {
+            appUser.setAccountType(null);
+            appUser.setMt5AccPwdEnc(null);
             appUser.setDisabled(true);
         }
     }
@@ -81,16 +82,16 @@ public class UserService {
     }
 
     @Transactional
-    public AppUser toggleInstrument(Long userId, String instrumentLabel) {
+    public AppUser toggleInstrument(Long userId, String userInstrumentLabel) {
         AppUser appUser = userRepo.findById(userId).orElse(null);
-        Set<Instrument> availableInstruments = appUser.getAvailableInstruments();
+        Set<AppUserInstrument> availableInstruments = appUser.getAvailableInstruments();
 
-        if (availableInstruments.removeIf(i -> instrumentLabel.equals(i.getLabel()))) {
-            log.info("Instument {} has been DISABLED for user", userId, instrumentLabel);
+        if (availableInstruments.removeIf(i -> userInstrumentLabel.equals(i.getInstrument().getLabel()))) {
+            log.info("Instument {} has been DISABLED for user {}", userInstrumentLabel, userId);
         } else {
-            log.info("Instument {} has been ENABLED for user", userId, instrumentLabel);
-            Instrument instrument = instrumentRepo.findById(instrumentLabel).get();
-            availableInstruments.add(instrument);
+            log.info("Instument {} has been ENABLED for user {}", userInstrumentLabel, userId);
+            Instrument instrument = instrumentRepo.findById(userInstrumentLabel).get();
+            AppUserInstrument userInstrument = appUser.addInstrument(instrument);
         }
 
         return appUser;

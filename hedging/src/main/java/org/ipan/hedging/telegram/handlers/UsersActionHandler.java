@@ -34,9 +34,20 @@ public class UsersActionHandler {
     private final Mt5Service mt5Service;
     private final TelegramMessages telegramMessages;
 
+    /*
+    @MatchState(state = States.ADMIN_MANAGE_USERS_ACTION_PREVIEW, callbackData = InlineMenuCallbacks.MANAGE_USER_ACTION_VIEW_POSITIONS)
+    public void viewPositions(UserState userState, Update update) {
+        AppUser user = userRepo.findByIdWithInstruments(userState.getTelegramId());
+        List<Mt5Service.TradePos> tradePos = mt5Service.positionsGetAll(user);
+        manageUserActionsView.showEnabledInstruments(userState, enabledInstruments);
+        telegramState.updateUserState(userState.getTelegramId(),
+                userState.withState(States.ADMIN_MANAGE_USER_ACTION_CHANGE_INSTUMENTS));
+    }*/
+
     @MatchState(state = States.ADMIN_MANAGE_USERS_ACTION_PREVIEW, callbackData = InlineMenuCallbacks.MANAGE_USER_ACTION_CHANGE_INSTRUMENTS)
     public void changeEnabledInstruments(UserState userState, Update update) {
-        List<EnabledInstrumentPerUser> enabledInstruments = userRepo.getEnabledInstruments(userState.getTelegramId());
+        UserEdit openedUser = telegramState.getOrCreateUserEdit(userState.getTelegramId());
+        List<EnabledInstrumentPerUser> enabledInstruments = userRepo.getEnabledInstruments(openedUser.getSelectedUserId());
         manageUserActionsView.showEnabledInstruments(userState, enabledInstruments);
         telegramState.updateUserState(userState.getTelegramId(),
                 userState.withState(States.ADMIN_MANAGE_USER_ACTION_CHANGE_INSTUMENTS));
@@ -47,7 +58,7 @@ public class UsersActionHandler {
         String data = update.getCallbackQuery().getData();
         var toggleUserInstrument = InlineMenuCallbacks.getToggleUserInstrument(data);
         if (toggleUserInstrument != null) {
-
+            log.info("Toggling instrument {} for user {}", toggleUserInstrument.getInstrument(), toggleUserInstrument.getUserId());
             userService.toggleInstrument(toggleUserInstrument.getUserId(), toggleUserInstrument.getInstrument());
             changeEnabledInstruments(userState, update);
         }
@@ -96,7 +107,7 @@ public class UsersActionHandler {
             manageUserActionsView.changeCredsSuccess(userState);
             telegramState.updateUserState(userState.getTelegramId(), userState.withState(States.ADMIN_MANAGE_USER_ACTION_CHANGE_CREDS_SUCCESS));
         } catch (NumberFormatException e) {
-            log.error("User enters invalid credentials {}", credsStr, e);
+            log.error("NumberFormatException User enters invalid credentials {}", credsStr, e);
         }
     }
 

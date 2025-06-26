@@ -167,7 +167,7 @@ public class ManageUserActionsView {
                 .chatId(userState.getChatId())
                 .messageId(userState.getMenuMessageId())
                 .text("Инструменты, доступные пользователю:")
-                .replyMarkup(instrumentPerUsersMarkup(userState.getTelegramId(), instrumentPerUsers))
+                .replyMarkup(instrumentPerUsersMarkup(instrumentPerUsers))
                 .build();
         tgClient.execute(message);
     }
@@ -183,7 +183,7 @@ public class ManageUserActionsView {
         tgClient.execute(message);
     }
 
-    public InlineKeyboardMarkup instrumentPerUsersMarkup(Long userId, List<EnabledInstrumentPerUser> instrumentPerUsers) {
+    public InlineKeyboardMarkup instrumentPerUsersMarkup(List<EnabledInstrumentPerUser> instrumentPerUsers) {
         var builder = InlineKeyboardMarkup.builder();
 
         for (EnabledInstrumentPerUser instrumentPerUser : instrumentPerUsers) {
@@ -194,7 +194,7 @@ public class ManageUserActionsView {
                                     .text("%s %s".formatted(
                                             instrumentPerUser.getIsEnabled() ? commonLabels.greenCircle() : commonLabels.redCircle(),
                                             instrumentPerUser.getLabel()))
-                                    .callbackData(InlineMenuCallbacks.toggleInstrumentForUser(userId, instrumentPerUser.getLabel()))
+                                    .callbackData(InlineMenuCallbacks.toggleInstrumentForUser(instrumentPerUser.getUserId(), instrumentPerUser.getLabel()))
                                     .build()));
         }
 
@@ -242,7 +242,15 @@ public class ManageUserActionsView {
                                         .builder()
                                         .text("💲Изменить доступные инструменты")
                                         .callbackData(InlineMenuCallbacks.MANAGE_USER_ACTION_CHANGE_INSTRUMENTS)
-                                        .build()));
+                                        .build()))
+/*                .keyboardRow(
+                        new InlineKeyboardRow(
+                                InlineKeyboardButton
+                                        .builder()
+                                        .text("📈 Посмотреть позиции")
+                                        .callbackData(InlineMenuCallbacks.MANAGE_USER_ACTION_VIEW_POSITIONS)
+                                        .build()))*/
+                ;
 
         if (showDeactivateBtn) {
                 builder.keyboardRow(

@@ -11,6 +11,6 @@ import java.util.UUID;
 
 @Repository
 public interface OrderRepo extends JpaRepository<Order, UUID> {
-    @Query("select o from Order o where o.createdAt > :syncDt and o.user.telegramId = :telegramId order by o.createdAt")
-    List<Order> findAllForSync(Instant syncDt, Long telegramId);
+    @Query("select o from Order o where o.instrument = :symbol and o.createdAt > :syncDt and o.user.telegramId = :telegramId order by o.createdAt")
+    List<Order> findAllForSyncByInstrument(Instant syncDt, Long telegramId, String symbol);
 }

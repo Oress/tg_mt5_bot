@@ -33,6 +33,42 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+
+//        10004: "Requote",
+//        10006: "Запрос отклонен",
+//        10007: "Запрос отменен трейдером",
+//        10008: "Ордер размещен",
+//        10009: "Запрос выполнен",
+//        10010: "Была выполнена только часть запроса",
+//        10011: "Ошибка обработки запроса",
+//        10012: "Запрос отменен из-за тайм-аута",
+//        10013: "Неверный запрос",
+//        10014: "Неверный объем в запросе",
+//        10015: "Неверная цена в запросе",
+//        10016: "Неверные остановки в запросе",
+//        10017: "Торговля отключена",
+//        10018: "Рынок закрыт.",
+//        10019: "Недостаточно денег для выполнения запроса",
+//        10020: "Цены изменены",
+//        10021: "Нет котировок для обработки запроса",
+//        10022: "Неверная дата окончания срока действия ордера в запросе",
+//        10023: "Состояние ордера изменено",
+//        10024: "Слишком частые запросы",
+//        10025: "Никаких изменений в запросе.",
+//        10026: "Автоторговля отключена сервером",
+//        10027: "Автоторговля отключена клиентским терминалом",
+//        10028: "Запрос заблокирован для обработки",
+//        10029: "Ордер или позиция заморожены",
+//        10030: "Неверный тип заполнения ордера",
+//        10031: "Нет соединения с торговым сервером",
+//        10032: "Операция разрешена только для реальных счетов.",
+//        10033: "Количество ожидающих ордеров достигло предела",
+//        10034: "Объем ордеров и позиций по символу достиг предела",
+//        10035: "Неправильный или запрещенный тип ордера",
+//        10036: "Позиция с указанным POSITION_IDENTIFIER уже закрыта",
+//        10038: "Объем закрытия превышает объем текущей позиции",
+//        10039: "Для указанной позиции уже существует ордер на закрытие.",
+
 @TransitionHandler
 @AllArgsConstructor
 @Slf4j
@@ -53,6 +89,7 @@ public class HedgingHandler {
             @MatchState(state = States.HEDGE_PREVIEW, callbackData = InlineMenuCallbacks.HEDGE_CHANGE_ORDER)
     })
     public void start_hedge(UserState userState, Update update) {
+        log.info("User {} requested hedging operation", userState.getTelegramId());
         AppUser user = userRepo.findByIdWithInstruments(userState.getTelegramId());
 
         if (!user.hasAccount()) {
@@ -67,7 +104,7 @@ public class HedgingHandler {
             return;
         }
 
-        hedgeViews.promptInstruments(userState, new ArrayList<>(user.getAvailableInstruments().stream().sorted(Comparator.comparing(i -> i.getLabel())).toList()));
+        hedgeViews.promptInstruments(userState, new ArrayList<>(user.getAvailableInstruments().stream().map(i -> i.getInstrument()).sorted(Comparator.comparing(i -> i.getLabel())).toList()));
         telegramState.updateUserState(userState.getTelegramId(), userState.withState(States.HEDGE_INSTRUMENT));
     }
 
@@ -75,6 +112,7 @@ public class HedgingHandler {
             @MatchState(state = States.HEDGE_INSTRUMENT, updateTypes = UpdateType.CALLBACK_QUERY),
     })
     public void handleInstrument(UserState userState, Update update) {
+        log.info("User {} selected instrument for hedging: {}", userState.getTelegramId(), update.getCallbackQuery().getData());
         String instrumentLabel = update.getCallbackQuery().getData();
         if (InlineMenuCallbacks.TO_MAIN_MENU.equals(instrumentLabel)) return;
 
@@ -101,6 +139,7 @@ public class HedgingHandler {
             @MatchState(state = States.HEDGE_OPERATION, updateTypes = UpdateType.CALLBACK_QUERY),
     })
     public void handleOperation(UserState userState, Update update) {
+        log.info("User {} selected operation for hedging: {}", userState.getTelegramId(), update.getCallbackQuery().getData());
         // Check if the operation is valid for the selected instrument
         String operation = update.getCallbackQuery().getData();
         if (InlineMenuCallbacks.TO_MAIN_MENU.equals(operation)) return;
@@ -117,12 +156,15 @@ public class HedgingHandler {
         Instrument instrumentBySymbol = user.findInstrumentBySymbol(hedgeOp.getSymbol());
 
         if (canHedgeOut(instrumentBySymbol, operation)) {
+            log.info("User {} is trying to hedge out for symbol: {}", userState.getTelegramId(), hedgeOp.getSymbol());
             Mt5Service.TradePos tradePos = mt5Service.positionsGet(user, hedgeOp.getSymbol());
             if (tradePos == null) {
+                log.info("User {} has no open positions for symbol: {}", userState.getTelegramId(), hedgeOp.getSymbol());
                 hedgeViews.noActivePositions(userState);
                 return;
             } else {
                 BigDecimal availToSpend = BigDecimal.valueOf(tradePos.getVolume() * symbolInfo.getTrade_contract_size()).setScale(0, RoundingMode.HALF_DOWN);
+                log.info("User {} has open positions for symbol: {}, available to hedge out: {}", userState.getTelegramId(), hedgeOp.getSymbol(), availToSpend);
                 hedgeViews.promptVolumeForHedgeOut(userState,
                         instrumentBySymbol.getSymbolByMode(),
                         instrumentBySymbol.getLabel(),
@@ -130,6 +172,7 @@ public class HedgingHandler {
                 );
             }
         } else if (canHedge(instrumentBySymbol, operation)) {
+            log.info("User {} is trying to hedge for symbol: {}", userState.getTelegramId(), hedgeOp.getSymbol());
             hedgeViews.promptVolumeForHedge(userState,
                     instrumentBySymbol.getSymbolByMode(),
                     instrumentBySymbol.getLabel()
@@ -144,6 +187,7 @@ public class HedgingHandler {
             @MatchState(state = States.HEDGE_VOLUME, updateTypes = UpdateType.MESSAGE),
     })
     public void handleVolume(UserState userState, Update update) {
+        log.info("User {} entered volume for hedging: {}", userState.getTelegramId(), update.getMessage().getText());
         AppUser user = userRepo.findByIdWithInstruments(userState.getTelegramId());
 
         BigDecimal availToSpend = BigDecimal.ZERO;
@@ -160,6 +204,7 @@ public class HedgingHandler {
                 availToSpend = BigDecimal.valueOf(tradePos.getVolume()).multiply(BigDecimal.valueOf(symbolInfo.getTrade_contract_size())).setScale(0, RoundingMode.HALF_DOWN);
 
                 if (amount > availToSpend.intValue()) {
+                    log.warn("User {} tried to hedge out with amount greater than available: {} > {}", userState.getTelegramId(), amount, availToSpend);
                     hedgeViews.greaterThanAvailable(userState, availToSpend);
                     return;
                 }
@@ -169,12 +214,15 @@ public class HedgingHandler {
             Double maxAmount = symbolInfo.getVolume_max() * symbolInfo.getTrade_contract_size();
             Double stepAmount = symbolInfo.getVolume_step() * symbolInfo.getTrade_contract_size();
             if (amount < minAmount) {
+                log.warn("User {} tried to hedge with amount less than minimum: {} < {}", userState.getTelegramId(), amount, minAmount);
                 hedgeViews.lessThanMinAmount(userState, minAmount);
                 return;
             } else if (amount > maxAmount) {
-                hedgeViews.greaterThanAvailable(userState, BigDecimal.valueOf(maxAmount));
+                log.warn("User {} tried to hedge with amount greater than maximum: {} > {}", userState.getTelegramId(), amount, maxAmount);
+                hedgeViews.greaterThanMaxAvailable(userState, BigDecimal.valueOf(maxAmount));
                 return;
             } else if (amount % stepAmount != 0) {
+                log.warn("User {} tried to hedge with amount not divisible by step: {} % {} != 0", userState.getTelegramId(), amount, stepAmount);
                 hedgeViews.stepWarning(userState, stepAmount);
                 return;
             }
@@ -201,6 +249,11 @@ public class HedgingHandler {
     public void handlePreviewPlace(UserState userState, Update update) {
         AppUser user = userRepo.findByIdWithInstruments(userState.getTelegramId());
         HedgeOpState hedgeOp = telegramState.getOrCreateHedgeOp(userState.getTelegramId());
+
+        if (!user.containsInstumentBySymbol(hedgeOp.getSymbol())) {
+            log.error("User has selected instrument that should not be available to them {} {}", userState.getTelegramId(), hedgeOp.getSymbol());
+            return;
+        }
 
         var symbolInfo = mt5Service.symbolInfo(user, hedgeOp.getSymbol());
         BigDecimal amount = hedgeOp.getVolume().multiply(BigDecimal.valueOf(symbolInfo.getTrade_contract_size())).setScale(0, RoundingMode.HALF_DOWN);

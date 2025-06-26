@@ -20,23 +20,21 @@ public interface UserRepo extends JpaRepository<AppUser, Long> {
     )
     Page<AppUser> searchByUsernameAndFirstname(String username, String firstName, PageRequest of);
 
-    @Query("select u from AppUser u left join fetch u.availableInstruments where u.telegramId = :userId")
+    @Query("select u from AppUser u left join fetch u.availableInstruments ui left join fetch ui.instrument where u.telegramId = :userId")
     AppUser findByIdWithInstruments(Long userId);
 
     List<AppUser> findByMt5AccNumber(Integer mt5AccNumber);
 
     @Query(nativeQuery = true,
             value = """
-                            select
-                                i.label,
-                                u.tg_id is not null as enabled
-                            from
-                                hed_instruments i
-                                    left join hed_user_instruments ui on i.label = ui.instrument_label
-                                    left join hed_users u on ui.instrument_label = i.label
-                            where u.tg_id = :userId or u.tg_id is null
-                            order by i.label
-                    """)
+            select
+                :userId,
+                i.label,
+                exists(select * from hed_user_instruments ui where ui.user_id = :userId and ui.instrument_label = i.label) as enabled
+            from
+                hed_instruments i
+            order by i.label
+    """)
     List<EnabledInstrumentPerUser> getEnabledInstruments(Long userId);
 
     @Query(nativeQuery = true,

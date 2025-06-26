@@ -28,6 +28,9 @@ public class Instrument {
     @Column(name = "symbol_standard")
     private String symbolStandard;
 
+    @Column(name = "sheet_id")
+    private Integer sheetId;
+
     private String base;
     private String quote;
 

@@ -30,6 +30,7 @@ public class BalanceHandler {
             @MatchState(state = States.MAIN_MENU, callbackData = InlineMenuCallbacks.MENU_SHOW_BALANCE),
     })
     public void showBalance(UserState userState, Update update) {
+        log.info("User {} requested balance review", userState.getTelegramId());
         AppUser user = userRepo.findByIdWithInstruments(userState.getTelegramId());
 
         if (!user.hasAccount()) {
@@ -40,8 +41,10 @@ public class BalanceHandler {
         List<Mt5Service.TradePos> tradePos = mt5Service.positionsGetAll(user);
 
         if (tradePos == null || tradePos.isEmpty()) {
+            log.info("user has NO open positions: {}", user.getTelegramId());
             balanceViews.noOpenPositions(userState);
         } else {
+            log.info("user has open positions: {}", user.getTelegramId());
             balanceViews.showBalance(userState, user, tradePos);
         }
 

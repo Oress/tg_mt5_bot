@@ -5,11 +5,6 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
     <changeSet id="create table hed_users" author="oress">
-        <createSequence sequenceName="seq_hed_users_sheet_id"
-                        dataType="int"
-                        incrementBy="1"
-                        startValue="1"/>
-
         <createTable tableName="hed_users">
             <column name="tg_id" type="bigint">
                 <constraints primaryKey="true" nullable="true" unique="true"/>
@@ -23,7 +18,6 @@
             <column name="username" type="text"/>
             <column name="language_code" type="text"/>
             <column name="first_name" type="text"/>
-            <column name="sheet_id" type="int" defaultValue="nextval('seq_hed_users_sheet_id')" />
             <column name="ggl_sheet_id" type="text"/>
             <column name="account_type" type="text"/>
 
@@ -53,16 +47,63 @@
             <column name="base" type="text" />
             <column name="quote" type="text" />
             <column name="mode" type="text" />
+            <column name="sheet_id" type="int" />
             <column name="created_at" type="TIMESTAMP"/>
         </createTable>
     </changeSet>
 
+    <changeSet id="create seq seq_hed_users_sheet_id" author="oress">
+        <createSequence sequenceName="seq_hed_users_sheet_id"
+                        dataType="int"
+                        incrementBy="1"
+                        startValue="1"/>
+    </changeSet>
+
+    <changeSet id="create seq_hed_user_instruments" author="oress">
+        <createSequence sequenceName="seq_hed_user_instruments"
+                        dataType="int"
+                        incrementBy="1"
+                        startValue="1"/>
+    </changeSet>
+
     <changeSet id="create table hed_user_instruments" author="oress">
         <createTable tableName="hed_user_instruments">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
             <column name="user_id" type="bigint" />
             <column name="instrument_label" type="text" />
+            <column name="sheet_id" type="int" defaultValue="nextval('seq_hed_users_sheet_id')" />
             <column name="created_at" type="TIMESTAMP" defaultValue="now()"/>
         </createTable>
+    </changeSet>
+
+    <changeSet id="create idx_hed_user_instruments_user_id" author="oress">
+        <createIndex tableName="hed_user_instruments" indexName="idx_hed_user_instruments_user_id">
+            <column name="user_id" />
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="create idx_hed_user_instruments_instrument_label" author="oress">
+        <createIndex tableName="hed_user_instruments" indexName="idx_hed_user_instruments_instrument_label">
+            <column name="instrument_label" />
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="create fk_hed_user_instruments_instrument_label" author="oress">
+        <addForeignKeyConstraint constraintName="fk_hed_user_instruments_instrument_label"
+                                 baseTableName="hed_user_instruments"
+                                 baseColumnNames="instrument_label"
+                                 referencedTableName="hed_instruments"
+                                 referencedColumnNames="label" />
+    </changeSet>
+
+    <changeSet id="create fk_hed_user_instruments_user_id" author="oress">
+        <addForeignKeyConstraint constraintName="fk_hed_user_instruments_user_id"
+                                 baseTableName="hed_user_instruments"
+                                 baseColumnNames="user_id"
+                                 referencedTableName="hed_users"
+                                 referencedColumnNames="tg_id" />
     </changeSet>
 
     <changeSet id="insert EUR/USD instrument" author="oress">
@@ -74,6 +115,7 @@
             <column name="base" value="EUR" />
             <column name="quote" value="USD" />
             <column name="mode" value="SHORT" />
+            <column name="sheet_id" value="10" />
             <column name="created_at" value="now()"/>
         </insert>
     </changeSet>
@@ -87,6 +129,7 @@
             <column name="base" value="USD" />
             <column name="quote" value="CAD" />
             <column name="mode" value="LONG" />
+            <column name="sheet_id" value="11" />
             <column name="created_at" value="now()"/>
         </insert>
     </changeSet>

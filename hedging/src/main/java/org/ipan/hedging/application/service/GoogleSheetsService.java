@@ -16,9 +16,7 @@ import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.ipan.hedging.GoogleSheetsConfig;
-import org.ipan.hedging.domain.model.AppUser;
-import org.ipan.hedging.domain.model.Order;
-import org.ipan.hedging.domain.model.OrderType;
+import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.repository.OrderRepo;
 import org.ipan.hedging.domain.model.repository.UserRepo;
 import org.springframework.scheduling.annotation.Async;
@@ -74,7 +72,7 @@ public class GoogleSheetsService {
     public void syncUser(Long userId) {
         try {
             Instant syncDt = Instant.now();
-            AppUser user = userRepo.findById(userId).get();
+            AppUser user = userRepo.findByIdWithInstruments(userId);
 
             if (user.getGoogleSheetId() == null) {
                 createSpreadSheet(user);
@@ -97,79 +95,84 @@ public class GoogleSheetsService {
         Instant lastSyncDt = Instant.EPOCH;
         Boolean createMeta = true;
 
-        List<DataFilter> metadataFilters = List.of(
+        for (AppUserInstrument userInstrument : user.getAvailableInstruments()) {
+            Instrument instrument = userInstrument.getInstrument();
+            Integer sheetId = userInstrument.getSheetId();
+
+            List<DataFilter> metadataFilters = List.of(
                 new DataFilter()
                         .setDeveloperMetadataLookup(
                                 new DeveloperMetadataLookup()
                                         .setMetadataKey(MD_KEY_SHEET_LAST_SYNC_DT)
                                         .setMetadataLocation(
                                                 new DeveloperMetadataLocation()
-                                                        .setSheetId(user.getSheetId())
+                                                        .setSheetId(sheetId)
                                         )
                         )
-        );
-        SearchDeveloperMetadataResponse execute = sheets.spreadsheets().developerMetadata().search(user.getGoogleSheetId(),
-                new SearchDeveloperMetadataRequest().setDataFilters(metadataFilters)
-        ).execute();
+            );
+            SearchDeveloperMetadataResponse execute = sheets.spreadsheets().developerMetadata().search(user.getGoogleSheetId(),
+                    new SearchDeveloperMetadataRequest().setDataFilters(metadataFilters)
+            ).execute();
 
-        List<MatchedDeveloperMetadata> matchedDeveloperMetadata = execute.getMatchedDeveloperMetadata();
-        if (matchedDeveloperMetadata != null && !matchedDeveloperMetadata.isEmpty()) {
-            String metadataValue = matchedDeveloperMetadata.get(0).getDeveloperMetadata().getMetadataValue();
-            lastSyncDt = Instant.parse(metadataValue);
-            createMeta = false;
+            List<MatchedDeveloperMetadata> matchedDeveloperMetadata = execute.getMatchedDeveloperMetadata();
+            if (matchedDeveloperMetadata != null && !matchedDeveloperMetadata.isEmpty()) {
+                String metadataValue = matchedDeveloperMetadata.get(0).getDeveloperMetadata().getMetadataValue();
+                lastSyncDt = Instant.parse(metadataValue);
+                createMeta = false;
+            }
+
+            List<Order> ordersForSync = orderRepo.findAllForSyncByInstrument(lastSyncDt, user.getTelegramId(), user.getSymbolByLabelAndAccType(instrument.getLabel()));
+
+            if (ordersForSync.isEmpty()) {
+                log.info("No orders to sync for user {}", user.getTelegramId());
+                continue;
+            }
+
+            CreateDeveloperMetadataRequest createMt = new CreateDeveloperMetadataRequest()
+                    .setDeveloperMetadata(new DeveloperMetadata()
+                            .setVisibility("DOCUMENT")
+                            .setMetadataId(sheetId)
+                            .setMetadataKey(MD_KEY_SHEET_LAST_SYNC_DT)
+                            .setMetadataValue(syncDt.toString())
+                            .setLocation(
+                                    new DeveloperMetadataLocation()
+                                            .setSheetId(sheetId)
+                            )
+                    );
+
+            UpdateDeveloperMetadataRequest updateMt = new UpdateDeveloperMetadataRequest()
+                    .setDataFilters(metadataFilters)
+                    .setFields("*")
+                    .setDeveloperMetadata(new DeveloperMetadata()
+                            .setVisibility("DOCUMENT")
+                            .setMetadataId(sheetId)
+                            .setMetadataKey(MD_KEY_SHEET_LAST_SYNC_DT)
+                            .setMetadataValue(syncDt.toString())
+                            .setLocation(
+                                    new DeveloperMetadataLocation()
+                                            .setSheetId(sheetId)
+                            )
+                    );
+
+            BatchUpdateSpreadsheetResponse batchUpdate = sheets.spreadsheets().batchUpdate(
+                    user.getGoogleSheetId(),
+                    new BatchUpdateSpreadsheetRequest()
+                            .setRequests(
+                                    List.of(
+                                            new Request().setAppendCells(
+                                                    new AppendCellsRequest()
+                                                            .setFields("*")
+                                                            .setSheetId(sheetId)
+                                                            .setRows(ordersForSync.stream().map(this::createRowDataFromOrder).toList())
+                                            ),
+                                            createMeta
+                                                    ? new Request().setCreateDeveloperMetadata(createMt)
+                                                    : new Request().setUpdateDeveloperMetadata(updateMt)
+                                    )
+                            )
+            ).execute();
+            log.info("result batchUpdate {}", batchUpdate);
         }
-
-        List<Order> ordersForSync = orderRepo.findAllForSync(lastSyncDt, user.getTelegramId());
-
-        if (ordersForSync.isEmpty()) {
-            log.info("No orders to sync for user {}", user.getTelegramId());
-            return;
-        }
-
-        CreateDeveloperMetadataRequest createMt = new CreateDeveloperMetadataRequest()
-                .setDeveloperMetadata(new DeveloperMetadata()
-                        .setVisibility("DOCUMENT")
-                        .setMetadataId(user.getSheetId())
-                        .setMetadataKey(MD_KEY_SHEET_LAST_SYNC_DT)
-                        .setMetadataValue(syncDt.toString())
-                        .setLocation(
-                                new DeveloperMetadataLocation()
-                                        .setSheetId(user.getSheetId())
-                        )
-                );
-
-        UpdateDeveloperMetadataRequest updateMt = new UpdateDeveloperMetadataRequest()
-                .setDataFilters(metadataFilters)
-                .setFields("*")
-                .setDeveloperMetadata(new DeveloperMetadata()
-                        .setVisibility("DOCUMENT")
-                        .setMetadataId(user.getSheetId())
-                        .setMetadataKey(MD_KEY_SHEET_LAST_SYNC_DT)
-                        .setMetadataValue(syncDt.toString())
-                        .setLocation(
-                                new DeveloperMetadataLocation()
-                                        .setSheetId(user.getSheetId())
-                        )
-                );
-
-        BatchUpdateSpreadsheetResponse batchUpdate = sheets.spreadsheets().batchUpdate(
-                user.getGoogleSheetId(),
-                new BatchUpdateSpreadsheetRequest()
-                        .setRequests(
-                                List.of(
-                                        new Request().setAppendCells(
-                                                new AppendCellsRequest()
-                                                        .setFields("*")
-                                                        .setSheetId(user.getSheetId())
-                                                        .setRows(ordersForSync.stream().map(this::createRowDataFromOrder).toList())
-                                        ),
-                                        createMeta
-                                                ? new Request().setCreateDeveloperMetadata(createMt)
-                                                : new Request().setUpdateDeveloperMetadata(updateMt)
-                                )
-                        )
-        ).execute();
-        log.info("result batchUpdate {}", batchUpdate);
     }
 
     private RowData createRowDataFromOrder(Order order) {
@@ -253,39 +256,46 @@ public class GoogleSheetsService {
 
     @SneakyThrows
     private void createTablesForUsersIfNotExist(Spreadsheet spreadsheet, AppUser user) {
-        String expectedId = getTableIdForUser(user);
-        for (Sheet sheet : spreadsheet.getSheets()) {
-            List<ArrayMap<String, Object>> tables = (List<ArrayMap<String, Object>>) sheet.get("tables");
-            if (tables != null) {
-                for (ArrayMap<String, Object> table : tables) {
-                    if (expectedId.equals(table.get("tableId"))) {
-                        log.info("Table with id {} already exists for user {}", expectedId, user.getTelegramId());
-                        return;
+
+        outer: for (AppUserInstrument userInstrument : user.getAvailableInstruments()) {
+            Instrument instrument = userInstrument.getInstrument();
+            Integer sheetId = userInstrument.getSheetId();
+
+            String expectedId = getTableIdForUser(user, instrument);
+            for (Sheet sheet : spreadsheet.getSheets()) {
+                List<ArrayMap<String, Object>> tables = (List<ArrayMap<String, Object>>) sheet.get("tables");
+                if (tables != null) {
+                    for (ArrayMap<String, Object> table : tables) {
+                        if (expectedId.equals(table.get("tableId"))) {
+                            log.info("Table with id {} already exists for user {}", expectedId, user.getTelegramId());
+                            continue outer;
+                        }
                     }
                 }
             }
+
+            ArrayMap<String, Object> addTableRequest = new ArrayMap<>();
+            addTableRequest.put("table", new ArrayMap<String, Object>() {{
+                put("name", getTableNameForUser(user, instrument));
+                put("tableId", expectedId);
+                put("range", new ArrayMap<String, Object>() {{
+                    put("sheetId", sheetId);
+                    put("startColumnIndex", 0);
+                    put("endColumnIndex", SHORT_COLUMNS_PROPS.size());
+                    put("startRowIndex", 0);
+                }});
+                put("columnProperties", SHORT_COLUMNS_PROPS);
+            }});
+
+            BatchUpdateSpreadsheetResponse execute = sheets.spreadsheets().batchUpdate(user.getGoogleSheetId(),
+                    new BatchUpdateSpreadsheetRequest().setRequests(
+                            List.of(
+                                    new Request().set("addTable", addTableRequest)
+                            )
+                    )).execute();
+            log.info("Table created for user {} with id {}, {}", user.getTelegramId(), expectedId, execute);
         }
 
-        ArrayMap<String, Object> addTableRequest = new ArrayMap<>();
-        addTableRequest.put("table", new ArrayMap<String, Object>() {{
-            put("name", getTableNameForUser(user));
-            put("tableId", expectedId);
-            put("range", new ArrayMap<String, Object>() {{
-                put("sheetId", user.getSheetId());
-                put("startColumnIndex", 0);
-                put("endColumnIndex", SHORT_COLUMNS_PROPS.size());
-                put("startRowIndex", 0);
-            }});
-            put("columnProperties", SHORT_COLUMNS_PROPS);
-        }});
-
-        BatchUpdateSpreadsheetResponse execute = sheets.spreadsheets().batchUpdate(user.getGoogleSheetId(),
-                new BatchUpdateSpreadsheetRequest().setRequests(
-                        List.of(
-                                new Request().set("addTable", addTableRequest)
-                        )
-                )).execute();
-        log.info("Table created for user {} with id {}, {}", user.getTelegramId(), expectedId, execute);
     }
 
     @SneakyThrows
@@ -312,26 +322,32 @@ public class GoogleSheetsService {
     private void createSheetsForUserIfNotExist(Spreadsheet spreadsheet, AppUser user) {
         List<Integer> sheetIds = spreadsheet.getSheets().stream().map(s -> s.getProperties().getSheetId()).toList();
 
-        if (sheetIds.contains(user.getSheetId())) {
-            log.info("Sheet with id {} already exists for user {}", user.getSheetId(), user.getTelegramId());
-            return;
+        for (AppUserInstrument userInstrument : user.getAvailableInstruments()) {
+            Instrument instrument = userInstrument.getInstrument();
+            Integer sheetId = userInstrument.getSheetId();
+
+            if (sheetIds.contains(sheetId)) {
+                log.info("Sheet with id {} already exists for user {} instrument {}", sheetId, user.getTelegramId(), instrument.getLabel());
+                continue;
+            }
+
+            AddSheetRequest addSheetRequest = new AddSheetRequest()
+                    .setProperties(new SheetProperties()
+                            .setTitle(instrument.getLabel())
+                            .setSheetId(sheetId)
+                            .setGridProperties(
+                                    new GridProperties()
+                                            .setRowCount(1000)
+                                            .setColumnCount(26)
+                            )
+                    );
+            BatchUpdateSpreadsheetResponse execute = sheets.spreadsheets().batchUpdate(user.getGoogleSheetId(),
+                    new BatchUpdateSpreadsheetRequest().setRequests(
+                            List.of(new Request().setAddSheet(addSheetRequest))
+                    )
+            ).execute();
         }
 
-        AddSheetRequest addSheetRequest = new AddSheetRequest()
-                .setProperties(new SheetProperties()
-                        .setTitle(getSpreadsheetTitle(user))
-                        .setSheetId(user.getSheetId())
-                        .setGridProperties(
-                                new GridProperties()
-                                        .setRowCount(1000)
-                                        .setColumnCount(26)
-                        )
-                );
-        BatchUpdateSpreadsheetResponse execute = sheets.spreadsheets().batchUpdate(user.getGoogleSheetId(),
-                new BatchUpdateSpreadsheetRequest().setRequests(
-                        List.of(new Request().setAddSheet(addSheetRequest))
-                )
-        ).execute();
     }
 
     @SneakyThrows
@@ -363,12 +379,12 @@ public class GoogleSheetsService {
         }
     }
 
-    private String getTableIdForUser(AppUser user) {
-        return user.getTelegramId().toString();
+    private String getTableIdForUser(AppUser user, Instrument instrument) {
+        return "%s_%s".formatted(user.getTelegramId().toString(), instrument.getLabel());
     }
 
-    private String getTableNameForUser(AppUser user) {
-        return "HEDGE_%s".formatted(user.getTelegramId());
+    private String getTableNameForUser(AppUser user, Instrument instrument) {
+        return "HEDGE_%s_%s".formatted(user.getTelegramId(), instrument.getLabel().replace("/","_"));
     }
 
     @AllArgsConstructor

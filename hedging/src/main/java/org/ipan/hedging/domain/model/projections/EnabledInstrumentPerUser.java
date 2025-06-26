@@ -8,6 +8,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class EnabledInstrumentPerUser {
+    private Long userId;
     private String label;
     private Boolean isEnabled;
 }
