@@ -23,7 +23,7 @@ services:
 
   server:
     restart: unless-stopped
-    image: oress/tg_bot
+    image: hedging_bot
     build: ./hedging
     depends_on:
       postgres:
