@@ -33,7 +33,7 @@ public class OrderService {
         order.setBid(BigDecimal.valueOf(orderDetails.getBid()));
         order.setVolume(BigDecimal.valueOf(orderDetails.getVolume()));
         order.setType(OrderType.CLOSE);
-        order.setEuroAmount(amount);
+        order.setBaseAmount(amount);
         order.setPrice(BigDecimal.valueOf(orderDetails.getPrice()).setScale(5, RoundingMode.HALF_DOWN));
 
         orderRepo.save(order);
@@ -55,7 +55,7 @@ public class OrderService {
         order.setBid(BigDecimal.valueOf(orderDetails.getBid()));
         order.setVolume(BigDecimal.valueOf(orderDetails.getVolume()));
         order.setType(OrderType.OPEN);
-        order.setEuroAmount(amount);
+        order.setBaseAmount(amount);
         order.setPrice(BigDecimal.valueOf(orderDetails.getPrice()));
 
         orderRepo.save(order);

@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
+// e.g. EUR/USD; EUR - base, USD - quote
 @Entity
 @Getter
 @Setter
@@ -37,8 +38,8 @@ public class Order {
     @Column(name = "acc_number")
     private Integer mt5AccNumber;
 
-    @Column(name = "euro_amount")
-    private BigDecimal euroAmount;
+    @Column(name = "base_amount")
+    private BigDecimal baseAmount;
 
     private BigDecimal volume;
     private BigDecimal price;

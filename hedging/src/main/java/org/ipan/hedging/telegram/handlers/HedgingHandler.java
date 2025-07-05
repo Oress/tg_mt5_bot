@@ -304,7 +304,7 @@ public class HedgingHandler {
                     FormattingTools.formatDateToUtc(order.getCreatedAt()),
                     InlineMenuCallbacks.HEDGE_OP_SELL.equals(hedgeOp.getOperation()) ? hedgeLabels.sell() : hedgeLabels.buy(),
                     instrumentBySymbol.getLabel(),
-                    order.getEuroAmount().toString(),
+                    order.getBaseAmount().toString(),
                     order.getPrice().setScale(5, RoundingMode.HALF_DOWN).toString(),
                     baseEquivalent.toString(),
                     instrumentBySymbol.getSymbolByMode()

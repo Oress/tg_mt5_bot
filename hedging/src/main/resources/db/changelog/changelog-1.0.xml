@@ -146,7 +146,7 @@
             <column name="type" type="text"/>
             <column name="instrument" type="text"/>
             <column name="acc_number" type="bigint"/>
-            <column name="euro_amount" type="decimal(19,6)"/>
+            <column name="base_amount" type="decimal(19,6)"/>
             <column name="volume" type="decimal(19,6)" />
             <column name="price" type="decimal(19,6)" />
             <column name="bid" type="decimal(19,6)" />
