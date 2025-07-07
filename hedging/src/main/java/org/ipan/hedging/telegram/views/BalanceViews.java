@@ -5,12 +5,13 @@ import java.math.RoundingMode;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.ipan.hedging.application.service.Mt5Service;
+import org.ipan.hedging.application.service.Mt5ServiceImpl;
 import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.model.Instrument;
 import org.ipan.hedging.telegram.i18n.BalanceLabels;
 import org.ipan.hedging.telegram.i18n.CommonLabels;
 import org.ipan.hedging.telegram.state.UserState;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
@@ -20,12 +21,13 @@ import lombok.SneakyThrows;
 
 @Component
 @AllArgsConstructor
+@Profile("!test")
 public class BalanceViews {
     private final TelegramClient tgClient;
     private final CommonViews commonViews;
     private final CommonLabels commonLabels;
     private final BalanceLabels balanceLabels;
-    private final Mt5Service mt5Service;
+    private final Mt5ServiceImpl mt5Service;
 
     @SneakyThrows
     public void noAccount(UserState userState, AppUser user) {
@@ -40,9 +42,9 @@ public class BalanceViews {
     }
 
     @SneakyThrows
-    public void showBalance(UserState userState, AppUser user, List<Mt5Service.TradePos> tradePos) {
+    public void showBalance(UserState userState, AppUser user, List<Mt5ServiceImpl.TradePos> tradePos) {
         String positionsStr = tradePos.stream().map(tp -> {
-            Mt5Service.SymbolInfo symbolInfo = mt5Service.symbolInfo(user, tp.getSymbol());
+            Mt5ServiceImpl.SymbolInfo symbolInfo = mt5Service.symbolInfo(user, tp.getSymbol());
             BigDecimal baseEquivalent = BigDecimal.valueOf(tp.getVolume() * symbolInfo.getTrade_contract_size()).setScale(0, RoundingMode.HALF_DOWN);
             Instrument instrument = user.findInstrumentBySymbol(tp.getSymbol());
             return """

@@ -2,7 +2,7 @@ package org.ipan.hedging.telegram.handlers;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.ipan.hedging.application.service.Mt5Service;
+import org.ipan.hedging.application.service.Mt5ServiceImpl;
 import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.model.repository.UserRepo;
 import org.ipan.hedging.telegram.InlineMenuCallbacks;
@@ -13,6 +13,7 @@ import org.ipan.hedging.telegram.statetransitions.MatchState;
 import org.ipan.hedging.telegram.statetransitions.MatchStates;
 import org.ipan.hedging.telegram.statetransitions.TransitionHandler;
 import org.ipan.hedging.telegram.views.BalanceViews;
+import org.springframework.context.annotation.Profile;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.util.List;
@@ -20,11 +21,12 @@ import java.util.List;
 @TransitionHandler
 @AllArgsConstructor
 @Slf4j
+@Profile("!test")
 public class BalanceHandler {
     private final UserRepo userRepo;
     private final TelegramState telegramState;
     private final BalanceViews balanceViews;
-    private final Mt5Service mt5Service;
+    private final Mt5ServiceImpl mt5Service;
 
     @MatchStates({
             @MatchState(state = States.MAIN_MENU, callbackData = InlineMenuCallbacks.MENU_SHOW_BALANCE),
@@ -38,7 +40,7 @@ public class BalanceHandler {
             balanceViews.noAccount(userState, user);
             return;
         }
-        List<Mt5Service.TradePos> tradePos = mt5Service.positionsGetAll(user);
+        List<Mt5ServiceImpl.TradePos> tradePos = mt5Service.positionsGetAll(user);
 
         if (tradePos == null || tradePos.isEmpty()) {
             log.info("user has NO open positions: {}", user.getTelegramId());

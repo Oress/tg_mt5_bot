@@ -21,6 +21,7 @@ import org.ipan.hedging.telegram.statetransitions.TransitionHandler;
 import org.ipan.hedging.telegram.statetransitions.UpdateType;
 import org.ipan.hedging.telegram.utils.SearchingUtils;
 import org.ipan.hedging.telegram.views.ManageUserActionsView;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -33,6 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 @TransitionHandler
 @Slf4j
 @AllArgsConstructor
+@Profile("!test")
 public class ManageUsersSearchHandler {
     private final int pageSize = 20;
     private final TelegramState telegramState;

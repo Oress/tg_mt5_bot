@@ -2,6 +2,7 @@ package org.ipan.hedging.telegram.views;
 
 import org.ipan.hedging.telegram.InlineMenuCallbacks;
 import org.ipan.hedging.telegram.i18n.CommonLabels;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -11,6 +12,7 @@ import lombok.AllArgsConstructor;
 
 @Component
 @AllArgsConstructor
+@Profile("!test")
 public class CommonViews {
     private final CommonLabels commonLabels;
 

@@ -6,6 +6,7 @@ import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.model.UserRole;
 import org.ipan.hedging.telegram.i18n.CommonLabels;
 import org.ipan.hedging.telegram.state.UserState;
+import org.springframework.context.annotation.Profile;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -27,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @Slf4j
 @AllArgsConstructor
+@Profile("!test")
 public class TelegramMessages {
     private final TelegramClient tgClient;
     private final CommonLabels commonLabels;

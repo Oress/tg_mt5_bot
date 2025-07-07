@@ -1,13 +1,11 @@
 package org.ipan.hedging.telegram.state;
 
-import java.math.BigDecimal;
-
 public interface HedgeOpState {
-    String getSymbol();
+    String getInstrumentLabel();
     String getOperation();
-    BigDecimal getVolume();
+    Integer getUserAmount();
 
-    HedgeOpState withSymbol(String value);
+    HedgeOpState withInstrumentLabel(String value);
     HedgeOpState withOperation(String value);
-    HedgeOpState withVolume(BigDecimal value);
+    HedgeOpState withUserAmount(Integer value);
 }

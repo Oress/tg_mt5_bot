@@ -217,7 +217,7 @@ async def hedge_instrument_selected(update: Update, context: ContextTypes.DEFAUL
         context.user_data[UD_KEY_HEDGE_INSTRUMENT] = symbol_to_use
 
         # To enable symbol in the MT5 terminal and get the price in the next step, otherwise it will return 0
-        mt5service.get_price_for_short(
+        mt5service.get_info_tick(
             user.mt5_acc_number,
             pwd_decrypted_bytes.decode(),
             symbol_to_use
@@ -347,7 +347,7 @@ async def hedge_volume_selected(update: Update, context: ContextTypes.DEFAULT_TY
         user = user_service.get_user_by_id(user_id)
         pwd_decrypted_bytes = pwd_encryptor.decrypt(user.mt5_acc_pwd_enc)
 
-        price_per_unit = mt5service.get_price_for_short(
+        price_per_unit = mt5service.get_info_tick(
             user.mt5_acc_number,
             pwd_decrypted_bytes.decode(),
             context.user_data.get(UD_KEY_HEDGE_INSTRUMENT),

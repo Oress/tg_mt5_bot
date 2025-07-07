@@ -11,12 +11,14 @@ import org.ipan.hedging.telegram.state.UserState;
 import org.ipan.hedging.telegram.statetransitions.MatchState;
 import org.ipan.hedging.telegram.statetransitions.TransitionHandler;
 import org.ipan.hedging.telegram.statetransitions.UpdateType;
+import org.springframework.context.annotation.Profile;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.util.Locale;
 
 @AllArgsConstructor
 @TransitionHandler
+@Profile("!test")
 public class MainMenuHandler {
     private final TelegramState telegramState;
     private final TelegramMessages telegramMessages;

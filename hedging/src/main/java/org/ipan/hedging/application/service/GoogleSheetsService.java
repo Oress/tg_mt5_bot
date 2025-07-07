@@ -19,6 +19,7 @@ import org.ipan.hedging.GoogleSheetsConfig;
 import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.repository.OrderRepo;
 import org.ipan.hedging.domain.model.repository.UserRepo;
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +36,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @Slf4j
+@Profile("!test")
 public class GoogleSheetsService {
     private static final String MD_KEY_SHEET_LAST_SYNC_DT = "last_sheet_sync_dt";
     private static final String APPLICATION_NAME = "Hedging Bot";
@@ -179,7 +181,7 @@ public class GoogleSheetsService {
 
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private RowData createRowDataFromOrder(Order order) {
-        BigDecimal euroAmount = order.getBaseAmount().multiply(OrderType.OPEN.equals(order.getType()) ? BigDecimal.valueOf(-1) : BigDecimal.ONE);
+        BigDecimal euroAmount = order.getExecutedBaseAmount().multiply(OrderType.MT5_SHORT.equals(order.getType()) ? BigDecimal.valueOf(-1) : BigDecimal.ONE);
 
         String rateInnerPart = "IF(B:B<0,(%s*%s+B:B*C:C)/F:F,%s)".formatted(relCell(-1, -1), relCell(0, -1), relCell(0, -1));
         String rateOuterPart = "=%s".formatted(isFirstRow("C:C", rateInnerPart));

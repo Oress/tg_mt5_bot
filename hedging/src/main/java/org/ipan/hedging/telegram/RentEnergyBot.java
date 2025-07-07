@@ -18,6 +18,8 @@ import org.ipan.hedging.telegram.statetransitions.StateHandlerRegistry;
 import org.ipan.hedging.telegram.statetransitions.TransitionMatcher;
 import org.ipan.hedging.telegram.statetransitions.UpdateType;
 import org.ipan.hedging.telegram.utils.FormattingTools;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.longpolling.util.LongPollingSingleThreadUpdateConsumer;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
@@ -31,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
 @AllArgsConstructor
+@Profile("!test")
 public class RentEnergyBot implements LongPollingSingleThreadUpdateConsumer {
     public static final String START = "/start";
 

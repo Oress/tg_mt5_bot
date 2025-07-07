@@ -30,7 +30,7 @@ public interface UserRepo extends JpaRepository<AppUser, Long> {
             select
                 :userId,
                 i.label,
-                exists(select * from hed_user_instruments ui where ui.user_id = :userId and ui.instrument_label = i.label) as enabled
+                exists(select * from hed_user_instruments ui where ui.user_id = :userId and ui.instrument_label = i.label and ui.active = true) as enabled
             from
                 hed_instruments i
             order by i.label

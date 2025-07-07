@@ -5,7 +5,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.CreationTimestamp;
+import org.ipan.hedging.domain.service.VolumeCalculation;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 @Entity
@@ -30,7 +32,70 @@ public class AppUserInstrument {
     @Column(name = "sheet_id")
     private Integer sheetId;
 
+    private Boolean active = Boolean.FALSE;
+
     @CreationTimestamp
     @Column(name = "created_at")
     private Instant createdAt;
+
+    // e.g. EUR/USD; EUR - base, USD - quote
+    // Data below is used for tracking hedging quote assets.
+//    @Column(name = "total_owned_base_amount")
+//    private BigDecimal totalOwnedBaseAmount = BigDecimal.ZERO;
+
+    @Column(name = "client_owned_base_amount")
+    private BigDecimal clientOwnedBaseAmount = BigDecimal.ZERO;
+
+    @Column(name = "house_owned_base_amount")
+    private BigDecimal houseOwnedBaseAmount = BigDecimal.ZERO;
+
+    @Column(name = "client_owned_quote_amount")
+    private BigDecimal clientOwnedQuoteAmount = BigDecimal.ZERO;
+
+
+    // e.g. houseOwnedBaseAmount is -465 USD, clientOwnedBaseAmount is 1000 USD
+    // this means that House owes the client 465 USD
+    public BigDecimal getActualClientOwnedBaseAmount() {
+        return houseOwnedBaseAmount.compareTo(BigDecimal.ZERO) < 0
+                ? clientOwnedBaseAmount.subtract(houseOwnedBaseAmount)
+                : clientOwnedBaseAmount;
+    }
+
+    public BigDecimal getTotalOwnedBaseAmount() {
+        // total = client + max(house,0)
+        // max(house,0) - because houseOwnedBaseAmount can be negative and this means that(e.g. 1000 USD and -465 USD):
+        // 1) house owns the client some amount of money
+        // 2) clientOwnedBaseAmount should be divisible by 1000
+        return clientOwnedBaseAmount.add(houseOwnedBaseAmount.max(BigDecimal.ZERO));
+    }
+
+    public void addVolumeShortMode(VolumeCalculation totalBase) {
+        if (totalBase != null) {
+//            this.totalOwnedBaseAmount = this.totalOwnedBaseAmount.add(totalBase.getExecutionBase());
+        } else {
+            log.warn("Attempt to add null total base amount for user instrument: {}", this);
+        }
+    }
+
+    public void subtractUserAndHousePartsLongMode(VolumeCalculation volumeCalculation) {
+        this.clientOwnedBaseAmount = volumeCalculation.getNewUserOwnedBase();
+        this.houseOwnedBaseAmount = volumeCalculation.getNewHouseOwnedBase();
+        this.clientOwnedQuoteAmount = this.clientOwnedQuoteAmount.subtract(BigDecimal.valueOf(volumeCalculation.getOriginalAmount()));
+    }
+
+
+    public void addUserAndHousePartsLongMode(VolumeCalculation volumeCalculation) {
+        this.clientOwnedBaseAmount = volumeCalculation.getNewUserOwnedBase();
+        this.houseOwnedBaseAmount = volumeCalculation.getNewHouseOwnedBase();
+        this.clientOwnedQuoteAmount = this.clientOwnedQuoteAmount.add(BigDecimal.valueOf(volumeCalculation.getOriginalAmount()));
+    }
+
+/*
+    public void houseToClientTransferOrder(VolumeCalculation volumeCalculation) {
+        // TODO: check that houseOwnedBaseAmount is greater than or equal to clientOwnedBaseAmount
+        this.clientOwnedQuoteAmount = this.clientOwnedQuoteAmount.add(BigDecimal.valueOf(volumeCalculation.getOriginalAmount()));
+        this.clientOwnedBaseAmount = this.clientOwnedBaseAmount
+                .subtract(volumeCalculation.getUserOwnedBase());
+    }
+*/
 }

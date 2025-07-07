@@ -8,6 +8,7 @@ import org.ipan.hedging.telegram.InlineMenuCallbacks;
 import org.ipan.hedging.telegram.i18n.AdminLabels;
 import org.ipan.hedging.telegram.i18n.CommonLabels;
 import org.ipan.hedging.telegram.state.UserState;
+import org.springframework.context.annotation.Profile;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
@@ -21,6 +22,7 @@ import lombok.SneakyThrows;
 
 @Component
 @AllArgsConstructor
+@Profile("!test")
 public class AdminViews {
     private final TelegramClient tgClient;
     private final CommonViews commonViews;

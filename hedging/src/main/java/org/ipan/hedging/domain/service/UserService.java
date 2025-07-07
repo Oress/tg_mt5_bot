@@ -87,12 +87,20 @@ public class UserService {
         AppUser appUser = userRepo.findById(userId).orElse(null);
         Set<AppUserInstrument> availableInstruments = appUser.getAvailableInstruments();
 
-        if (availableInstruments.removeIf(i -> userInstrumentLabel.equals(i.getInstrument().getLabel()))) {
-            log.info("Instument {} has been DISABLED for user {}", userInstrumentLabel, userId);
+        AppUserInstrument userInstrument = availableInstruments.stream().filter(i -> userInstrumentLabel.equals(i.getInstrument().getLabel())).findFirst().orElse(null);
+
+        if (userInstrument != null) {
+            if (userInstrument.getActive()) {
+                userInstrument.setActive(false);
+                log.info("Instument {} has been DISABLED for user {}", userInstrumentLabel, userId);
+            } else {
+                userInstrument.setActive(true);
+                log.info("Instument {} has been ENABLED for user {}", userInstrumentLabel, userId);
+            }
         } else {
-            log.info("Instument {} has been ENABLED for user {}", userInstrumentLabel, userId);
+            log.info("Instument {} has been CREATED for user {}", userInstrumentLabel, userId);
             Instrument instrument = instrumentRepo.findById(userInstrumentLabel).get();
-            AppUserInstrument userInstrument = appUser.addInstrument(instrument);
+            appUser.addInstrument(instrument);
         }
 
         return appUser;

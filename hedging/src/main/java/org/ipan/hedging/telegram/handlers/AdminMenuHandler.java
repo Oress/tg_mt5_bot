@@ -10,11 +10,13 @@ import org.ipan.hedging.telegram.statetransitions.MatchState;
 import org.ipan.hedging.telegram.statetransitions.MatchStates;
 import org.ipan.hedging.telegram.statetransitions.TransitionHandler;
 import org.ipan.hedging.telegram.views.AdminViews;
+import org.springframework.context.annotation.Profile;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 @TransitionHandler
 @AllArgsConstructor
 @Slf4j
+@Profile("!test")
 public class AdminMenuHandler {
     private final TelegramState telegramState;
 

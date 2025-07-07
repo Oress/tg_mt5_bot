@@ -74,7 +74,14 @@
             <column name="user_id" type="bigint" />
             <column name="instrument_label" type="text" />
             <column name="sheet_id" type="int" defaultValue="nextval('seq_hed_users_sheet_id')" />
+
+            <column name="client_owned_quote_amount" type="decimal(20,8)" />
+            <column name="house_owned_base_amount" type="decimal(20,8)" />
+            <column name="client_owned_base_amount" type="decimal(20,8)"/>
+<!--            <column name="total_owned_base_amount" type="decimal(20,8)" />-->
+
             <column name="created_at" type="TIMESTAMP" defaultValue="now()"/>
+            <column name="active" type="boolean"/>
         </createTable>
     </changeSet>
 
@@ -139,26 +146,37 @@
             <column name="id" type="uuid">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column name="user_id" type="bigint" />
+            <column name="user_instrument_id" type="bigint" />
             <column name="city" type="text" />
             <column name="deal" type="bigint" />
             <column name="mt5_order" type="bigint" />
             <column name="type" type="text"/>
-            <column name="instrument" type="text"/>
+            <column name="status" type="text"/>
             <column name="acc_number" type="bigint"/>
-            <column name="base_amount" type="decimal(19,6)"/>
-            <column name="volume" type="decimal(19,6)" />
-            <column name="price" type="decimal(19,6)" />
-            <column name="bid" type="decimal(19,6)" />
-            <column name="ask" type="decimal(19,6)" />
+
+            <column name="user_entered_quote_amount" type="decimal(20,8)"/>
+            <column name="executed_base_amount" type="decimal(20,8)"/>
+            <column name="user_base_amount" type="decimal(20,8)"/>
+            <column name="executed_volume" type="decimal(20,8)" />
+
+            <column name="quote_amount_left_to_unhedge" type="decimal(20,8)"/>
+
+            <column name="house_base_amount_from" type="decimal(20,8)" />
+            <column name="house_base_amount_to" type="decimal(20,8)" />
+            <column name="client_base_amount_from" type="decimal(20,8)" />
+            <column name="client_base_amount_to" type="decimal(20,8)" />
+
+            <column name="price" type="decimal(20,8)" />
+            <column name="bid" type="decimal(20,8)" />
+            <column name="ask" type="decimal(20,8)" />
             <column name="created_at" type="TIMESTAMP"/>
         </createTable>
 
         <addForeignKeyConstraint constraintName="fk_hed_orders_user_id"
                                  baseTableName="hed_orders"
-                                 baseColumnNames="user_id"
-                                 referencedTableName="hed_users"
-                                 referencedColumnNames="tg_id"/>
+                                 baseColumnNames="user_instrument_id"
+                                 referencedTableName="hed_user_instruments"
+                                 referencedColumnNames="id"/>
     </changeSet>
 
     <changeSet id="add idx_hed_orders_created_at to hed_orders" author="oress">

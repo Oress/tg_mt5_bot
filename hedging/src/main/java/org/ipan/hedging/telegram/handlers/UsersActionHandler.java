@@ -2,7 +2,7 @@ package org.ipan.hedging.telegram.handlers;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.ipan.hedging.application.service.Mt5Service;
+import org.ipan.hedging.application.service.Mt5ServiceImpl;
 import org.ipan.hedging.domain.model.AccountType;
 import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.model.projections.EnabledInstrumentPerUser;
@@ -19,6 +19,7 @@ import org.ipan.hedging.telegram.statetransitions.TransitionHandler;
 import org.ipan.hedging.telegram.statetransitions.UpdateType;
 import org.ipan.hedging.telegram.utils.FormattingTools;
 import org.ipan.hedging.telegram.views.ManageUserActionsView;
+import org.springframework.context.annotation.Profile;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.util.List;
@@ -26,12 +27,13 @@ import java.util.List;
 @TransitionHandler
 @Slf4j
 @AllArgsConstructor
+@Profile("!test")
 public class UsersActionHandler {
     private final TelegramState telegramState;
     private final UserRepo userRepo;
     private final UserService userService;
     private final ManageUserActionsView manageUserActionsView;
-    private final Mt5Service mt5Service;
+    private final Mt5ServiceImpl mt5Service;
     private final TelegramMessages telegramMessages;
 
     /*

@@ -76,6 +76,15 @@ public class AppUser {
         return availableInstruments.stream().anyMatch(i -> i.getInstrument().getLabel().equals(instrumentLabel));
     }
 
+    public boolean containsInstrumentByLabel(String label) {
+        for (Instrument instrument : availableInstruments.stream().map(AppUserInstrument::getInstrument).toList()) {
+            if (instrument.getLabel().equals(label)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public boolean containsInstumentBySymbol(String symbol) {
         for (Instrument instrument : availableInstruments.stream().map(AppUserInstrument::getInstrument).toList()) {
             if (switch (accountType) {
@@ -121,7 +130,15 @@ public class AppUser {
         userInstrument.setInstrument(instrument);
         userInstrument.setUser(this);
         userInstrument.setSheetId(instrument.getSheetId());
+        userInstrument.setActive(true);
         availableInstruments.add(userInstrument);
         return userInstrument;
+    }
+
+    public AppUserInstrument findUserInstrument(String instrumentLabel) {
+        return availableInstruments.stream()
+                .filter(ui -> ui.getInstrument().getLabel().equals(instrumentLabel))
+                .findFirst()
+                .orElse(null);
     }
 }

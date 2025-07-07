@@ -27,8 +27,21 @@ def check_credentials():
 def get_price_for_short():
     data = request.get_json()
     print(data)
-    price = mt5service.get_price_for_short(data['account_number'], data['password'], data['symbol'])
-    return jsonify({"price": price})
+    price = mt5service.get_info_tick(data['account_number'], data['password'], data['symbol'])
+    return jsonify({"price": price.bid})
+
+@app.route('/get-price-tick', methods=['POST'])
+def get_price_tick():
+    data = request.get_json()
+    print(data)
+    tick = mt5service.get_info_tick(data['account_number'], data['password'], data['symbol'])
+    tick_dict={}
+    if hasattr(tick, '__dict__'):
+        tick_dict = tick.__dict__
+    # If positions is a list/tuple of positions, convert each one
+    else:
+        tick_dict = tick
+    return jsonify({"tick": tick_dict})
 
 @app.route('/positions-get', methods=['POST'])
 def positions_get():
@@ -69,7 +82,7 @@ def positions_get_all():
 def place_short_order():
     data = request.get_json()
     print(data)
-    order_result = mt5service.place_short_order(data['account_number'], data['password'], data['symbol'], data['volume'])
+    order_result = mt5service.place_short_order(data['account_number'], data['password'], data['position_id'], data['symbol'], data['volume'])
     order_result_dict={}
     if hasattr(order_result, '__dict__'):
         order_result_dict = order_result.__dict__

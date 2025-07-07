@@ -11,6 +11,7 @@ import org.ipan.hedging.telegram.i18n.ManageUserLabels;
 import org.ipan.hedging.telegram.state.UserState;
 import org.ipan.hedging.telegram.utils.FormattingTools;
 import org.ipan.hedging.telegram.utils.ParseUtils;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
@@ -27,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @Slf4j
 @AllArgsConstructor
+@Profile("!test")
 public class ManageUserActionsView {
     public static final String OPEN_BALANCE = "/balance/";
 

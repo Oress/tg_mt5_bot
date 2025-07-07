@@ -72,6 +72,19 @@ class MyTradePosition:
         self.comment = comment
         self.external_id = external_id
 
+
+@dataclass
+class MyTick:
+    def __init__(self, time, bid, ask, last, volume, time_msc, flags, volume_real):
+        self.time = time
+        self.bid = bid
+        self.ask = ask
+        self.last = last
+        self.volume = volume
+        self.time_msc = time_msc
+        self.flags = flags
+        self.volume_real = volume_real
+
 @dataclass
 class AccountBalance:
     currency: str
@@ -129,7 +142,7 @@ class MT5Service:
 
         return False
 
-    def get_price_for_short(self, account_number: int, pwd: str, symbol: str) -> Decimal:
+    def get_info_tick(self, account_number: int, pwd: str, symbol: str) -> Decimal:
         logger.info(f"[MT5|get_price_for_short] account_number: {account_number}, symbol: {symbol}")
         try:
             with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
@@ -141,8 +154,14 @@ class MT5Service:
                     info_tick = session.symbol_info_tick(symbol)
                     print('info_tick', info_tick)
 
-                    price = info_tick.bid
-                    return price
+                    return MyTick(time=info_tick.time,
+                                  bid=info_tick.bid,
+                                  ask=info_tick.ask,
+                                  last=info_tick.last,
+                                  volume=info_tick.volume,
+                                  time_msc=info_tick.time_msc,
+                                  flags=info_tick.flags,
+                                  volume_real=info_tick.volume_real)
         except MT5InvalidCreds as e:
             logger.error(f"[MT5|Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
             print(f"Invalid credentials: {e}")
@@ -242,7 +261,7 @@ class MT5Service:
 
         return selected
 
-    def place_short_order(self, account_number: int, pwd: str, symbol: str, volume: Decimal):
+    def place_short_order(self, account_number: int, pwd: str, position_id: int, symbol: str, volume: Decimal):
         logger.info(f"[MT5|place_short_order] account_number: {account_number}, symbol: {symbol}, volume: {volume}")
         try:
             with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
@@ -260,6 +279,9 @@ class MT5Service:
                     # "type_time": MetaTrader5.ORDER_TIME_GTC,
                     # "type_filling": MetaTrader5.ORDER_FILLING_RETURN,
                 }
+
+                if position_id is not None:
+                    request["position"] = position_id
 
                 order_result = session.order_send(request)
                 
@@ -319,7 +341,6 @@ class MT5Service:
                     "symbol": symbol,
                     "volume": float(volume),
                     "type": MetaTrader5.ORDER_TYPE_BUY,
-                    "position": position_id,
                     "price": info_tick.ask,
                     # "deviation": deviation,
                     # "magic": ea_magic_number,
@@ -327,6 +348,9 @@ class MT5Service:
                     "type_time": MetaTrader5.ORDER_TIME_GTC,
                     "type_filling": MetaTrader5.ORDER_FILLING_FOK,
                 }
+
+                if position_id is not None:
+                    close_request["position"] = position_id
 
                 order_result = session.order_send(close_request)
                 my_order_result = MyOrderSendResult(

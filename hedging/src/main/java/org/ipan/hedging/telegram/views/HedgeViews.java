@@ -10,6 +10,7 @@ import org.ipan.hedging.telegram.i18n.HedgeLabels;
 import org.ipan.hedging.telegram.state.HedgeOpState;
 import org.ipan.hedging.telegram.state.UserState;
 import org.ipan.hedging.telegram.utils.ParseUtils;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.ParseMode;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
@@ -19,10 +20,12 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 @Component
 @AllArgsConstructor
+@Profile("!test")
 public class HedgeViews {
     private final TelegramClient tgClient;
     private final CommonViews commonViews;
@@ -102,8 +105,8 @@ public class HedgeViews {
                         instrument,
                         amount,
                         unit,
-                        price == null ? "N/A" : price.toString(
-                        )))
+                        price == null ? "N/A" : BigDecimal.valueOf(price).setScale(5, RoundingMode.HALF_DOWN).toString())
+                )
                 .replyMarkup(getAdminMenuReplyMarkup())
                 .build();
         tgClient.execute(message);
@@ -183,7 +186,7 @@ public class HedgeViews {
     }
 
     @SneakyThrows
-    public void orderFailed(UserState userState, Integer retcode, String comment) {
+    public void orderFailed(UserState userState) {
         EditMessageText message = EditMessageText
                 .builder()
                 .chatId(userState.getChatId())
@@ -196,7 +199,7 @@ public class HedgeViews {
 
     @SneakyThrows
     public void successOrder(UserState userState, String orderId, String date, String operation,
-                             String instrument, String amount, String price, String balance, String unit) {
+                             String instrument, String userAmount, String price, String balance, String unit) {
         EditMessageText message = EditMessageText
                 .builder()
                 .chatId(userState.getChatId())
@@ -216,7 +219,7 @@ public class HedgeViews {
                         Захеджировано: *%s %s*
                         """.formatted(
                         orderId, date, ParseUtils.escapeMarkdown(operation), instrument,
-                        amount, price, balance, unit
+                        userAmount, price, balance, unit
                         )
                 )
                 .build();

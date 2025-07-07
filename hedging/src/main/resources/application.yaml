@@ -37,7 +37,7 @@ app:
     db-path: ${APP_MAPDB_PATH:cache/hedging.db}
   telegram:
     bot:
-      token: ${TELEGRAM_BOT_TOKEN}
+      token: ${TELEGRAM_BOT_TOKEN:token123}
 
 logging:
   #  structured:
