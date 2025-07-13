@@ -56,16 +56,16 @@ public class Order {
     private BigDecimal quoteAmountLeftToUnhedge;
 
     @Column(name = "house_base_amount_from")
-    private BigDecimal houseBaseAmountFrom;
+    private BigDecimal houseBaseAmountFrom = BigDecimal.ZERO;
 
     @Column(name = "house_base_amount_to")
-    private BigDecimal houseBaseAmountTo;
+    private BigDecimal houseBaseAmountTo = BigDecimal.ZERO;
 
     @Column(name = "client_base_amount_from")
-    private BigDecimal clientBaseAmountFrom;
+    private BigDecimal clientBaseAmountFrom = BigDecimal.ZERO;
 
     @Column(name = "client_base_amount_to")
-    private BigDecimal clientBaseAmountTo;
+    private BigDecimal clientBaseAmountTo = BigDecimal.ZERO;
 
     private BigDecimal price;
     private BigDecimal bid;

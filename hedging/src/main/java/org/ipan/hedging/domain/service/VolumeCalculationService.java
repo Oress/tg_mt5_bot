@@ -37,16 +37,23 @@ public class VolumeCalculationService {
     private class ShortVolumeCalculationStrategy implements CalculationStrategy {
         @Override
         public VolumeCalculation calculate(VolumeCalculationParams params) {
-            BigDecimal userAmountDecimal = BigDecimal.valueOf(params.getUserAmount());
+            BigDecimal executionBaseAmount = BigDecimal.valueOf(params.getUserAmount());
 
-            BigDecimal volume = userAmountDecimal
-                    .divide(BigDecimal.valueOf(params.getTradeContractSize()), 5, BigDecimal.ROUND_DOWN);
+            BigDecimal executionVolume = executionBaseAmount
+                    .divide(BigDecimal.valueOf(params.getTradeContractSize()), 5, RoundingMode.HALF_DOWN);
+
+            BigDecimal newUserOwnedBase = params.getUserInstrument().getClientOwnedBaseAmount().add(executionBaseAmount);
+
             return VolumeCalculation.builder()
+                    .oldUserOwnedBase(params.getUserInstrument().getClientOwnedBaseAmount())
+                    .oldHouseOwnedBase(params.getUserInstrument().getHouseOwnedBaseAmount())
+                    .newUserOwnedBase(newUserOwnedBase)
+                    .newHouseOwnedBase(BigDecimal.ZERO)
                     .originalAmount(params.getUserAmount())
-//                    .userOwnedVolume(volume)
-                    .executionUserOwnedBase(userAmountDecimal)
-                    .executionVolume(volume)
-                    .executionBase(userAmountDecimal)
+                    .executionUserOwnedBase(executionBaseAmount)
+                    .executionVolume(executionVolume)
+                    .executionBase(executionBaseAmount)
+                    .price(BigDecimal.valueOf(params.getIsBuy() ? params.getTick().getAsk() : params.getTick().getBid()))
                     .build();
         }
     }
@@ -150,7 +157,6 @@ public class VolumeCalculationService {
                     .newUserOwnedBase(newUserOwnedBase)
                     .newHouseOwnedBase(newTotalBaseAmount.subtract(tempClientBaseAmount))
                     .originalAmount(params.getUserAmount())
-//                            .userOwnedVolume(operationUserAmountBase.divide(totalVolume, 5, RoundingMode.HALF_DOWN))
                     .executionUserOwnedBase(operationUserAmountBase)
                     .executionVolume(executionVolume)
                     .executionBase(executionBaseAmount)

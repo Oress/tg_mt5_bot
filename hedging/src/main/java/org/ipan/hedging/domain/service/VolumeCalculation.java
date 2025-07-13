@@ -14,8 +14,6 @@ public class VolumeCalculation {
     Integer originalAmount;
     BigDecimal price;
 
-//    BigDecimal userOwnedVolume;
-
 //    BigDecimal houseOwnedVolume = BigDecimal.ZERO;
 //    BigDecimal houseOwnedBase = BigDecimal.ZERO;
 

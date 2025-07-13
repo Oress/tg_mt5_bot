@@ -3,9 +3,7 @@ package org.ipan.hedging.application.service;
 import org.assertj.core.api.Assertions;
 import org.ipan.hedging.application.service.command.PlaceOrderCommand;
 import org.ipan.hedging.application.service.command.PlaceOrderResponse;
-import org.ipan.hedging.domain.model.AccountType;
-import org.ipan.hedging.domain.model.AppUser;
-import org.ipan.hedging.domain.model.AppUserInstrument;
+import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.repository.AppUserInstrumentRepository;
 import org.ipan.hedging.domain.model.repository.InstrumentRepo;
 import org.ipan.hedging.domain.model.repository.OrderRepo;
@@ -61,7 +59,6 @@ class OrderOrchestratorTest {
         registry.add("spring.datasource.password", postgres::getPassword);
     }
 
-    private final InstrumentRepo instrumentRepo;
     private final UserService userService;
     private final UserRepo userRepo;
     private final OrderService orderService;
@@ -73,10 +70,9 @@ class OrderOrchestratorTest {
     private Mt5Service mt5Service;
 
     @Autowired
-    public OrderOrchestratorTest(InstrumentRepo instrumentRepo, UserService userService, UserRepo userRepo,
+    public OrderOrchestratorTest(UserService userService, UserRepo userRepo,
                                  OrderService orderService, AppUserInstrumentRepository appUserInstrumentRepository,
                                  OrderRepo orderRepo, VolumeCalculationService volumeCalculationService) {
-        this.instrumentRepo = instrumentRepo;
         this.userService = userService;
         this.userRepo = userRepo;
         this.orderService = orderService;
@@ -117,6 +113,7 @@ class OrderOrchestratorTest {
                 .languageCode("en")
                 .build();
         AppUser user = userService.createUser(command);
+        user.setMt5AccNumber(123456);
         user.setAccountType(AccountType.MINI);
         user = userRepo.save(user);
 
@@ -127,12 +124,28 @@ class OrderOrchestratorTest {
     }
 
     @Test
-    public void placeOrder_inverseHedge_orderSuccessStatus() {
-        Assertions.fail("This test is not implemented yet.");
+    public void placeOrder_simpleHedge_orderFieldsCheck() {
+        PlaceOrderResponse response1 = placeEurUsdOrderResponse(1000, true, 1.36);
+        Order order1 = response1.getOrder();
+        AppUserInstrument userInstrument1 = order1.getUserInstrument();
+        assertThat(userInstrument1.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
+        assertThat(userInstrument1.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(0));
+        assertThat(userInstrument1.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
+        assertThat(order1.getType()).isEqualByComparingTo(OrderType.MT5_SHORT);
+        assertThat(order1.getStatus()).isEqualByComparingTo(OrderStatus.COMPLETE);
+
+        assertThat(order1.getMt5AccNumber()).isNotNull();
+
+        assertThat(order1.getClientBaseAmountFrom()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(order1.getClientBaseAmountTo()).isEqualByComparingTo(BigDecimal.valueOf(1000));
+        assertThat(order1.getUserBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
+
+        assertThat(order1.getUserEnteredQuoteAmount()).isNull();
+        assertThat(order1.getQuoteAmountLeftToUnhedge()).isNull();
     }
 
     @Test
-    public void placeOrder_simpleHedge_orderSuccessStatus() {
+    public void placeOrder_inverseHedge_orderSuccessStatus() {
         Assertions.fail("This test is not implemented yet.");
     }
 
@@ -151,28 +164,28 @@ class OrderOrchestratorTest {
         Mt5ServiceImpl.SymbolInfo symbolInfo = createMockSymbolInfo();
         when(mt5Service.symbolInfo(any(), any())).thenReturn(symbolInfo);
 
-        PlaceOrderResponse response1 = placeUsdCadOrderResponse(symbolInfo, 1000, true, 1.36);
+        PlaceOrderResponse response1 = placeUsdCadOrderResponse(1000, true, 1.36);
         AppUserInstrument userInstrument1 = response1.getOrder().getUserInstrument();
         assertThat(userInstrument1.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(735.29412));
         assertThat(userInstrument1.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(264.70588));
         assertThat(userInstrument1.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
         assertThat(userInstrument1.getClientOwnedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
 
-        PlaceOrderResponse response2 = placeUsdCadOrderResponse(symbolInfo, 1000, true, 1.37);
+        PlaceOrderResponse response2 = placeUsdCadOrderResponse(1000, true, 1.37);
         AppUserInstrument userInstrument2 = response2.getOrder().getUserInstrument();
         assertThat(userInstrument2.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
         assertThat(userInstrument2.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(-465.22113));
         assertThat(userInstrument2.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
         assertThat(userInstrument2.getClientOwnedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(2000));
 
-        PlaceOrderResponse response3 = placeUsdCadOrderResponse(symbolInfo, 1000, true, 1.38);
+        PlaceOrderResponse response3 = placeUsdCadOrderResponse(1000, true, 1.38);
         AppUserInstrument userInstrument3 = response3.getOrder().getUserInstrument();
         assertThat(userInstrument3.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(2000));
         assertThat(userInstrument3.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(-189.85881));
         assertThat(userInstrument3.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(2000));
         assertThat(userInstrument3.getClientOwnedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(3000));
 
-        PlaceOrderResponse response4 = placeUsdCadOrderResponse(symbolInfo, 1000, true, 1.39);
+        PlaceOrderResponse response4 = placeUsdCadOrderResponse(1000, true, 1.39);
         AppUserInstrument userInstrument4 = response4.getOrder().getUserInstrument();
         assertThat(userInstrument4.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(2909.28327));
         assertThat(userInstrument4.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(90.71673));
@@ -182,31 +195,28 @@ class OrderOrchestratorTest {
 
     @Test
     void placeOrder_invHedging_open3kClose2k() {
-        Mt5ServiceImpl.SymbolInfo symbolInfo = createMockSymbolInfo();
-        when(mt5Service.symbolInfo(any(), any())).thenReturn(symbolInfo);
-
-        PlaceOrderResponse response1 = placeUsdCadOrderResponse(symbolInfo, 1000, true, 1.36);
+        PlaceOrderResponse response1 = placeUsdCadOrderResponse(1000, true, 1.36);
         AppUserInstrument userInstrument1 = response1.getOrder().getUserInstrument();
         assertThat(userInstrument1.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(735.29412));
         assertThat(userInstrument1.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(264.70588));
         assertThat(userInstrument1.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
         assertThat(userInstrument1.getClientOwnedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
 
-        PlaceOrderResponse response2 = placeUsdCadOrderResponse(symbolInfo, 1000, true, 1.37);
+        PlaceOrderResponse response2 = placeUsdCadOrderResponse(1000, true, 1.37);
         AppUserInstrument userInstrument2 = response2.getOrder().getUserInstrument();
         assertThat(userInstrument2.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
         assertThat(userInstrument2.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(-465.22113));
         assertThat(userInstrument2.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
         assertThat(userInstrument2.getClientOwnedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(2000));
 
-        PlaceOrderResponse response3 = placeUsdCadOrderResponse(symbolInfo, 1000, true, 1.38);
+        PlaceOrderResponse response3 = placeUsdCadOrderResponse(1000, true, 1.38);
         AppUserInstrument userInstrument3 = response3.getOrder().getUserInstrument();
         assertThat(userInstrument3.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(2000));
         assertThat(userInstrument3.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(-189.85881));
         assertThat(userInstrument3.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(2000));
         assertThat(userInstrument3.getClientOwnedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(3000));
 
-        PlaceOrderResponse response4 = placeUsdCadOrderResponse(symbolInfo, 2000, false, 1.39);
+        PlaceOrderResponse response4 = placeUsdCadOrderResponse(2000, false, 1.39);
         AppUserInstrument userInstrument4 = response4.getOrder().getUserInstrument();
         assertThat(userInstrument4.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(724.63768));
         assertThat(userInstrument4.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(275.36232));
@@ -216,24 +226,21 @@ class OrderOrchestratorTest {
 
     @Test
     void placeOrder_invHedging_open2kCloseAll() {
-        Mt5ServiceImpl.SymbolInfo symbolInfo = createMockSymbolInfo();
-        when(mt5Service.symbolInfo(any(), any())).thenReturn(symbolInfo);
-
-        PlaceOrderResponse response1 = placeUsdCadOrderResponse(symbolInfo, 1000, true, 1.36);
+        PlaceOrderResponse response1 = placeUsdCadOrderResponse(1000, true, 1.36);
         AppUserInstrument userInstrument1 = response1.getOrder().getUserInstrument();
         assertThat(userInstrument1.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(735.29412));
         assertThat(userInstrument1.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(264.70588));
         assertThat(userInstrument1.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
         assertThat(userInstrument1.getClientOwnedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
 
-        PlaceOrderResponse response2 = placeUsdCadOrderResponse(symbolInfo, 1000, true, 1.37);
+        PlaceOrderResponse response2 = placeUsdCadOrderResponse(1000, true, 1.37);
         AppUserInstrument userInstrument2 = response2.getOrder().getUserInstrument();
         assertThat(userInstrument2.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
         assertThat(userInstrument2.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(-465.22113));
         assertThat(userInstrument2.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
         assertThat(userInstrument2.getClientOwnedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(2000));
 
-        PlaceOrderResponse response3 = placeUsdCadOrderResponse(symbolInfo, 2000, false, 1.38);
+        PlaceOrderResponse response3 = placeUsdCadOrderResponse(2000, false, 1.38);
         AppUserInstrument userInstrument3 = response3.getOrder().getUserInstrument();
         assertThat(userInstrument3.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(userInstrument3.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.ZERO);
@@ -243,17 +250,14 @@ class OrderOrchestratorTest {
 
     @Test
     void placeOrder_invHedging_simpleOpenAndClose() {
-        Mt5ServiceImpl.SymbolInfo symbolInfo = createMockSymbolInfo();
-        when(mt5Service.symbolInfo(any(), any())).thenReturn(symbolInfo);
-
-        PlaceOrderResponse response1 = placeUsdCadOrderResponse(symbolInfo, 1000, true, 1.36);
+        PlaceOrderResponse response1 = placeUsdCadOrderResponse(1000, true, 1.36);
         AppUserInstrument userInstrument1 = response1.getOrder().getUserInstrument();
         assertThat(userInstrument1.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(735.29412));
         assertThat(userInstrument1.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(264.70588));
         assertThat(userInstrument1.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
         assertThat(userInstrument1.getClientOwnedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
 
-        PlaceOrderResponse response2 = placeUsdCadOrderResponse(symbolInfo, 1000, false, 1.36);
+        PlaceOrderResponse response2 = placeUsdCadOrderResponse(1000, false, 1.36);
         AppUserInstrument userInstrument2 = response2.getOrder().getUserInstrument();
         assertThat(userInstrument2.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(userInstrument2.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.ZERO);
@@ -262,7 +266,33 @@ class OrderOrchestratorTest {
 
     }
 
-    private PlaceOrderResponse placeUsdCadOrderResponse(Mt5ServiceImpl.SymbolInfo symbolInfo, Integer userAmount, boolean isBuy, Double price) {
+    private PlaceOrderResponse placeEurUsdOrderResponse(Integer userAmount, boolean isBuy, Double price) {
+        Mt5ServiceImpl.SymbolInfo symbolInfo = createMockSymbolInfo();
+        when(mt5Service.symbolInfo(any(), any())).thenReturn(symbolInfo);
+
+        PlaceOrderCommand command = PlaceOrderCommand.builder()
+                .isBuy(isBuy)
+                .userId(USER_ID)
+                .instrumentLabel(EURUSD)
+                .userAmount(userAmount)
+                .build();
+
+        Mt5ServiceImpl.InfoTick infoTick = createMockInfoTick(price);
+
+        Double volume1 = BigDecimal.valueOf(userAmount).divide(BigDecimal.valueOf(symbolInfo.getTrade_contract_size()), 2, RoundingMode.HALF_DOWN).doubleValue();
+        Mt5ServiceImpl.OrderDetails orderDetails1 = createMockOrderDetails(price, volume1);
+
+        when(mt5Service.getInfoTick(any(), any())).thenReturn(infoTick);
+        when(mt5Service.placeLongOrder(any(),any(),any(), any())).thenReturn(orderDetails1);
+        when(mt5Service.placeShortOrder(any(),any(), any(), any())).thenReturn(orderDetails1);
+        return orderOrchestrator.placeOrder(command);
+    }
+
+
+    private PlaceOrderResponse placeUsdCadOrderResponse(Integer userAmount, boolean isBuy, Double price) {
+        Mt5ServiceImpl.SymbolInfo symbolInfo = createMockSymbolInfo();
+        when(mt5Service.symbolInfo(any(), any())).thenReturn(symbolInfo);
+
         PlaceOrderCommand command = PlaceOrderCommand.builder()
                 .isBuy(isBuy)
                 .userId(USER_ID)

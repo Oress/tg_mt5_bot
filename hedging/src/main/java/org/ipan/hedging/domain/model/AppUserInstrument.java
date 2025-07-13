@@ -69,9 +69,9 @@ public class AppUserInstrument {
         return clientOwnedBaseAmount.add(houseOwnedBaseAmount.max(BigDecimal.ZERO));
     }
 
-    public void addVolumeShortMode(VolumeCalculation totalBase) {
-        if (totalBase != null) {
-//            this.totalOwnedBaseAmount = this.totalOwnedBaseAmount.add(totalBase.getExecutionBase());
+    public void addVolumeShortMode(VolumeCalculation volumeCalculation) {
+        if (volumeCalculation != null) {
+            this.clientOwnedBaseAmount = volumeCalculation.getNewUserOwnedBase();
         } else {
             log.warn("Attempt to add null total base amount for user instrument: {}", this);
         }

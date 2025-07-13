@@ -105,8 +105,16 @@ public class OrderService {
         order.setExecutedVolume(BigDecimal.valueOf(orderDetails.getVolume()));
         order.setStatus(OrderStatus.COMPLETE);
 
+        order.setHouseBaseAmountFrom(volumeCalculation.getOldHouseOwnedBase());
+        order.setHouseBaseAmountTo(volumeCalculation.getNewHouseOwnedBase());
+        order.setClientBaseAmountFrom(volumeCalculation.getOldUserOwnedBase());
+        order.setClientBaseAmountTo(volumeCalculation.getNewUserOwnedBase());
+        order.setUserBaseAmount(volumeCalculation.getExecutionUserOwnedBase());
+        order.setExecutedBaseAmount(volumeCalculation.getExecutionBase());
+
         AppUserInstrument userInstrument = order.getUserInstrument();
         Instrument instrument = userInstrument.getInstrument();
+
 
         if (InstrumentMode.SHORT.equals(instrument.getMode())) {
             userInstrument.addVolumeShortMode(volumeCalculation);
@@ -119,8 +127,6 @@ public class OrderService {
                 userInstrument.subtractUserAndHousePartsLongMode(volumeCalculation);
             }
 
-            order.setExecutedBaseAmount(volumeCalculation.getExecutionBase());
-            order.setUserBaseAmount(volumeCalculation.getExecutionUserOwnedBase());
         } else {
             log.error("Unsupported instrument mode: {}", instrument.getMode());
         }
