@@ -26,10 +26,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -245,8 +245,12 @@ class OrderOrchestratorTest {
         assertThat(userInstrument2.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(-147.05882353));
         assertThat(userInstrument2.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(5000));
         assertThat(userInstrument2.getClientOwnedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(7000));
-        // TODO: verfiy the consume record and left amount to unhedge for the order from response 1
-//        assertThat(userInstrument2.getClientOwnedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
+
+        Order order2 = orderRepo.findOrderWithConsumptions(response2.getOrder().getId());
+        List<OrderConsumption> consumptions = order2.getConsumptions();
+        assertThat(consumptions).hasSize(1);
+        assertThat(consumptions.get(0).getConsumedOrder().getId()).isEqualByComparingTo(response1.getOrder().getId());
+        assertThat(consumptions.get(0).getConsumedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(3000));
 
         PlaceOrderResponse response3 = placeUsdCadOrderResponse(7000, false, 2.1);
         AppUserInstrument userInstrument3 = response3.getOrder().getUserInstrument();
@@ -254,6 +258,15 @@ class OrderOrchestratorTest {
         assertThat(userInstrument3.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(userInstrument3.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(userInstrument3.getClientOwnedQuoteAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+
+        Order order3 = orderRepo.findOrderWithConsumptions(response3.getOrder().getId());
+        List<OrderConsumption> consumptions3 = order3.getConsumptions();
+        assertThat(consumptions3).hasSize(1);
+        assertThat(consumptions3.get(0).getConsumedOrder().getId()).isEqualByComparingTo(response1.getOrder().getId());
+        assertThat(consumptions3.get(0).getConsumedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(7000));
+
+        Order order1AfterUnhedge = orderRepo.findById(response1.getOrder().getId()).get();
+        assertThat(order1AfterUnhedge.getQuoteAmountLeftToUnhedge()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
 
@@ -279,6 +292,22 @@ class OrderOrchestratorTest {
         assertThat(userInstrument3.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(userInstrument3.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(userInstrument3.getClientOwnedQuoteAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+
+        Order order3 = orderRepo.findOrderWithConsumptions(response3.getOrder().getId());
+        List<OrderConsumption> consumptions = order3.getConsumptions();
+        assertThat(consumptions).hasSize(2);
+
+        assertThat(consumptions.get(0).getConsumedOrder().getId()).isEqualByComparingTo(response1.getOrder().getId());
+        assertThat(consumptions.get(0).getConsumedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
+
+        assertThat(consumptions.get(1).getConsumedOrder().getId()).isEqualByComparingTo(response2.getOrder().getId());
+        assertThat(consumptions.get(1).getConsumedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
+
+        Order order1AfterUnhedge = orderRepo.findById(response1.getOrder().getId()).get();
+        Order order2AfterUnhedge = orderRepo.findById(response2.getOrder().getId()).get();
+
+        assertThat(order1AfterUnhedge.getQuoteAmountLeftToUnhedge()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(order2AfterUnhedge.getQuoteAmountLeftToUnhedge()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
     @Test

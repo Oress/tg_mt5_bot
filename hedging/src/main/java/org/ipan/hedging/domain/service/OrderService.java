@@ -129,15 +129,21 @@ public class OrderService {
                 userInstrument.subtractUserAndHousePartsLongMode(volumeCalculation);
 
                 List<UUID> orderIds = volumeCalculation.getOrdersForConsumption().stream().map(o -> o.getOrderId()).toList();
-                Map<UUID, OrderConsumption> orderIdToConsumption = volumeCalculation.getOrdersForConsumption()
+                Map<UUID, PlannedOrderConsumption> orderIdToConsumption = volumeCalculation.getOrdersForConsumption()
                         .stream()
                         .collect(Collectors.toMap(o -> o.getOrderId(), o -> o));
 
                 List<Order> allById = orderRepo.findAllById(orderIds);
                 for (Order orderToConsume : allById) {
-                    OrderConsumption orderConsumption = orderIdToConsumption.get(orderToConsume.getId());
-                    orderToConsume.decreaseQuoteAmountLeftToUnhedge(orderConsumption.getQuoteConsumptionAmount());
-                    // TODO: make a record to the database about consumed orders.
+                    PlannedOrderConsumption plannedOrderConsumption = orderIdToConsumption.get(orderToConsume.getId());
+                    orderToConsume.decreaseQuoteAmountLeftToUnhedge(plannedOrderConsumption.getQuoteConsumptionAmount());
+
+                    OrderConsumption orderConsumption = new OrderConsumption();
+                    orderConsumption.setParentOrder(order);
+                    orderConsumption.setConsumedOrder(orderToConsume);
+                    orderConsumption.setConsumedQuoteAmount(plannedOrderConsumption.getQuoteConsumptionAmount());
+                    orderConsumption.setBaseEquivalent(plannedOrderConsumption.getQuoteConsumptionAmount().divide(order.getPrice(), RoundingMode.HALF_DOWN));
+                    order.getConsumptions().add(orderConsumption);
                 }
             }
         } else {

@@ -29,7 +29,7 @@ public class VolumeCalculation {
     BigDecimal executionUserOwnedBase;
     BigDecimal executionHouseOwnedBase;
 
-    List<OrderConsumption> ordersForConsumption;
+    List<PlannedOrderConsumption> ordersForConsumption;
 
     public static class VolumeCalculationBuilder {
         public VolumeCalculation build() {

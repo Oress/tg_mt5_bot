@@ -8,6 +8,8 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 // e.g. EUR/USD; EUR - base, USD - quote
@@ -24,6 +26,9 @@ public class Order {
     @ManyToOne
     @JoinColumn(name = "user_instrument_id")
     private AppUserInstrument userInstrument;
+
+    @OneToMany(mappedBy = "parentOrder", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderConsumption> consumptions = new ArrayList<>();
 
     private Long deal;
 

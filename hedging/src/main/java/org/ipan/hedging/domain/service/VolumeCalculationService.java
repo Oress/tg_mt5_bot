@@ -66,7 +66,7 @@ public class VolumeCalculationService {
     private class LongVolumeCalculationStrategy implements CalculationStrategy {
         @Override
         public VolumeCalculation calculate(VolumeCalculationParams params) {
-            List<OrderConsumption> orderConsumptions = new ArrayList<>();
+            List<PlannedOrderConsumption> plannedOrderConsumptions = new ArrayList<>();
             BigDecimal tradeContractSize = BigDecimal.valueOf(params.getTradeContractSize());
             BigDecimal currentTotal = params.getUserInstrument().getTotalOwnedBaseAmount();
             BigDecimal newTotalBaseAmount = null;
@@ -111,7 +111,7 @@ public class VolumeCalculationService {
                     amountLeft -= quoteConsumptionAmount.intValue();
 
                     operationUserAmountBase = operationUserAmountBase.add(quoteConsumptionAmount.divide(orderToConsume.getPrice(), 8, RoundingMode.HALF_DOWN));
-                    orderConsumptions.add(new OrderConsumption(orderToConsume.getId(), quoteConsumptionAmount));
+                    plannedOrderConsumptions.add(new PlannedOrderConsumption(orderToConsume.getId(), quoteConsumptionAmount));
                 }
 
                 // should be >= 0
@@ -145,7 +145,7 @@ public class VolumeCalculationService {
                     .executionVolume(executionVolume)
                     .executionBase(executionBaseAmount)
                     .price(BigDecimal.valueOf(price))
-                    .ordersForConsumption(orderConsumptions)
+                    .ordersForConsumption(plannedOrderConsumptions)
                     .build();
         }
     }

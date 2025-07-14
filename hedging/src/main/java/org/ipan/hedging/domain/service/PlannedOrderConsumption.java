@@ -10,7 +10,7 @@ import java.util.UUID;
 @Data
 @Builder
 @Value
-public class OrderConsumption {
+public class PlannedOrderConsumption {
     UUID orderId;
     BigDecimal quoteConsumptionAmount;
 }
