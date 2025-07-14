@@ -24,7 +24,7 @@ export default function Login() {
 
     // Simple validation
     if (!username || !password) {
-      setError('Please enter both username and password');
+      setError('Пожалуйста, введите имя пользователя и пароль');
       return;
     }
 
@@ -38,7 +38,7 @@ export default function Login() {
       localStorage.setItem('isAuthenticated', 'true');
       navigate('/main');
     } else {
-      setError('Invalid credentials');
+      setError('Неверные учетные данные');
     }
   };
 
@@ -48,7 +48,7 @@ export default function Login() {
         <Flex align="center" justify="center" style={{ height: '100%' }}>
           <Card size="3" style={{ width: '100%', maxWidth: '400px' }}>
             <Flex direction="column" gap="5">
-              <Heading size="6" align="center">Dashboard Login</Heading>
+              <Heading size="6" align="center">Вход в панель управления</Heading>
 
               {error && (
                 <Callout.Root color="red" size="1">
@@ -63,28 +63,28 @@ export default function Login() {
                 <Flex direction="column" gap="4">
                   <Box>
                     <Text as="label" size="2" weight="medium" htmlFor="username">
-                      Username
+                      Имя пользователя
                     </Text>
                     <TextField.Root size="3"
                                     id="username"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
-                                    placeholder="Enter your username">
+                                    placeholder="Введите имя пользователя">
                     </TextField.Root>
                   </Box>
 
                   <Box>
                     <Text as="label" size="2" weight="medium" htmlFor="password">
-                      Password
+                      Пароль
                     </Text>
                     <TextField.Root size="3" id="password" type="password" value={password}
-                                    placeholder="Enter your password"
+                                    placeholder="Введите пароль"
                                     onChange={(e) => setPassword(e.target.value)}>
                     </TextField.Root>
                   </Box>
 
                   <Button type="submit" size="3" color="cyan">
-                    Sign In
+                    Войти
                   </Button>
                 </Flex>
               </form>

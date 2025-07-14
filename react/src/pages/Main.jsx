@@ -71,19 +71,19 @@ function Main({ toggleTheme, themeMode }) {
       <Box style={{ backgroundColor: 'var(--color-panel-solid)', boxShadow: 'var(--shadow-2)' }}>
         <Container size="3">
           <Flex justify="between" align="center" py="5">
-            <Heading size="6">Dashboard</Heading>
+            <Heading size="6">Панель управления</Heading>
             <Flex gap="3" align="center">
               <IconButton 
                 size="2" 
                 variant="ghost" 
                 onClick={toggleTheme}
-                aria-label={themeMode === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
+                aria-label={themeMode === 'light' ? 'Переключиться на темную тему' : 'Переключиться на светлую тему'}
               >
                 {themeMode === 'light' ? <MoonIcon /> : <SunIcon />}
               </IconButton>
               <Button color="red" variant="soft" onClick={handleLogout}>
                 <ExitIcon />
-                Logout
+                Выйти
               </Button>
             </Flex>
           </Flex>
@@ -93,7 +93,7 @@ function Main({ toggleTheme, themeMode }) {
       <Container size="3" py="6">
         <Card size="2" mb="6">
           <Flex direction="column" gap="4">
-            <Heading size="4">Search Users</Heading>
+            <Heading size="4">Поиск пользователей</Heading>
             <Separator size="4" />
 
             <form onSubmit={handleSearch}>
@@ -101,19 +101,19 @@ function Main({ toggleTheme, themeMode }) {
                 <TextField.Root size="2" style={{ flexGrow: 1 }}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder="Search by first name, username, or Telegram ID"
+                                placeholder="Поиск по имени, имени пользователя или Telegram ID"
                 >
                 </TextField.Root>
                 <Button type="submit" size="2" color="cyan">
                   <MagnifyingGlassIcon />
-                  Search
+                  Поиск
                 </Button>
               </Flex>
             </form>
 
             {isLoading ? (
               <Flex justify="center" py="4">
-                <Text color="gray">Loading...</Text>
+                <Text color="gray">Загрузка...</Text>
               </Flex>
             ) : (
               <Box>
@@ -123,9 +123,9 @@ function Main({ toggleTheme, themeMode }) {
                       <Table.Header>
                         <Table.Row>
                           <Table.ColumnHeaderCell>Telegram ID</Table.ColumnHeaderCell>
-                          <Table.ColumnHeaderCell>First Name</Table.ColumnHeaderCell>
-                          <Table.ColumnHeaderCell>Username</Table.ColumnHeaderCell>
-                          <Table.ColumnHeaderCell>Actions</Table.ColumnHeaderCell>
+                          <Table.ColumnHeaderCell>Имя</Table.ColumnHeaderCell>
+                          <Table.ColumnHeaderCell>Имя пользователя</Table.ColumnHeaderCell>
+                          <Table.ColumnHeaderCell>Действия</Table.ColumnHeaderCell>
                         </Table.Row>
                       </Table.Header>
                       <Table.Body>
@@ -141,7 +141,7 @@ function Main({ toggleTheme, themeMode }) {
                                 color="cyan"
                                 onClick={() => handleUserClick(user.id)}
                               >
-                                View Details
+                                Просмотр деталей
                               </Button>
                             </Table.Cell>
                           </Table.Row>
@@ -151,11 +151,11 @@ function Main({ toggleTheme, themeMode }) {
                   </ScrollArea>
                 ) : searchTerm ? (
                   <Flex justify="center" py="4">
-                    <Text color="gray">No users found matching "{searchTerm}"</Text>
+                    <Text color="gray">Не найдено пользователей, соответствующих "{searchTerm}"</Text>
                   </Flex>
                 ) : (
                   <Flex justify="center" py="4">
-                    <Text color="gray">No users available</Text>
+                    <Text color="gray">Нет доступных пользователей</Text>
                   </Flex>
                 )}
               </Box>

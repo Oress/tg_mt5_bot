@@ -129,7 +129,7 @@ function UserPage() {
     return (
       <Box style={{ minHeight: '100vh', backgroundColor: 'var(--gray-2)' }}>
         <Flex align="center" justify="center" style={{ height: '100vh' }}>
-          <Text size="5" color="gray">Loading...</Text>
+          <Text size="5" color="gray">Загрузка...</Text>
         </Flex>
       </Box>
     );
@@ -140,10 +140,10 @@ function UserPage() {
       <Box style={{ minHeight: '100vh', backgroundColor: 'var(--gray-2)' }}>
         <Flex align="center" justify="center" style={{ height: '100vh' }}>
           <Flex direction="column" align="center" gap="4">
-            <Text size="5" color="red" weight="bold">User not found</Text>
+            <Text size="5" color="red" weight="bold">Пользователь не найден</Text>
             <Button onClick={handleBack} size="3" color="cyan">
               <ArrowLeftIcon />
-              Back to Search
+              Назад к поиску
             </Button>
           </Flex>
         </Flex>
@@ -162,10 +162,10 @@ function UserPage() {
             direction={{ initial: "column", sm: "row" }}
             gap={{ initial: "4", sm: "0" }}
           >
-            <Heading size={{ initial: "5", sm: "6" }}>User Details</Heading>
+            <Heading size={{ initial: "5", sm: "6" }}>Детали пользователя</Heading>
             <Button onClick={handleBack} size="3" color="cyan">
               <ArrowLeftIcon />
-              <Text size={{ initial: "2", sm: "3" }}>Back to Search</Text>
+              <Text size={{ initial: "2", sm: "3" }}>Назад к поиску</Text>
             </Button>
           </Flex>
         </Container>
@@ -175,7 +175,7 @@ function UserPage() {
         {/* User Info Section */}
         <Card size="2" mb="6">
           <Flex direction="column" gap="3">
-            <Heading size="4">User Information</Heading>
+            <Heading size="4">Информация о пользователе</Heading>
             <Separator size="4" />
             {/* Responsive grid that changes from 1 column on mobile to 3 columns on desktop */}
             <Grid columns={{ initial: "1", sm: "2", md: "3" }} gap="4">
@@ -187,13 +187,13 @@ function UserPage() {
               </Card>
               <Card size="1">
                 <Flex direction="column" gap="1" p="2">
-                  <Text size="2" color="gray">First Name</Text>
+                  <Text size="2" color="gray">Имя</Text>
                   <Text size="4" weight="medium">{user.firstName}</Text>
                 </Flex>
               </Card>
               <Card size="1">
                 <Flex direction="column" gap="1" p="2">
-                  <Text size="2" color="gray">Username</Text>
+                  <Text size="2" color="gray">Имя пользователя</Text>
                   <Text size="4" weight="medium">{user.username}</Text>
                 </Flex>
               </Card>
@@ -204,7 +204,7 @@ function UserPage() {
         {/* Recent Activity Section */}
         <Card size="2" mb="6">
           <Flex direction="column" gap="3">
-            <Heading size="4">Recent Activity</Heading>
+            <Heading size="4">Недавняя активность</Heading>
             <Separator size="4" />
 
             {activities.length > 0 ? (
@@ -215,9 +215,9 @@ function UserPage() {
                     <Table.Root variant="surface">
                       <Table.Header>
                         <Table.Row>
-                          <Table.ColumnHeaderCell>Action</Table.ColumnHeaderCell>
-                          <Table.ColumnHeaderCell>Details</Table.ColumnHeaderCell>
-                          <Table.ColumnHeaderCell>Timestamp</Table.ColumnHeaderCell>
+                          <Table.ColumnHeaderCell>Действие</Table.ColumnHeaderCell>
+                          <Table.ColumnHeaderCell>Детали</Table.ColumnHeaderCell>
+                          <Table.ColumnHeaderCell>Время</Table.ColumnHeaderCell>
                         </Table.Row>
                       </Table.Header>
                       <Table.Body>
@@ -250,7 +250,7 @@ function UserPage() {
               </Box>
             ) : (
               <Flex justify="center" py="4">
-                <Text color="gray">No recent activity found</Text>
+                <Text color="gray">Недавняя активность не найдена</Text>
               </Flex>
             )}
           </Flex>
@@ -259,7 +259,7 @@ function UserPage() {
         {/* Instruments Section */}
         <Card size="2">
           <Flex direction="column" gap="3">
-            <Heading size="4">Available Instruments</Heading>
+            <Heading size="4">Доступные инструменты</Heading>
             <Separator size="4" />
 
             {/* Tabs */}
@@ -279,19 +279,19 @@ function UserPage() {
                   <Grid columns={{ initial: "1", sm: "2", md: "3" }} gap="4" mb="6">
                     <Card size="1">
                       <Flex direction="column" gap="1" p="3" align="center" justify="center">
-                        <Text size="2" color="gray">Client Base Owned</Text>
+                        <Text size="2" color="gray">Клиентская база</Text>
                         <Text size={{ initial: "5", md: "6" }} weight="bold" color="blue">{selectedInstrument.clientBaseOwned.toLocaleString()}</Text>
                       </Flex>
                     </Card>
                     <Card size="1">
                       <Flex direction="column" gap="1" p="3" align="center" justify="center">
-                        <Text size="2" color="gray">House Base Owned</Text>
+                        <Text size="2" color="gray">База дома</Text>
                         <Text size={{ initial: "5", md: "6" }} weight="bold" color="green">{selectedInstrument.houseBaseOwned.toLocaleString()}</Text>
                       </Flex>
                     </Card>
                     <Card size="1">
                       <Flex direction="column" gap="1" p="3" align="center" justify="center">
-                        <Text size="2" color="gray">Total Base Owned</Text>
+                        <Text size="2" color="gray">Общая база</Text>
                         <Text size={{ initial: "5", md: "6" }} weight="bold" color="purple">{selectedInstrument.totalBaseOwned.toLocaleString()}</Text>
                       </Flex>
                     </Card>
@@ -299,7 +299,7 @@ function UserPage() {
 
                   {/* Open Positions */}
                   <Box mb="6">
-                    <Heading size="3" mb="3">Current Open Positions</Heading>
+                    <Heading size="3" mb="3">Текущие открытые позиции</Heading>
                     {openPositions.length > 0 ? (
                       <Box>
                         {/* Desktop view - Table */}
@@ -308,12 +308,12 @@ function UserPage() {
                             <Table.Root variant="surface">
                               <Table.Header>
                                 <Table.Row>
-                                  <Table.ColumnHeaderCell>Type</Table.ColumnHeaderCell>
-                                  <Table.ColumnHeaderCell>Amount</Table.ColumnHeaderCell>
-                                  <Table.ColumnHeaderCell>Open Price</Table.ColumnHeaderCell>
-                                  <Table.ColumnHeaderCell>Current Price</Table.ColumnHeaderCell>
-                                  <Table.ColumnHeaderCell>Profit</Table.ColumnHeaderCell>
-                                  <Table.ColumnHeaderCell>Open Date</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Тип</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Сумма</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Цена открытия</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Текущая цена</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Прибыль</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Дата открытия</Table.ColumnHeaderCell>
                                 </Table.Row>
                               </Table.Header>
                               <Table.Body>
@@ -321,7 +321,7 @@ function UserPage() {
                                   <Table.Row key={position.id}>
                                     <Table.Cell>
                                       <Text color={position.type === 'Buy' ? 'green' : 'red'} weight="medium">
-                                        {position.type}
+                                        {position.type === 'Buy' ? 'Покупка' : 'Продажа'}
                                       </Text>
                                     </Table.Cell>
                                     <Table.Cell>{position.amount.toLocaleString()}</Table.Cell>
@@ -347,7 +347,7 @@ function UserPage() {
                               <Flex direction="column" gap="2" p="3">
                                 <Flex justify="between" align="center">
                                   <Text color={position.type === 'Buy' ? 'green' : 'red'} weight="bold">
-                                    {position.type}
+                                    {position.type === 'Buy' ? 'Покупка' : 'Продажа'}
                                   </Text>
                                   <Text color={position.profit >= 0 ? 'green' : 'red'} weight="bold">
                                     {position.profit >= 0 ? '+' : ''}{position.profit}
@@ -355,19 +355,19 @@ function UserPage() {
                                 </Flex>
                                 <Grid columns="2" gap="2">
                                   <Box>
-                                    <Text size="1" color="gray">Amount</Text>
+                                    <Text size="1" color="gray">Сумма</Text>
                                     <Text>{position.amount.toLocaleString()}</Text>
                                   </Box>
                                   <Box>
-                                    <Text size="1" color="gray">Open Date</Text>
+                                    <Text size="1" color="gray">Дата открытия</Text>
                                     <Text>{new Date(position.openDate).toLocaleString()}</Text>
                                   </Box>
                                   <Box>
-                                    <Text size="1" color="gray">Open Price</Text>
+                                    <Text size="1" color="gray">Цена открытия</Text>
                                     <Text>{position.openPrice}</Text>
                                   </Box>
                                   <Box>
-                                    <Text size="1" color="gray">Current Price</Text>
+                                    <Text size="1" color="gray">Текущая цена</Text>
                                     <Text>{position.currentPrice}</Text>
                                   </Box>
                                 </Grid>
@@ -378,14 +378,14 @@ function UserPage() {
                       </Box>
                     ) : (
                       <Flex justify="center" py="4">
-                        <Text color="gray">No open positions for this instrument</Text>
+                        <Text color="gray">Нет открытых позиций для этого инструмента</Text>
                       </Flex>
                     )}
                   </Box>
 
                   {/* Order History */}
                   <Box>
-                    <Heading size="3" mb="3">Order History</Heading>
+                    <Heading size="3" mb="3">История заказов</Heading>
                     {orderHistory.length > 0 ? (
                       <Box>
                         {/* Desktop view - Table */}
@@ -394,13 +394,13 @@ function UserPage() {
                             <Table.Root variant="surface">
                               <Table.Header>
                                 <Table.Row>
-                                  <Table.ColumnHeaderCell>Type</Table.ColumnHeaderCell>
-                                  <Table.ColumnHeaderCell>Amount</Table.ColumnHeaderCell>
-                                  <Table.ColumnHeaderCell>Open Price</Table.ColumnHeaderCell>
-                                  <Table.ColumnHeaderCell>Close Price</Table.ColumnHeaderCell>
-                                  <Table.ColumnHeaderCell>Profit</Table.ColumnHeaderCell>
-                                  <Table.ColumnHeaderCell>Open Date</Table.ColumnHeaderCell>
-                                  <Table.ColumnHeaderCell>Close Date</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Тип</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Сумма</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Цена открытия</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Цена закрытия</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Прибыль</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Дата открытия</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Дата закрытия</Table.ColumnHeaderCell>
                                 </Table.Row>
                               </Table.Header>
                               <Table.Body>
@@ -408,7 +408,7 @@ function UserPage() {
                                   <Table.Row key={order.id}>
                                     <Table.Cell>
                                       <Text color={order.type === 'Buy' ? 'green' : 'red'} weight="medium">
-                                        {order.type}
+                                        {order.type === 'Buy' ? 'Покупка' : 'Продажа'}
                                       </Text>
                                     </Table.Cell>
                                     <Table.Cell>{order.amount.toLocaleString()}</Table.Cell>
@@ -435,7 +435,7 @@ function UserPage() {
                               <Flex direction="column" gap="2" p="3">
                                 <Flex justify="between" align="center">
                                   <Text color={order.type === 'Buy' ? 'green' : 'red'} weight="bold">
-                                    {order.type}
+                                    {order.type === 'Buy' ? 'Покупка' : 'Продажа'}
                                   </Text>
                                   <Text color={order.profit >= 0 ? 'green' : 'red'} weight="bold">
                                     {order.profit >= 0 ? '+' : ''}{order.profit}
@@ -443,26 +443,26 @@ function UserPage() {
                                 </Flex>
                                 <Grid columns="2" gap="2">
                                   <Box>
-                                    <Text size="1" color="gray">Amount</Text>
+                                    <Text size="1" color="gray">Сумма</Text>
                                     <Text>{order.amount.toLocaleString()}</Text>
                                   </Box>
                                   <Box>
-                                    <Text size="1" color="gray">Open Price</Text>
+                                    <Text size="1" color="gray">Цена открытия</Text>
                                     <Text>{order.openPrice}</Text>
                                   </Box>
                                   <Box>
-                                    <Text size="1" color="gray">Close Price</Text>
+                                    <Text size="1" color="gray">Цена закрытия</Text>
                                     <Text>{order.closePrice}</Text>
                                   </Box>
                                 </Grid>
                                 <Separator size="4" my="1" />
                                 <Grid columns="2" gap="2">
                                   <Box>
-                                    <Text size="1" color="gray">Open Date</Text>
+                                    <Text size="1" color="gray">Дата открытия</Text>
                                     <Text>{new Date(order.openDate).toLocaleString()}</Text>
                                   </Box>
                                   <Box>
-                                    <Text size="1" color="gray">Close Date</Text>
+                                    <Text size="1" color="gray">Дата закрытия</Text>
                                     <Text>{new Date(order.closeDate).toLocaleString()}</Text>
                                   </Box>
                                 </Grid>
@@ -473,7 +473,7 @@ function UserPage() {
                       </Box>
                     ) : (
                       <Flex justify="center" py="4">
-                        <Text color="gray">No order history for this instrument</Text>
+                        <Text color="gray">Нет истории заказов для этого инструмента</Text>
                       </Flex>
                     )}
                   </Box>
