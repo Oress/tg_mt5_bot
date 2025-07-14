@@ -1,5 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { 
+  Container, 
+  Box, 
+  Heading, 
+  Text, 
+  Button, 
+  Card, 
+  Flex, 
+  Table,
+  Tabs,
+  Grid,
+  ScrollArea,
+  Separator,
+  Inset
+} from '@radix-ui/themes';
+import { ArrowLeftIcon } from '@radix-ui/react-icons';
 
 function UserPage() {
   const { userId } = useParams();
@@ -15,11 +31,11 @@ function UserPage() {
 
   // Mock data - in a real app, this would come from API calls
   const mockUsers = [
-    { id: 1, telegramId: '12345678', username: 'user1' },
-    { id: 2, telegramId: '87654321', username: 'user2' },
-    { id: 3, telegramId: '11223344', username: 'admin' },
-    { id: 4, telegramId: '44332211', username: 'trader1' },
-    { id: 5, telegramId: '55667788', username: 'trader2' },
+    { id: 1, telegramId: '12345678', username: 'user1', firstName: 'John' },
+    { id: 2, telegramId: '87654321', username: 'user2', firstName: 'Jane' },
+    { id: 3, telegramId: '11223344', username: 'admin', firstName: 'Admin' },
+    { id: 4, telegramId: '44332211', username: 'trader1', firstName: 'Mike' },
+    { id: 5, telegramId: '55667788', username: 'trader2', firstName: 'Sarah' },
   ];
 
   const mockActivities = [
@@ -66,32 +82,32 @@ function UserPage() {
   useEffect(() => {
     // Simulate API calls to fetch data
     setLoading(true);
-    
+
     // Find user
     const foundUser = mockUsers.find(u => u.id === parseInt(userId));
-    
+
     if (foundUser) {
       setUser(foundUser);
-      
+
       // Get user activities
       const userActivities = mockActivities.filter(a => a.userId === parseInt(userId));
       setActivities(userActivities);
-      
+
       // Set instruments
       setInstruments(mockInstruments);
-      
+
       // Set default active tab to first instrument if available
       if (mockInstruments.length > 0) {
         const firstInstrument = mockInstruments[0];
         setActiveTab(firstInstrument.name);
         setSelectedInstrument(firstInstrument);
-        
+
         // Set open positions and order history for the selected instrument
         setOpenPositions(mockOpenPositions[firstInstrument.name] || []);
         setOrderHistory(mockOrderHistory[firstInstrument.name] || []);
       }
     }
-    
+
     setLoading(false);
   }, [userId]);
 
@@ -99,7 +115,7 @@ function UserPage() {
     setActiveTab(instrumentName);
     const instrument = instruments.find(i => i.name === instrumentName);
     setSelectedInstrument(instrument);
-    
+
     // Update open positions and order history based on selected instrument
     setOpenPositions(mockOpenPositions[instrumentName] || []);
     setOrderHistory(mockOrderHistory[instrumentName] || []);
@@ -111,225 +127,363 @@ function UserPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-100">
-        <p className="text-xl text-gray-600">Loading...</p>
-      </div>
+      <Box style={{ minHeight: '100vh', backgroundColor: 'var(--gray-2)' }}>
+        <Flex align="center" justify="center" style={{ height: '100vh' }}>
+          <Text size="5" color="gray">Loading...</Text>
+        </Flex>
+      </Box>
     );
   }
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-100">
-        <div className="text-center">
-          <p className="mb-4 text-xl text-red-600">User not found</p>
-          <button
-            onClick={handleBack}
-            className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-          >
-            Back to Search
-          </button>
-        </div>
-      </div>
+      <Box style={{ minHeight: '100vh', backgroundColor: 'var(--gray-2)' }}>
+        <Flex align="center" justify="center" style={{ height: '100vh' }}>
+          <Flex direction="column" align="center" gap="4">
+            <Text size="5" color="red" weight="bold">User not found</Text>
+            <Button onClick={handleBack} size="3" color="cyan">
+              <ArrowLeftIcon />
+              Back to Search
+            </Button>
+          </Flex>
+        </Flex>
+      </Box>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-6 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-gray-900">User Details</h1>
-          <button
-            onClick={handleBack}
-            className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+    <Box style={{ minHeight: '100vh', backgroundColor: 'var(--gray-2)' }}>
+      <Box style={{ backgroundColor: 'var(--color-panel-solid)', boxShadow: 'var(--shadow-2)' }}>
+        <Container size="3">
+          <Flex 
+            justify={{ initial: "center", sm: "between" }} 
+            align="center" 
+            py="5"
+            direction={{ initial: "column", sm: "row" }}
+            gap={{ initial: "4", sm: "0" }}
           >
-            Back to Search
-          </button>
-        </div>
-      </header>
-      
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+            <Heading size={{ initial: "5", sm: "6" }}>User Details</Heading>
+            <Button onClick={handleBack} size="3" color="cyan">
+              <ArrowLeftIcon />
+              <Text size={{ initial: "2", sm: "3" }}>Back to Search</Text>
+            </Button>
+          </Flex>
+        </Container>
+      </Box>
+
+      <Container size="3" py="6">
         {/* User Info Section */}
-        <div className="mb-8 rounded-lg bg-white p-6 shadow">
-          <h2 className="mb-4 text-xl font-semibold text-gray-800">User Information</h2>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <p className="text-sm text-gray-500">Telegram ID</p>
-              <p className="text-lg font-medium">{user.telegramId}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Username</p>
-              <p className="text-lg font-medium">{user.username}</p>
-            </div>
-          </div>
-        </div>
-        
+        <Card size="2" mb="6">
+          <Flex direction="column" gap="3">
+            <Heading size="4">User Information</Heading>
+            <Separator size="4" />
+            {/* Responsive grid that changes from 1 column on mobile to 3 columns on desktop */}
+            <Grid columns={{ initial: "1", sm: "2", md: "3" }} gap="4">
+              <Card size="1">
+                <Flex direction="column" gap="1" p="2">
+                  <Text size="2" color="gray">Telegram ID</Text>
+                  <Text size="4" weight="medium">{user.telegramId}</Text>
+                </Flex>
+              </Card>
+              <Card size="1">
+                <Flex direction="column" gap="1" p="2">
+                  <Text size="2" color="gray">First Name</Text>
+                  <Text size="4" weight="medium">{user.firstName}</Text>
+                </Flex>
+              </Card>
+              <Card size="1">
+                <Flex direction="column" gap="1" p="2">
+                  <Text size="2" color="gray">Username</Text>
+                  <Text size="4" weight="medium">{user.username}</Text>
+                </Flex>
+              </Card>
+            </Grid>
+          </Flex>
+        </Card>
+
         {/* Recent Activity Section */}
-        <div className="mb-8 rounded-lg bg-white p-6 shadow">
-          <h2 className="mb-4 text-xl font-semibold text-gray-800">Recent Activity</h2>
-          {activities.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Action
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Details
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Timestamp
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
+        <Card size="2" mb="6">
+          <Flex direction="column" gap="3">
+            <Heading size="4">Recent Activity</Heading>
+            <Separator size="4" />
+
+            {activities.length > 0 ? (
+              <Box>
+                {/* Desktop view - Table */}
+                <Box display={{ initial: 'none', md: 'block' }}>
+                  <ScrollArea scrollbars="horizontal" style={{ maxWidth: '100%' }}>
+                    <Table.Root variant="surface">
+                      <Table.Header>
+                        <Table.Row>
+                          <Table.ColumnHeaderCell>Action</Table.ColumnHeaderCell>
+                          <Table.ColumnHeaderCell>Details</Table.ColumnHeaderCell>
+                          <Table.ColumnHeaderCell>Timestamp</Table.ColumnHeaderCell>
+                        </Table.Row>
+                      </Table.Header>
+                      <Table.Body>
+                        {activities.map((activity) => (
+                          <Table.Row key={activity.id}>
+                            <Table.Cell>{activity.action}</Table.Cell>
+                            <Table.Cell>{activity.details}</Table.Cell>
+                            <Table.Cell>{new Date(activity.timestamp).toLocaleString()}</Table.Cell>
+                          </Table.Row>
+                        ))}
+                      </Table.Body>
+                    </Table.Root>
+                  </ScrollArea>
+                </Box>
+
+                {/* Mobile view - Cards */}
+                <Flex direction="column" gap="3" display={{ initial: 'flex', md: 'none' }}>
                   {activities.map((activity) => (
-                    <tr key={activity.id} className="hover:bg-gray-50">
-                      <td className="whitespace-nowrap px-6 py-4">
-                        {activity.action}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4">
-                        {activity.details}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4">
-                        {new Date(activity.timestamp).toLocaleString()}
-                      </td>
-                    </tr>
+                    <Card key={activity.id} size="1">
+                      <Flex direction="column" gap="2" p="3">
+                        <Flex justify="between" align="center">
+                          <Text weight="bold">{activity.action}</Text>
+                          <Text size="1" color="gray">{new Date(activity.timestamp).toLocaleString()}</Text>
+                        </Flex>
+                        <Text>{activity.details}</Text>
+                      </Flex>
+                    </Card>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="text-center text-gray-600">No recent activity found</p>
-          )}
-        </div>
-        
+                </Flex>
+              </Box>
+            ) : (
+              <Flex justify="center" py="4">
+                <Text color="gray">No recent activity found</Text>
+              </Flex>
+            )}
+          </Flex>
+        </Card>
+
         {/* Instruments Section */}
-        <div className="rounded-lg bg-white p-6 shadow">
-          <h2 className="mb-4 text-xl font-semibold text-gray-800">Available Instruments</h2>
-          
-          {/* Tabs */}
-          <div className="mb-4 border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
-              {instruments.map((instrument) => (
-                <button
-                  key={instrument.id}
-                  onClick={() => handleTabChange(instrument.name)}
-                  className={`whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium ${
-                    activeTab === instrument.name
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  }`}
-                >
-                  {instrument.name}
-                </button>
-              ))}
-            </nav>
-          </div>
-          
-          {/* Tab Content */}
-          {selectedInstrument && (
-            <div>
-              {/* Ownership Info */}
-              <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div className="rounded-lg bg-blue-50 p-4">
-                  <p className="text-sm text-gray-500">Client Base Owned</p>
-                  <p className="text-2xl font-bold text-blue-600">{selectedInstrument.clientBaseOwned.toLocaleString()}</p>
-                </div>
-                <div className="rounded-lg bg-green-50 p-4">
-                  <p className="text-sm text-gray-500">House Base Owned</p>
-                  <p className="text-2xl font-bold text-green-600">{selectedInstrument.houseBaseOwned.toLocaleString()}</p>
-                </div>
-                <div className="rounded-lg bg-purple-50 p-4">
-                  <p className="text-sm text-gray-500">Total Base Owned</p>
-                  <p className="text-2xl font-bold text-purple-600">{selectedInstrument.totalBaseOwned.toLocaleString()}</p>
-                </div>
-              </div>
-              
-              {/* Open Positions */}
-              <div className="mb-6">
-                <h3 className="mb-3 text-lg font-medium text-gray-800">Current Open Positions</h3>
-                {openPositions.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Type</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Amount</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Open Price</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Current Price</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Profit</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Open Date</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200 bg-white">
-                        {openPositions.map((position) => (
-                          <tr key={position.id} className="hover:bg-gray-50">
-                            <td className={`whitespace-nowrap px-6 py-4 font-medium ${position.type === 'Buy' ? 'text-green-600' : 'text-red-600'}`}>
-                              {position.type}
-                            </td>
-                            <td className="whitespace-nowrap px-6 py-4">{position.amount.toLocaleString()}</td>
-                            <td className="whitespace-nowrap px-6 py-4">{position.openPrice}</td>
-                            <td className="whitespace-nowrap px-6 py-4">{position.currentPrice}</td>
-                            <td className={`whitespace-nowrap px-6 py-4 font-medium ${position.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {position.profit >= 0 ? '+' : ''}{position.profit}
-                            </td>
-                            <td className="whitespace-nowrap px-6 py-4">{new Date(position.openDate).toLocaleString()}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p className="text-center text-gray-600">No open positions for this instrument</p>
-                )}
-              </div>
-              
-              {/* Order History */}
-              <div>
-                <h3 className="mb-3 text-lg font-medium text-gray-800">Order History</h3>
-                {orderHistory.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Type</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Amount</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Open Price</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Close Price</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Profit</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Open Date</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Close Date</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200 bg-white">
-                        {orderHistory.map((order) => (
-                          <tr key={order.id} className="hover:bg-gray-50">
-                            <td className={`whitespace-nowrap px-6 py-4 font-medium ${order.type === 'Buy' ? 'text-green-600' : 'text-red-600'}`}>
-                              {order.type}
-                            </td>
-                            <td className="whitespace-nowrap px-6 py-4">{order.amount.toLocaleString()}</td>
-                            <td className="whitespace-nowrap px-6 py-4">{order.openPrice}</td>
-                            <td className="whitespace-nowrap px-6 py-4">{order.closePrice}</td>
-                            <td className={`whitespace-nowrap px-6 py-4 font-medium ${order.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {order.profit >= 0 ? '+' : ''}{order.profit}
-                            </td>
-                            <td className="whitespace-nowrap px-6 py-4">{new Date(order.openDate).toLocaleString()}</td>
-                            <td className="whitespace-nowrap px-6 py-4">{new Date(order.closeDate).toLocaleString()}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p className="text-center text-gray-600">No order history for this instrument</p>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </main>
-    </div>
+        <Card size="2">
+          <Flex direction="column" gap="3">
+            <Heading size="4">Available Instruments</Heading>
+            <Separator size="4" />
+
+            {/* Tabs */}
+            <Tabs.Root defaultValue={activeTab} onValueChange={handleTabChange}>
+              <Tabs.List>
+                {instruments.map((instrument) => (
+                  <Tabs.Trigger key={instrument.id} value={instrument.name}>
+                    {instrument.name}
+                  </Tabs.Trigger>
+                ))}
+              </Tabs.List>
+
+              {/* Tab Content */}
+              {selectedInstrument && (
+                <Box pt="4">
+                  {/* Ownership Info */}
+                  <Grid columns={{ initial: "1", sm: "2", md: "3" }} gap="4" mb="6">
+                    <Card size="1">
+                      <Flex direction="column" gap="1" p="3" align="center" justify="center">
+                        <Text size="2" color="gray">Client Base Owned</Text>
+                        <Text size={{ initial: "5", md: "6" }} weight="bold" color="blue">{selectedInstrument.clientBaseOwned.toLocaleString()}</Text>
+                      </Flex>
+                    </Card>
+                    <Card size="1">
+                      <Flex direction="column" gap="1" p="3" align="center" justify="center">
+                        <Text size="2" color="gray">House Base Owned</Text>
+                        <Text size={{ initial: "5", md: "6" }} weight="bold" color="green">{selectedInstrument.houseBaseOwned.toLocaleString()}</Text>
+                      </Flex>
+                    </Card>
+                    <Card size="1">
+                      <Flex direction="column" gap="1" p="3" align="center" justify="center">
+                        <Text size="2" color="gray">Total Base Owned</Text>
+                        <Text size={{ initial: "5", md: "6" }} weight="bold" color="purple">{selectedInstrument.totalBaseOwned.toLocaleString()}</Text>
+                      </Flex>
+                    </Card>
+                  </Grid>
+
+                  {/* Open Positions */}
+                  <Box mb="6">
+                    <Heading size="3" mb="3">Current Open Positions</Heading>
+                    {openPositions.length > 0 ? (
+                      <Box>
+                        {/* Desktop view - Table */}
+                        <Box display={{ initial: 'none', md: 'block' }}>
+                          <ScrollArea scrollbars="horizontal" style={{ maxWidth: '100%' }}>
+                            <Table.Root variant="surface">
+                              <Table.Header>
+                                <Table.Row>
+                                  <Table.ColumnHeaderCell>Type</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Amount</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Open Price</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Current Price</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Profit</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Open Date</Table.ColumnHeaderCell>
+                                </Table.Row>
+                              </Table.Header>
+                              <Table.Body>
+                                {openPositions.map((position) => (
+                                  <Table.Row key={position.id}>
+                                    <Table.Cell>
+                                      <Text color={position.type === 'Buy' ? 'green' : 'red'} weight="medium">
+                                        {position.type}
+                                      </Text>
+                                    </Table.Cell>
+                                    <Table.Cell>{position.amount.toLocaleString()}</Table.Cell>
+                                    <Table.Cell>{position.openPrice}</Table.Cell>
+                                    <Table.Cell>{position.currentPrice}</Table.Cell>
+                                    <Table.Cell>
+                                      <Text color={position.profit >= 0 ? 'green' : 'red'} weight="medium">
+                                        {position.profit >= 0 ? '+' : ''}{position.profit}
+                                      </Text>
+                                    </Table.Cell>
+                                    <Table.Cell>{new Date(position.openDate).toLocaleString()}</Table.Cell>
+                                  </Table.Row>
+                                ))}
+                              </Table.Body>
+                            </Table.Root>
+                          </ScrollArea>
+                        </Box>
+
+                        {/* Mobile view - Cards */}
+                        <Flex direction="column" gap="3" display={{ initial: 'flex', md: 'none' }}>
+                          {openPositions.map((position) => (
+                            <Card key={position.id} size="1">
+                              <Flex direction="column" gap="2" p="3">
+                                <Flex justify="between" align="center">
+                                  <Text color={position.type === 'Buy' ? 'green' : 'red'} weight="bold">
+                                    {position.type}
+                                  </Text>
+                                  <Text color={position.profit >= 0 ? 'green' : 'red'} weight="bold">
+                                    {position.profit >= 0 ? '+' : ''}{position.profit}
+                                  </Text>
+                                </Flex>
+                                <Grid columns="2" gap="2">
+                                  <Box>
+                                    <Text size="1" color="gray">Amount</Text>
+                                    <Text>{position.amount.toLocaleString()}</Text>
+                                  </Box>
+                                  <Box>
+                                    <Text size="1" color="gray">Open Date</Text>
+                                    <Text>{new Date(position.openDate).toLocaleString()}</Text>
+                                  </Box>
+                                  <Box>
+                                    <Text size="1" color="gray">Open Price</Text>
+                                    <Text>{position.openPrice}</Text>
+                                  </Box>
+                                  <Box>
+                                    <Text size="1" color="gray">Current Price</Text>
+                                    <Text>{position.currentPrice}</Text>
+                                  </Box>
+                                </Grid>
+                              </Flex>
+                            </Card>
+                          ))}
+                        </Flex>
+                      </Box>
+                    ) : (
+                      <Flex justify="center" py="4">
+                        <Text color="gray">No open positions for this instrument</Text>
+                      </Flex>
+                    )}
+                  </Box>
+
+                  {/* Order History */}
+                  <Box>
+                    <Heading size="3" mb="3">Order History</Heading>
+                    {orderHistory.length > 0 ? (
+                      <Box>
+                        {/* Desktop view - Table */}
+                        <Box display={{ initial: 'none', md: 'block' }}>
+                          <ScrollArea scrollbars="horizontal" style={{ maxWidth: '100%' }}>
+                            <Table.Root variant="surface">
+                              <Table.Header>
+                                <Table.Row>
+                                  <Table.ColumnHeaderCell>Type</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Amount</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Open Price</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Close Price</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Profit</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Open Date</Table.ColumnHeaderCell>
+                                  <Table.ColumnHeaderCell>Close Date</Table.ColumnHeaderCell>
+                                </Table.Row>
+                              </Table.Header>
+                              <Table.Body>
+                                {orderHistory.map((order) => (
+                                  <Table.Row key={order.id}>
+                                    <Table.Cell>
+                                      <Text color={order.type === 'Buy' ? 'green' : 'red'} weight="medium">
+                                        {order.type}
+                                      </Text>
+                                    </Table.Cell>
+                                    <Table.Cell>{order.amount.toLocaleString()}</Table.Cell>
+                                    <Table.Cell>{order.openPrice}</Table.Cell>
+                                    <Table.Cell>{order.closePrice}</Table.Cell>
+                                    <Table.Cell>
+                                      <Text color={order.profit >= 0 ? 'green' : 'red'} weight="medium">
+                                        {order.profit >= 0 ? '+' : ''}{order.profit}
+                                      </Text>
+                                    </Table.Cell>
+                                    <Table.Cell>{new Date(order.openDate).toLocaleString()}</Table.Cell>
+                                    <Table.Cell>{new Date(order.closeDate).toLocaleString()}</Table.Cell>
+                                  </Table.Row>
+                                ))}
+                              </Table.Body>
+                            </Table.Root>
+                          </ScrollArea>
+                        </Box>
+
+                        {/* Mobile view - Cards */}
+                        <Flex direction="column" gap="3" display={{ initial: 'flex', md: 'none' }}>
+                          {orderHistory.map((order) => (
+                            <Card key={order.id} size="1">
+                              <Flex direction="column" gap="2" p="3">
+                                <Flex justify="between" align="center">
+                                  <Text color={order.type === 'Buy' ? 'green' : 'red'} weight="bold">
+                                    {order.type}
+                                  </Text>
+                                  <Text color={order.profit >= 0 ? 'green' : 'red'} weight="bold">
+                                    {order.profit >= 0 ? '+' : ''}{order.profit}
+                                  </Text>
+                                </Flex>
+                                <Grid columns="2" gap="2">
+                                  <Box>
+                                    <Text size="1" color="gray">Amount</Text>
+                                    <Text>{order.amount.toLocaleString()}</Text>
+                                  </Box>
+                                  <Box>
+                                    <Text size="1" color="gray">Open Price</Text>
+                                    <Text>{order.openPrice}</Text>
+                                  </Box>
+                                  <Box>
+                                    <Text size="1" color="gray">Close Price</Text>
+                                    <Text>{order.closePrice}</Text>
+                                  </Box>
+                                </Grid>
+                                <Separator size="4" my="1" />
+                                <Grid columns="2" gap="2">
+                                  <Box>
+                                    <Text size="1" color="gray">Open Date</Text>
+                                    <Text>{new Date(order.openDate).toLocaleString()}</Text>
+                                  </Box>
+                                  <Box>
+                                    <Text size="1" color="gray">Close Date</Text>
+                                    <Text>{new Date(order.closeDate).toLocaleString()}</Text>
+                                  </Box>
+                                </Grid>
+                              </Flex>
+                            </Card>
+                          ))}
+                        </Flex>
+                      </Box>
+                    ) : (
+                      <Flex justify="center" py="4">
+                        <Text color="gray">No order history for this instrument</Text>
+                      </Flex>
+                    )}
+                  </Box>
+                </Box>
+              )}
+            </Tabs.Root>
+          </Flex>
+        </Card>
+      </Container>
+    </Box>
   );
 }
 

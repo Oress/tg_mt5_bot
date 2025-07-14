@@ -1,7 +1,19 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { 
+  Container, 
+  Box,
+  Heading,
+  Text, 
+  TextField, 
+  Button, 
+  Card, 
+  Flex, 
+  Callout 
+} from '@radix-ui/themes';
+import { ExclamationTriangleIcon } from '@radix-ui/react-icons';
 
-function Login() {
+export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -9,17 +21,17 @@ function Login() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     // Simple validation
     if (!username || !password) {
       setError('Please enter both username and password');
       return;
     }
-    
+
     // In a real app, you would make an API call to authenticate
     // For now, we'll just simulate a successful login
     // and redirect to the main page
-    
+
     // Simulating authentication
     if (username === 'admin' && password === 'password') {
       // Store authentication state (in a real app, you'd use a token)
@@ -31,53 +43,55 @@ function Login() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
-      <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-md">
-        <h1 className="mb-6 text-center text-2xl font-bold text-gray-800">Dashboard Login</h1>
-        
-        {error && (
-          <div className="mb-4 rounded-md bg-red-100 p-3 text-red-700">
-            {error}
-          </div>
-        )}
-        
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-              Username
-            </label>
-            <input
-              type="text"
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-            />
-          </div>
-          
-          <div className="mb-6">
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-            />
-          </div>
-          
-          <button
-            type="submit"
-            className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
-            Sign In
-          </button>
-        </form>
-      </div>
-    </div>
+    <Box style={{ minHeight: '100vh', backgroundColor: 'var(--gray-2)' }}>
+      <Container size="1" style={{ height: '100vh' }}>
+        <Flex align="center" justify="center" style={{ height: '100%' }}>
+          <Card size="3" style={{ width: '100%', maxWidth: '400px' }}>
+            <Flex direction="column" gap="5">
+              <Heading size="6" align="center">Dashboard Login</Heading>
+
+              {error && (
+                <Callout.Root color="red" size="1">
+                  <Callout.Icon>
+                    <ExclamationTriangleIcon />
+                  </Callout.Icon>
+                  <Callout.Text>{error}</Callout.Text>
+                </Callout.Root>
+              )}
+
+              <form onSubmit={handleSubmit}>
+                <Flex direction="column" gap="4">
+                  <Box>
+                    <Text as="label" size="2" weight="medium" htmlFor="username">
+                      Username
+                    </Text>
+                    <TextField.Root size="3"
+                                    id="username"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    placeholder="Enter your username">
+                    </TextField.Root>
+                  </Box>
+
+                  <Box>
+                    <Text as="label" size="2" weight="medium" htmlFor="password">
+                      Password
+                    </Text>
+                    <TextField.Root size="3" id="password" type="password" value={password}
+                                    placeholder="Enter your password"
+                                    onChange={(e) => setPassword(e.target.value)}>
+                    </TextField.Root>
+                  </Box>
+
+                  <Button type="submit" size="3" color="cyan">
+                    Sign In
+                  </Button>
+                </Flex>
+              </form>
+            </Flex>
+          </Card>
+        </Flex>
+      </Container>
+    </Box>
   );
 }
-
-export default Login;

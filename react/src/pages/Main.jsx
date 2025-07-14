@@ -1,7 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  Container,
+  Box,
+  Heading,
+  Text,
+  TextField,
+  Button,
+  Card,
+  Flex,
+  Table,
+  Separator,
+  ScrollArea,
+  IconButton
+} from '@radix-ui/themes';
+import { MagnifyingGlassIcon, ExitIcon, MoonIcon, SunIcon } from '@radix-ui/react-icons';
 
-function Main() {
+function Main({ toggleTheme, themeMode }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -9,22 +24,33 @@ function Main() {
 
   // Mock user data - in a real app, this would come from an API
   const mockUsers = [
-    { id: 1, telegramId: '12345678', username: 'user1' },
-    { id: 2, telegramId: '87654321', username: 'user2' },
-    { id: 3, telegramId: '11223344', username: 'admin' },
-    { id: 4, telegramId: '44332211', username: 'trader1' },
-    { id: 5, telegramId: '55667788', username: 'trader2' },
+    { id: 1, telegramId: '12345678', username: 'user1', firstName: 'John' },
+    { id: 2, telegramId: '87654321', username: 'user2', firstName: 'Jane' },
+    { id: 3, telegramId: '11223344', username: 'admin', firstName: 'Admin' },
+    { id: 4, telegramId: '44332211', username: 'trader1', firstName: 'Mike' },
+    { id: 5, telegramId: '55667788', username: 'trader2', firstName: 'Sarah' },
   ];
+
+  // Load all users when component mounts
+  useEffect(() => {
+    setIsLoading(true);
+    // Simulate API call with setTimeout
+    setTimeout(() => {
+      setUsers(mockUsers);
+      setIsLoading(false);
+    }, 500);
+  }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     // Simulate API call with setTimeout
     setTimeout(() => {
-      const filteredUsers = mockUsers.filter(user => 
+      const filteredUsers = mockUsers.filter(user =>
         user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.telegramId.includes(searchTerm)
+        user.telegramId.includes(searchTerm) ||
+        user.firstName.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setUsers(filteredUsers);
       setIsLoading(false);
@@ -41,93 +67,103 @@ function Main() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-6 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <button
-            onClick={handleLogout}
-            className="rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
-          >
-            Logout
-          </button>
-        </div>
-      </header>
-      
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-8 rounded-lg bg-white p-6 shadow">
-          <h2 className="mb-4 text-xl font-semibold text-gray-800">Search Users</h2>
-          
-          <form onSubmit={handleSearch} className="mb-6 flex">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by username or Telegram ID"
-              className="flex-grow rounded-l-md border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-            />
-            <button
-              type="submit"
-              className="rounded-r-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-            >
-              Search
-            </button>
-          </form>
-          
-          {isLoading ? (
-            <div className="text-center">
-              <p className="text-gray-600">Loading...</p>
-            </div>
-          ) : (
-            <div>
-              {users.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                          Telegram ID
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                          Username
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 bg-white">
-                      {users.map((user) => (
-                        <tr key={user.id} className="hover:bg-gray-50">
-                          <td className="whitespace-nowrap px-6 py-4">
-                            {user.telegramId}
-                          </td>
-                          <td className="whitespace-nowrap px-6 py-4">
-                            {user.username}
-                          </td>
-                          <td className="whitespace-nowrap px-6 py-4">
-                            <button
-                              onClick={() => handleUserClick(user.id)}
-                              className="rounded bg-blue-100 px-3 py-1 text-blue-800 hover:bg-blue-200"
-                            >
-                              View Details
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : searchTerm ? (
-                <p className="text-center text-gray-600">No users found matching "{searchTerm}"</p>
-              ) : (
-                <p className="text-center text-gray-600">Enter a search term to find users</p>
-              )}
-            </div>
-          )}
-        </div>
-      </main>
-    </div>
+    <Box style={{ minHeight: '100vh', backgroundColor: 'var(--gray-2)' }}>
+      <Box style={{ backgroundColor: 'var(--color-panel-solid)', boxShadow: 'var(--shadow-2)' }}>
+        <Container size="3">
+          <Flex justify="between" align="center" py="5">
+            <Heading size="6">Dashboard</Heading>
+            <Flex gap="3" align="center">
+              <IconButton 
+                size="2" 
+                variant="ghost" 
+                onClick={toggleTheme}
+                aria-label={themeMode === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
+              >
+                {themeMode === 'light' ? <MoonIcon /> : <SunIcon />}
+              </IconButton>
+              <Button color="red" variant="soft" onClick={handleLogout}>
+                <ExitIcon />
+                Logout
+              </Button>
+            </Flex>
+          </Flex>
+        </Container>
+      </Box>
+
+      <Container size="3" py="6">
+        <Card size="2" mb="6">
+          <Flex direction="column" gap="4">
+            <Heading size="4">Search Users</Heading>
+            <Separator size="4" />
+
+            <form onSubmit={handleSearch}>
+              <Flex gap="2">
+                <TextField.Root size="2" style={{ flexGrow: 1 }}
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder="Search by first name, username, or Telegram ID"
+                >
+                </TextField.Root>
+                <Button type="submit" size="2" color="cyan">
+                  <MagnifyingGlassIcon />
+                  Search
+                </Button>
+              </Flex>
+            </form>
+
+            {isLoading ? (
+              <Flex justify="center" py="4">
+                <Text color="gray">Loading...</Text>
+              </Flex>
+            ) : (
+              <Box>
+                {users.length > 0 ? (
+                  <ScrollArea scrollbars="horizontal" style={{ maxWidth: '100%' }}>
+                    <Table.Root variant="surface">
+                      <Table.Header>
+                        <Table.Row>
+                          <Table.ColumnHeaderCell>Telegram ID</Table.ColumnHeaderCell>
+                          <Table.ColumnHeaderCell>First Name</Table.ColumnHeaderCell>
+                          <Table.ColumnHeaderCell>Username</Table.ColumnHeaderCell>
+                          <Table.ColumnHeaderCell>Actions</Table.ColumnHeaderCell>
+                        </Table.Row>
+                      </Table.Header>
+                      <Table.Body>
+                        {users.map((user) => (
+                          <Table.Row key={user.id}>
+                            <Table.Cell>{user.telegramId}</Table.Cell>
+                            <Table.Cell>{user.firstName}</Table.Cell>
+                            <Table.Cell>{user.username}</Table.Cell>
+                            <Table.Cell>
+                              <Button
+                                size="1"
+                                variant="soft"
+                                color="cyan"
+                                onClick={() => handleUserClick(user.id)}
+                              >
+                                View Details
+                              </Button>
+                            </Table.Cell>
+                          </Table.Row>
+                        ))}
+                      </Table.Body>
+                    </Table.Root>
+                  </ScrollArea>
+                ) : searchTerm ? (
+                  <Flex justify="center" py="4">
+                    <Text color="gray">No users found matching "{searchTerm}"</Text>
+                  </Flex>
+                ) : (
+                  <Flex justify="center" py="4">
+                    <Text color="gray">No users available</Text>
+                  </Flex>
+                )}
+              </Box>
+            )}
+          </Flex>
+        </Card>
+      </Container>
+    </Box>
   );
 }
 
