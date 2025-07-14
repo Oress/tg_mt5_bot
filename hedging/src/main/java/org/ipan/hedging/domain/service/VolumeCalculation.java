@@ -29,7 +29,7 @@ public class VolumeCalculation {
     BigDecimal executionUserOwnedBase;
     BigDecimal executionHouseOwnedBase;
 
-    List<OrderConsumption> ordersForClosing;
+    List<OrderConsumption> ordersForConsumption;
 
     public static class VolumeCalculationBuilder {
         public VolumeCalculation build() {
@@ -37,7 +37,7 @@ public class VolumeCalculation {
             validateNonNegative(executionBase, "executionUserOwnedBase");
             return new VolumeCalculation(originalAmount, price, oldUserOwnedBase, newUserOwnedBase,
                     oldHouseOwnedBase, newHouseOwnedBase, executionVolume, executionBase,
-                    executionUserOwnedBase, executionHouseOwnedBase, ordersForClosing);
+                    executionUserOwnedBase, executionHouseOwnedBase, ordersForConsumption);
         }
 
         private void validateNonNegative(BigDecimal value, String fieldName) {

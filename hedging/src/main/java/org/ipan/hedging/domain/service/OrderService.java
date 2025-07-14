@@ -12,7 +12,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -101,7 +104,7 @@ public class OrderService {
         order.setOrder(orderDetails.getOrder());
         order.setAsk(BigDecimal.valueOf(orderDetails.getAsk()));
         order.setBid(BigDecimal.valueOf(orderDetails.getBid()));
-        order.setPrice(BigDecimal.valueOf(orderDetails.getPrice()).setScale(5, RoundingMode.HALF_DOWN));
+        order.setPrice(BigDecimal.valueOf(orderDetails.getPrice()).setScale(8, RoundingMode.HALF_DOWN));
         order.setExecutedVolume(BigDecimal.valueOf(orderDetails.getVolume()));
         order.setStatus(OrderStatus.COMPLETE);
 
@@ -115,7 +118,6 @@ public class OrderService {
         AppUserInstrument userInstrument = order.getUserInstrument();
         Instrument instrument = userInstrument.getInstrument();
 
-
         if (InstrumentMode.SHORT.equals(instrument.getMode())) {
             userInstrument.addVolumeShortMode(volumeCalculation);
         } else if (InstrumentMode.LONG.equals(instrument.getMode())) {
@@ -125,8 +127,19 @@ public class OrderService {
             } else if (OrderType.MT5_SHORT.equals(order.getType())) {
                 // unhedge
                 userInstrument.subtractUserAndHousePartsLongMode(volumeCalculation);
-            }
 
+                List<UUID> orderIds = volumeCalculation.getOrdersForConsumption().stream().map(o -> o.getOrderId()).toList();
+                Map<UUID, OrderConsumption> orderIdToConsumption = volumeCalculation.getOrdersForConsumption()
+                        .stream()
+                        .collect(Collectors.toMap(o -> o.getOrderId(), o -> o));
+
+                List<Order> allById = orderRepo.findAllById(orderIds);
+                for (Order orderToConsume : allById) {
+                    OrderConsumption orderConsumption = orderIdToConsumption.get(orderToConsume.getId());
+                    orderToConsume.decreaseQuoteAmountLeftToUnhedge(orderConsumption.getQuoteConsumptionAmount());
+                    // TODO: make a record to the database about consumed orders.
+                }
+            }
         } else {
             log.error("Unsupported instrument mode: {}", instrument.getMode());
         }

@@ -86,4 +86,16 @@ public class Order {
         }
 
     }
+
+    public void decreaseQuoteAmountLeftToUnhedge(BigDecimal quoteConsumptionAmount) {
+        if (quoteAmountLeftToUnhedge != null) {
+            quoteAmountLeftToUnhedge = quoteAmountLeftToUnhedge.subtract(quoteConsumptionAmount);
+            if (quoteAmountLeftToUnhedge.compareTo(BigDecimal.ZERO) < 0) {
+                log.error("Quote amount left to unhedge for order {} is negative: {}", this, quoteAmountLeftToUnhedge);
+                throw new IllegalStateException("Quote amount left to unhedge for order is negative: " + this);
+            }
+        } else {
+            log.warn("Attempt to decrease null quote amount left to unhedge for order: {}", this);
+        }
+    }
 }
