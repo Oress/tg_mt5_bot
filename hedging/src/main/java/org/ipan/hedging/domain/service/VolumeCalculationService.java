@@ -15,6 +15,8 @@ import java.util.List;
 @AllArgsConstructor
 @Slf4j
 public class VolumeCalculationService {
+    private static final BigDecimal PRECISION_THRESHOLD = new BigDecimal("1e-3"); // or whatever threshold makes sense for your domain
+
     private OrderRepo orderRepo;
 
     // TODO: verify volume after calculation
@@ -127,6 +129,11 @@ public class VolumeCalculationService {
                 // should be >= 0
 //                tempClientBaseAmount = BigDecimal.ZERO.max(params.getUserInstrument().getActualClientOwnedBaseAmount().subtract(operationUserAmountBase));
                 tempClientBaseAmount = BigDecimal.ZERO.max(params.getUserInstrument().getClientOwnedBaseAmount().subtract(operationUserAmountBase));
+
+                // due to the loss of precision, tempClientBaseAmount may be something like 1e-8
+                if (tempClientBaseAmount.compareTo(PRECISION_THRESHOLD) < 0) {
+                    tempClientBaseAmount = BigDecimal.ZERO;
+                }
 
                 // e.g. 4000 or 1000
                 newTotalBaseAmount = tempClientBaseAmount.setScale(-3, RoundingMode.HALF_UP);

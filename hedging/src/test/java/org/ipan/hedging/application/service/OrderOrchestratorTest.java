@@ -332,6 +332,18 @@ class OrderOrchestratorTest {
 
     }
 
+    // This test covers scenario with loss of precision. w/o corrections in VolumeCalculation service
+    // we get 1e-8 USD in the end.
+    @Test
+    void placeOrder_invHedging_roundingProblem1() {
+        PlaceOrderResponse response1 = placeUsdCadOrderResponse(3000, true, 1.36877);
+        PlaceOrderResponse response2 = placeUsdCadOrderResponse(10000, true, 1.36877);
+        PlaceOrderResponse response3 = placeUsdCadOrderResponse(11000, false, 1.36867);
+        PlaceOrderResponse response4 = placeUsdCadOrderResponse(2000, false, 1.36866);
+        AppUserInstrument userInstrument4 = response4.getOrder().getUserInstrument();
+        assertThat(userInstrument4.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
     private PlaceOrderResponse placeEurUsdOrderResponse(Integer userAmount, boolean isBuy, Double price) {
         Mt5ServiceImpl.SymbolInfo symbolInfo = createMockSymbolInfo();
         when(mt5Service.symbolInfo(any(), any())).thenReturn(symbolInfo);
