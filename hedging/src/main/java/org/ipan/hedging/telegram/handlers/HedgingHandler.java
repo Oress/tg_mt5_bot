@@ -161,7 +161,8 @@ public class HedgingHandler {
         HedgeOpState hedgeOp = telegramState.getOrCreateHedgeOp(userState.getTelegramId());
         String symbol = user.getSymbolByLabelAndAccType(hedgeOp.getInstrumentLabel());
         var symbolInfo = mt5Service.symbolInfo(user, symbol);
-        Instrument instrumentBySymbol = user.findInstrumentBySymbol(symbol);
+        AppUserInstrument userInstrument = user.findUserInstrument(hedgeOp.getInstrumentLabel());
+        Instrument instrumentBySymbol = userInstrument.getInstrument();
 
         if (isHedgeOut(instrumentBySymbol, operation)) {
             log.info("User {} is trying to hedge out for symbol: {}", userState.getTelegramId(), symbol);
@@ -171,13 +172,24 @@ public class HedgingHandler {
                 hedgeViews.noActivePositions(userState);
                 return;
             } else {
-                BigDecimal availToSpend = BigDecimal.valueOf(tradePos.getVolume() * symbolInfo.getTrade_contract_size()).setScale(0, RoundingMode.HALF_DOWN);
-                log.info("User {} has open positions for symbol: {}, available to hedge out: {}", userState.getTelegramId(), symbol, availToSpend);
-                hedgeViews.promptVolumeForHedgeOut(userState,
-                        instrumentBySymbol.getSymbolByMode(),
-                        instrumentBySymbol.getLabel(),
-                        availToSpend.toString()
-                );
+                if (InstrumentMode.LONG.equals(instrumentBySymbol.getMode())) {
+                    BigDecimal availToSpend = userInstrument.getClientOwnedQuoteAmount().setScale(0, RoundingMode.HALF_DOWN);
+                    log.info("User {} has open positions for symbol: {}, available to hedge out: {}", userState.getTelegramId(), symbol, availToSpend);
+                    hedgeViews.promptVolumeForHedgeOutInverse(userState,
+                            instrumentBySymbol.getSymbolByMode(),
+                            instrumentBySymbol.getLabel(),
+                            availToSpend.toString()
+                    );
+                } else {
+                    BigDecimal availToSpend = BigDecimal.valueOf(tradePos.getVolume() * symbolInfo.getTrade_contract_size()).setScale(0, RoundingMode.HALF_DOWN);
+                    log.info("User {} has open positions for symbol: {}, available to hedge out: {}", userState.getTelegramId(), symbol, availToSpend);
+
+                    hedgeViews.promptVolumeForHedgeOut(userState,
+                            instrumentBySymbol.getSymbolByMode(),
+                            instrumentBySymbol.getLabel(),
+                            availToSpend.toString()
+                    );
+                }
             }
         } else if (isHedge(instrumentBySymbol, operation)) {
             log.info("User {} is trying to hedge for symbol: {}", userState.getTelegramId(), symbol);
@@ -204,15 +216,19 @@ public class HedgingHandler {
         try {
             Integer amount = Integer.parseInt(amountStr);
             HedgeOpState hedgeOp = telegramState.getOrCreateHedgeOp(userState.getTelegramId());
-            Instrument instrument = instrumentRepo.findById(hedgeOp.getInstrumentLabel()).get();
+            AppUserInstrument userInstrument = user.findUserInstrument(hedgeOp.getInstrumentLabel());
+            Instrument instrument = userInstrument.getInstrument();
             String symbol = user.getSymbolByLabelAndAccType(hedgeOp.getInstrumentLabel());
             var symbolInfo = mt5Service.symbolInfo(user, symbol);
 
             if (isHedgeOut(instrument, hedgeOp.getOperation())) {
-                var tradePos = mt5Service.positionsGet(user, symbol);
-                // rouding to 0 should not be a problem at all since contract size is integer > 1000 and volume is 0.01 with same step
-                availToSpend = BigDecimal.valueOf(tradePos.getVolume()).multiply(BigDecimal.valueOf(symbolInfo.getTrade_contract_size())).setScale(0, RoundingMode.HALF_DOWN);
-
+                if (InstrumentMode.LONG.equals(instrument.getMode())) {
+                    availToSpend = userInstrument.getClientOwnedQuoteAmount().setScale(0, RoundingMode.HALF_DOWN);
+                } else {
+                    var tradePos = mt5Service.positionsGet(user, symbol);
+                    // rouding to 0 should not be a problem at all since contract size is integer > 1000 and volume is 0.01 with same step
+                    availToSpend = BigDecimal.valueOf(tradePos.getVolume()).multiply(BigDecimal.valueOf(symbolInfo.getTrade_contract_size())).setScale(0, RoundingMode.HALF_DOWN);
+                }
                 if (amount > availToSpend.intValue()) {
                     log.warn("User {} tried to hedge out with amount greater than available: {} > {}", userState.getTelegramId(), amount, availToSpend);
                     hedgeViews.greaterThanAvailable(userState, availToSpend);
@@ -220,9 +236,9 @@ public class HedgingHandler {
                 }
             }
 
-            Double minAmount = symbolInfo.getVolume_min() * symbolInfo.getTrade_contract_size();
-            Double maxAmount = symbolInfo.getVolume_max() * symbolInfo.getTrade_contract_size();
-            Double stepAmount = symbolInfo.getVolume_step() * symbolInfo.getTrade_contract_size();
+            Double minAmount = symbolInfo.getVolume_min() * symbolInfo.getTrade_contract_size(); // usually 1_000 base units
+            Double maxAmount = symbolInfo.getVolume_max() * symbolInfo.getTrade_contract_size();  // usually 1_000_000 base units
+            Double stepAmount = symbolInfo.getVolume_step() * symbolInfo.getTrade_contract_size(); // usually 1000 base units
             if (amount < minAmount) {
                 log.warn("User {} tried to hedge with amount less than minimum: {} < {}", userState.getTelegramId(), amount, minAmount);
                 hedgeViews.lessThanMinAmount(userState, minAmount);
@@ -293,9 +309,17 @@ public class HedgingHandler {
             Order order = orderPlaceResponse.getOrder();
             // TODO: check status
             if (order != null) {
-                Mt5ServiceImpl.TradePos tp = mt5Service.positionsGet(user, symbol);
-                BigDecimal baseEquivalent = tp == null ? BigDecimal.ZERO : BigDecimal.valueOf(tp.getVolume() * symbolInfo.getTrade_contract_size()).setScale(0, RoundingMode.HALF_DOWN);
-                Instrument instrumentBySymbol = order.getUserInstrument().getInstrument();
+                AppUserInstrument userInstrument = order.getUserInstrument();
+                Instrument instrumentBySymbol = userInstrument.getInstrument();
+
+                BigDecimal currentBalance;
+                if (InstrumentMode.LONG.equals(instrument.getMode())) {
+                    currentBalance = userInstrument.getClientOwnedQuoteAmount().setScale(0, RoundingMode.HALF_DOWN);
+                } else {
+                    Mt5ServiceImpl.TradePos tp = mt5Service.positionsGet(user, symbol);
+                    currentBalance = BigDecimal.valueOf(tp.getVolume()).multiply(BigDecimal.valueOf(symbolInfo.getTrade_contract_size())).setScale(0, RoundingMode.HALF_DOWN);
+                }
+
                 hedgeViews.successOrder(userState,
                         order.getId().toString(),
                         FormattingTools.formatDateToUtc(order.getCreatedAt()),
@@ -303,7 +327,7 @@ public class HedgingHandler {
                         instrumentBySymbol.getLabel(),
                         order.getUserEnteredAmount().setScale(0, RoundingMode.HALF_DOWN).toString(),
                         order.getPrice().setScale(5, RoundingMode.HALF_DOWN).toString(),
-                        baseEquivalent.toString(),
+                        currentBalance.toString(),
                         instrumentBySymbol.getSymbolByMode()
                 );
                 // TODO: uncomment later

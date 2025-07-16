@@ -114,6 +114,18 @@ public class AppUser {
         return null;
     }
 
+    public AppUserInstrument findUserInstrumentBySymbol(String symbol) {
+        for (AppUserInstrument userInstrument : availableInstruments) {
+            Instrument instrument = userInstrument.getInstrument();
+            if (instrument.getSymbolZero().equals(symbol)
+                    || instrument.getSymbolMini().equals(symbol)
+                    || instrument.getSymbolStandard().equals(symbol)) {
+                return userInstrument;
+            }
+        }
+        return null;
+    }
+
     public Instrument findInstrumentBySymbol(String symbol) {
         for (Instrument instrument : availableInstruments.stream().map(AppUserInstrument::getInstrument).toList()) {
             if (instrument.getSymbolZero().equals(symbol)
