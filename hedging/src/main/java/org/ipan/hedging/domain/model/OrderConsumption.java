@@ -29,6 +29,9 @@ public class OrderConsumption {
     @Column(name = "consumed_quote_amount")
     private BigDecimal consumedQuoteAmount;
 
+    @Column(name = "left_quote_amount")
+    private BigDecimal leftQuoteAmount;
+
     @Column(name = "base_equivalent")
     private BigDecimal baseEquivalent;
 }

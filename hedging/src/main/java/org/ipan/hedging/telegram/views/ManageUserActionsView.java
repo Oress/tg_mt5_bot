@@ -30,7 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor
 @Profile("!test")
 public class ManageUserActionsView {
-    public static final String OPEN_BALANCE = "/balance/";
+    public static final String OPEN_USER = "/user/";
 
     private final TelegramClient tgClient;
     private final CommonViews commonViews;
@@ -344,6 +344,6 @@ public class ManageUserActionsView {
     }
 
     private String openBalanceRequest(Long userId) {
-        return OPEN_BALANCE + userId;
+        return OPEN_USER + userId;
     }
 }

@@ -76,11 +76,7 @@ public class OrderService {
         order.setStatus(OrderStatus.PENDING);
 //        order.setBaseAmount(amount);
 
-        if (InstrumentMode.LONG.equals(userInstrument.getInstrument().getMode())) {
-            order.setType(command.isBuy() ? OrderType.MT5_LONG : OrderType.MT5_SHORT);
-        } else if (InstrumentMode.SHORT.equals(userInstrument.getInstrument().getMode())) {
-            order.setType(command.isBuy() ? OrderType.MT5_SHORT : OrderType.MT5_LONG);
-        }
+        order.setType(command.isBuy() ? OrderType.MT5_LONG : OrderType.MT5_SHORT);
 
         if (InstrumentMode.SHORT.equals(userInstrument.getInstrument().getMode())) {
             order.setExecutedBaseAmount(BigDecimal.valueOf(command.getUserAmount()));
@@ -142,6 +138,7 @@ public class OrderService {
                     orderConsumption.setParentOrder(order);
                     orderConsumption.setConsumedOrder(orderToConsume);
                     orderConsumption.setConsumedQuoteAmount(plannedOrderConsumption.getQuoteConsumptionAmount());
+                    orderConsumption.setLeftQuoteAmount(orderToConsume.getQuoteAmountLeftToUnhedge());
                     orderConsumption.setBaseEquivalent(plannedOrderConsumption.getQuoteConsumptionAmount().divide(order.getPrice(), RoundingMode.HALF_DOWN));
                     order.getConsumptions().add(orderConsumption);
                 }

@@ -24,6 +24,10 @@ public class TelegramAuditJob {
 
     @SneakyThrows
     public void add(Long userId, String type, String data, States currentUserState) {
+        if (States.ADMIN_MANAGE_USER_ACTION_PROMPT_CREDS.equals(currentUserState) && "text".equals(type)) {
+            data = "****";
+        }
+
         TelegramAuditActionCommand command = TelegramAuditActionCommand.builder()
                 .userId(userId)
                 .type(type)

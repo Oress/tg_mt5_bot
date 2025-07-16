@@ -1,13 +1,11 @@
 package org.ipan.hedging.telegram.handlers;
 
-import java.util.List;
 import java.util.Optional;
 
 import lombok.AllArgsConstructor;
 import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.model.AppUser_;
 import org.ipan.hedging.domain.model.repository.UserRepo;
-import org.ipan.hedging.domain.service.PasswordService;
 import org.ipan.hedging.telegram.InlineMenuCallbacks;
 import org.ipan.hedging.telegram.States;
 import org.ipan.hedging.telegram.TelegramMessages;
@@ -100,8 +98,8 @@ public class ManageUsersSearchHandler {
         String data = callbackQuery.getData();
         UserEdit userEdit = telegramState.getOrCreateUserEdit(userState.getTelegramId());
 
-        if (data.startsWith(ManageUserActionsView.OPEN_BALANCE)) {
-            String telegramIdStr = data.split(ManageUserActionsView.OPEN_BALANCE)[1];
+        if (data.startsWith(ManageUserActionsView.OPEN_USER)) {
+            String telegramIdStr = data.split(ManageUserActionsView.OPEN_USER)[1];
             Long telegramId = Long.parseLong(telegramIdStr);
             openUser(userState, telegramId);
         } else if (userEdit.getSelectedUserId() != null && userState.getState() != States.ADMIN_MANAGE_USERS) {

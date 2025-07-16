@@ -6,8 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.UUID;
 
 
 @Data
@@ -18,5 +16,6 @@ public class OrderConsumptionDto {
     private Long id;
     private OrderDto consumedOrder;
     private BigDecimal consumedQuoteAmount;
+    private BigDecimal leftQuoteAmount;
     private BigDecimal baseEquivalent;
 }

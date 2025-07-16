@@ -3,6 +3,7 @@ package org.ipan.hedging.application.service;
 import org.ipan.hedging.application.service.command.PlaceOrderCommand;
 import org.ipan.hedging.application.service.command.PlaceOrderResponse;
 import org.ipan.hedging.domain.model.*;
+import org.ipan.hedging.domain.model.Order;
 import org.ipan.hedging.domain.model.repository.AppUserInstrumentRepository;
 import org.ipan.hedging.domain.model.repository.OrderRepo;
 import org.ipan.hedging.domain.model.repository.UserRepo;
@@ -10,10 +11,7 @@ import org.ipan.hedging.domain.service.OrderService;
 import org.ipan.hedging.domain.service.UserService;
 import org.ipan.hedging.domain.service.VolumeCalculationService;
 import org.ipan.hedging.domain.service.commands.users.CreateUserCommand;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
@@ -122,8 +120,14 @@ class OrderOrchestratorTest {
     }
 
     @Test
+    public void placeOrder_simpleHedge_lessThanOwnException() {
+        Assertions.assertThrows(IllegalArgumentException.class, () -> placeEurUsdOrderResponse(1000, true, 1.36));
+    }
+
+
+    @Test
     public void placeOrder_simpleHedge_orderFieldsCheck() {
-        PlaceOrderResponse response1 = placeEurUsdOrderResponse(1000, true, 1.36);
+        PlaceOrderResponse response1 = placeEurUsdOrderResponse(1000, false, 1.36);
         Order order1 = response1.getOrder();
         AppUserInstrument userInstrument1 = order1.getUserInstrument();
         assertThat(userInstrument1.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
@@ -179,14 +183,14 @@ class OrderOrchestratorTest {
 
         PlaceOrderResponse response2 = placeUsdCadOrderResponse(1000, true, 1.37);
         AppUserInstrument userInstrument2 = response2.getOrder().getUserInstrument();
-        assertThat(userInstrument2.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
+        assertThat(userInstrument2.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1465.22112495));
         assertThat(userInstrument2.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(-465.22112495));
         assertThat(userInstrument2.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
         assertThat(userInstrument2.getClientOwnedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(2000));
 
         PlaceOrderResponse response3 = placeUsdCadOrderResponse(1000, true, 1.38);
         AppUserInstrument userInstrument3 = response3.getOrder().getUserInstrument();
-        assertThat(userInstrument3.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(2000));
+        assertThat(userInstrument3.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(2189.85880611));
         assertThat(userInstrument3.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(-189.85880611));
         assertThat(userInstrument3.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(2000));
         assertThat(userInstrument3.getClientOwnedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(3000));
@@ -210,14 +214,14 @@ class OrderOrchestratorTest {
 
         PlaceOrderResponse response2 = placeUsdCadOrderResponse(1000, true, 1.37);
         AppUserInstrument userInstrument2 = response2.getOrder().getUserInstrument();
-        assertThat(userInstrument2.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
+        assertThat(userInstrument2.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1465.22112495));
         assertThat(userInstrument2.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(-465.22112495));
         assertThat(userInstrument2.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
         assertThat(userInstrument2.getClientOwnedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(2000));
 
         PlaceOrderResponse response3 = placeUsdCadOrderResponse(1000, true, 1.38);
         AppUserInstrument userInstrument3 = response3.getOrder().getUserInstrument();
-        assertThat(userInstrument3.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(2000));
+        assertThat(userInstrument3.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(2189.85880611));
         assertThat(userInstrument3.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(-189.85880611));
         assertThat(userInstrument3.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(2000));
         assertThat(userInstrument3.getClientOwnedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(3000));
@@ -234,14 +238,14 @@ class OrderOrchestratorTest {
     void placeOrder_invHedging_open10kCloseAll() {
         PlaceOrderResponse response1 = placeUsdCadOrderResponse(10000, true, 1.36);
         AppUserInstrument userInstrument1 = response1.getOrder().getUserInstrument();
-        assertThat(userInstrument1.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(7000));
+        assertThat(userInstrument1.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(7352.94117647));
         assertThat(userInstrument1.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(-352.94117647));
         assertThat(userInstrument1.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(7000));
         assertThat(userInstrument1.getClientOwnedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(10000));
 
         PlaceOrderResponse response2 = placeUsdCadOrderResponse(3000, false, 2.0);
         AppUserInstrument userInstrument2 = response2.getOrder().getUserInstrument();
-        assertThat(userInstrument2.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(5000));
+        assertThat(userInstrument2.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(5147.05882353));
         assertThat(userInstrument2.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(-147.05882353));
         assertThat(userInstrument2.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(5000));
         assertThat(userInstrument2.getClientOwnedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(7000));
@@ -281,7 +285,7 @@ class OrderOrchestratorTest {
 
         PlaceOrderResponse response2 = placeUsdCadOrderResponse(1000, true, 1.37);
         AppUserInstrument userInstrument2 = response2.getOrder().getUserInstrument();
-        assertThat(userInstrument2.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
+        assertThat(userInstrument2.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1465.22112495));
         assertThat(userInstrument2.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(-465.22112495));
         assertThat(userInstrument2.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
         assertThat(userInstrument2.getClientOwnedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(2000));

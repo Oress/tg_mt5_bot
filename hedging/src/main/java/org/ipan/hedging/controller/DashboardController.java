@@ -42,11 +42,12 @@ public class DashboardController {
             @RequestParam(required = false) String type,
             @PathVariable Long telegramId,
             @PathVariable Long positionId) {
-//        if ("open".equals(type)) {
-//
-//        }
-
-        List<Order> list = orderRepo.findAllByUserInstrumentIdOrderByCreatedAtDesc(positionId);
+        List<Order> list = null;
+        if ("open".equals(type)) {
+            list = orderRepo.findOpenPositions(positionId);
+        } else {
+            list = orderRepo.findAllByUserInstrumentIdOrderByCreatedAtDesc(positionId);
+        }
 
         return list.stream()
                 .map(order -> mapToDto(order))
@@ -101,6 +102,7 @@ public class DashboardController {
                 .id(orderConsumption.getId())
                 .consumedOrder(mapToDto(orderConsumption.getConsumedOrder()))
                 .consumedQuoteAmount(orderConsumption.getConsumedQuoteAmount())
+                .leftQuoteAmount(orderConsumption.getLeftQuoteAmount())
                 .baseEquivalent(orderConsumption.getBaseEquivalent())
                 .build();
     }

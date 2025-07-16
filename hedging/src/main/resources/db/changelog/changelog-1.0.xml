@@ -201,6 +201,7 @@
             <column name="parent_order_id" type="uuid" />
             <column name="consumed_order_id" type="uuid" />
             <column name="consumed_quote_amount" type="decimal(20,8)" />
+            <column name="left_quote_amount" type="decimal(20,8)" />
             <column name="base_equivalent" type="decimal(20,8)" />
         </createTable>
     </changeSet>

@@ -95,6 +95,20 @@ public class HedgeViews {
     }
 
     @SneakyThrows
+    public void promptVolumeForHedgeOutInverse(UserState userState, String unit, String label, String avail) {
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(userState.getChatId())
+                .messageId(userState.getMenuMessageId())
+                .text(hedgeLabels.promptVolumeForOutInverse(unit, label, avail))
+                .replyMarkup(commonViews.getToMainMenuMarkup())
+                .parseMode("MARKDOWN")
+                .build();
+        tgClient.execute(message);
+    }
+
+
+    @SneakyThrows
     public void showPreview(UserState userState, String operation, String instrument, String amount, String unit, Double price) {
         EditMessageText message = EditMessageText
                 .builder()
@@ -206,20 +220,20 @@ public class HedgeViews {
                 .messageId(userState.getMenuMessageId())
                 .parseMode("MARKDOWN")
                 .text("""
-                        ✅Ордер размещен
-
-                        %s
-                        Статус: *исполнен*
-                        Дата: %s
-                        Операция: %s
-                        Инструмент: %s
-                        
-                        Сумма: %s
-                        Цена: %s
-                        Захеджировано: *%s %s*
-                        """.formatted(
-                        orderId, date, ParseUtils.escapeMarkdown(operation), instrument,
-                        userAmount, price, balance, unit
+                                ✅Ордер размещен
+                                
+                                %s
+                                Статус: *исполнен*
+                                Дата: %s
+                                Операция: %s
+                                Инструмент: %s
+                                
+                                Сумма: %s
+                                Цена: %s
+                                Захеджировано: *%s %s*
+                                """.formatted(
+                                orderId, date, ParseUtils.escapeMarkdown(operation), instrument,
+                                userAmount, price, balance, unit
                         )
                 )
                 .build();
@@ -229,15 +243,18 @@ public class HedgeViews {
     private InlineKeyboardMarkup getInstrumentsMarkup(List<Instrument> instruments) {
         var builder = InlineKeyboardMarkup.builder();
 
-        for (Instrument instrument : instruments) {
-            builder
-                    .keyboardRow(
-                            new InlineKeyboardRow(
-                                    InlineKeyboardButton
-                                            .builder()
-                                            .text(instrument.getLabel())
-                                            .callbackData(instrument.getLabel())
-                                            .build()));
+        for (int i = 0; i < instruments.size(); i += 2) {
+            List<InlineKeyboardButton> subList = instruments
+                    .subList(i, Math.min(i + 2, instruments.size()))
+                    .stream()
+                    .map(instrument -> (InlineKeyboardButton) InlineKeyboardButton
+                            .builder()
+                            .text(instrument.getLabel())
+                            .callbackData(instrument.getLabel())
+                            .build())
+                    .toList();
+
+            builder.keyboardRow(new InlineKeyboardRow(subList));
         }
 
         return builder

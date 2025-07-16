@@ -63,10 +63,9 @@ public class AppUserInstrument {
 
     public BigDecimal getTotalOwnedBaseAmount() {
         // total = client + max(house,0)
-        // max(house,0) - because houseOwnedBaseAmount can be negative and this means that(e.g. 1000 USD and -465 USD):
+        //  houseOwnedBaseAmount can be negative and this means that(e.g. 1465 USD and -465 USD):
         // 1) house owns the client some amount of money
-        // 2) clientOwnedBaseAmount should be divisible by 1000
-        return clientOwnedBaseAmount.add(houseOwnedBaseAmount.max(BigDecimal.ZERO));
+        return clientOwnedBaseAmount.add(houseOwnedBaseAmount);
     }
 
     public void addVolumeShortMode(VolumeCalculation volumeCalculation) {

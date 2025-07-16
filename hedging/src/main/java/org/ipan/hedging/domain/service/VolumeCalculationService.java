@@ -42,7 +42,16 @@ public class VolumeCalculationService {
             BigDecimal executionVolume = executionBaseAmount
                     .divide(BigDecimal.valueOf(params.getTradeContractSize()), 8, RoundingMode.HALF_DOWN);
 
-            BigDecimal newUserOwnedBase = params.getUserInstrument().getClientOwnedBaseAmount().add(executionBaseAmount);
+            BigDecimal newUserOwnedBase = null;
+            if (params.getIsBuy()) {
+                if (params.getUserInstrument().getClientOwnedBaseAmount().compareTo(executionBaseAmount) < 0) {
+                    log.error("Insufficient client owned base amount: {} for execution base amount: {}", params.getUserInstrument().getClientOwnedBaseAmount(), executionBaseAmount);
+                    throw new IllegalArgumentException("Insufficient client owned base amount for the operation");
+                }
+                newUserOwnedBase = params.getUserInstrument().getClientOwnedBaseAmount().subtract(executionBaseAmount);
+            } else {
+                newUserOwnedBase = params.getUserInstrument().getClientOwnedBaseAmount().add(executionBaseAmount);
+            }
 
             return VolumeCalculation.builder()
                     .oldUserOwnedBase(params.getUserInstrument().getClientOwnedBaseAmount())
@@ -82,7 +91,8 @@ public class VolumeCalculationService {
                 operationUserAmountBase = operationAmountQuote.divide(BigDecimal.valueOf(price), 8, RoundingMode.HALF_DOWN);
 
                 // e.g. 3600 or 1400
-                tempClientBaseAmount = params.getUserInstrument().getActualClientOwnedBaseAmount().add(operationUserAmountBase);
+//                tempClientBaseAmount = params.getUserInstrument().getActualClientOwnedBaseAmount().add(operationUserAmountBase);
+                tempClientBaseAmount = params.getUserInstrument().getClientOwnedBaseAmount().add(operationUserAmountBase);
 
                 // e.g. 4000 or 1000
                 newTotalBaseAmount = tempClientBaseAmount.setScale(-3, RoundingMode.HALF_UP);
@@ -115,7 +125,8 @@ public class VolumeCalculationService {
                 }
 
                 // should be >= 0
-                tempClientBaseAmount = BigDecimal.ZERO.max(params.getUserInstrument().getActualClientOwnedBaseAmount().subtract(operationUserAmountBase));
+//                tempClientBaseAmount = BigDecimal.ZERO.max(params.getUserInstrument().getActualClientOwnedBaseAmount().subtract(operationUserAmountBase));
+                tempClientBaseAmount = BigDecimal.ZERO.max(params.getUserInstrument().getClientOwnedBaseAmount().subtract(operationUserAmountBase));
 
                 // e.g. 4000 or 1000
                 newTotalBaseAmount = tempClientBaseAmount.setScale(-3, RoundingMode.HALF_UP);
@@ -123,7 +134,8 @@ public class VolumeCalculationService {
 
             BigDecimal executionBaseAmount = newTotalBaseAmount.subtract(currentTotal).abs();
             BigDecimal executionVolume = executionBaseAmount.divide(tradeContractSize, 8, RoundingMode.HALF_DOWN).abs();
-            if (newTotalBaseAmount.compareTo(tempClientBaseAmount) >= 0) {
+            newUserOwnedBase = tempClientBaseAmount;
+/*            if (newTotalBaseAmount.compareTo(tempClientBaseAmount) >= 0) {
                 // 3600 -> 4000 case
                 newUserOwnedBase = tempClientBaseAmount;
                 log.info("HEDGE IN: new total base amount: {}, current total: {}, operation user amount base: {}, total volume: {}", newTotalBaseAmount, currentTotal, operationUserAmountBase, executionVolume);
@@ -131,7 +143,7 @@ public class VolumeCalculationService {
                 // 1400 -> 1000 case
                 newUserOwnedBase = newTotalBaseAmount;
                 log.info("HEDGE IN: new total base amount: {}, current total: {}, operation user amount base: {}, total volume: {}", newTotalBaseAmount, currentTotal, operationUserAmountBase, executionVolume);
-            }
+            }*/
 
             // TODO: check the scale of the newUserOwnedBase and newTotalBaseAmount.subtract(tempClientBaseAmount), round to 2?
             //  Can there be some small amounts like 0.00001?

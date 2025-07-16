@@ -26,4 +26,7 @@ public interface OrderRepo extends JpaRepository<Order, UUID> {
 
     Page<Order> findAllByUserInstrumentIdOrderByCreatedAtDesc(Long userInstrumentId, Pageable pageable);
     List<Order> findAllByUserInstrumentIdOrderByCreatedAtDesc(Long userInstrumentId);
+
+    @Query("select o from Order o join o.userInstrument ui left join fetch o.consumptions where ui.id = :positionId and o.quoteAmountLeftToUnhedge > 0 order by o.createdAt desc")
+    List<Order> findOpenPositions(Long positionId);
 }
