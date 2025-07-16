@@ -1,12 +1,12 @@
 package org.ipan.hedging.telegram;
 
 import java.lang.reflect.Method;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
 
+import org.ipan.hedging.cron.TelegramAuditJob;
 import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.model.UserRole;
 import org.ipan.hedging.domain.service.UserService;
@@ -18,7 +18,6 @@ import org.ipan.hedging.telegram.statetransitions.StateHandlerRegistry;
 import org.ipan.hedging.telegram.statetransitions.TransitionMatcher;
 import org.ipan.hedging.telegram.statetransitions.UpdateType;
 import org.ipan.hedging.telegram.utils.FormattingTools;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.longpolling.util.LongPollingSingleThreadUpdateConsumer;
@@ -41,6 +40,7 @@ public class RentEnergyBot implements LongPollingSingleThreadUpdateConsumer {
     private TelegramMessages telegramMessages;
     private UserService userService;
     private FormattingTools formattingTools;
+    private TelegramAuditJob telegramAuditJob;
 
     private final StateHandlerRegistry stateHandlerRegistry;
 
@@ -59,10 +59,12 @@ public class RentEnergyBot implements LongPollingSingleThreadUpdateConsumer {
         CallbackQuery callbackQuery = update.getCallbackQuery();
 
         if (callbackQuery != null) {
+            telegramAuditJob.add(userId, "callback", callbackQuery.getData(), userState.getState());
             log.info("Received update from user (callback): data: {} username: {}, userstate: {}", callbackQuery.getData(), from.getUserName(), userState);
         } else if (update.hasMessage()) {
             Message message = update.getMessage();
             if (message.hasText()) {
+                telegramAuditJob.add(userId, "text", message.getText(), userState.getState());
                 log.info("Received update from user (text): data: {}, username: {}, userstate: {}", message.getText(), from.getUserName(), userState);
             }
         }

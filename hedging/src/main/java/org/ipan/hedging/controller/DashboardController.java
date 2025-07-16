@@ -1,16 +1,11 @@
 package org.ipan.hedging.controller;
 
 import lombok.AllArgsConstructor;
-import org.ipan.hedging.controller.dto.OrderConsumptionDto;
-import org.ipan.hedging.controller.dto.OrderDto;
-import org.ipan.hedging.controller.dto.UserDto;
-import org.ipan.hedging.controller.dto.UserInstrumentDto;
-import org.ipan.hedging.domain.model.AppUser;
-import org.ipan.hedging.domain.model.AppUserInstrument;
-import org.ipan.hedging.domain.model.Order;
-import org.ipan.hedging.domain.model.OrderConsumption;
+import org.ipan.hedging.controller.dto.*;
+import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.repository.OrderRepo;
 import org.ipan.hedging.domain.model.repository.UserRepo;
+import org.ipan.hedging.domain.model.repository.UserTelegramActivityRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +18,7 @@ import java.util.List;
 public class DashboardController {
     private final UserRepo userRepo;
     private final OrderRepo orderRepo;
+    private final UserTelegramActivityRepository userTelegramActivityRepo;
 
     @GetMapping("/users")
     @Transactional(readOnly = true)
@@ -55,6 +51,26 @@ public class DashboardController {
         return list.stream()
                 .map(order -> mapToDto(order))
                 .toList();
+    }
+
+    @GetMapping("/users/{telegramId}/activities")
+    @Transactional(readOnly = true)
+    public List<UserTelegramActivityDto> userActivities(@PathVariable Long telegramId) {
+        List<UserTelegramActivity> allByUserId = userTelegramActivityRepo.findAllByUserIdOrderByIdDesc(telegramId);
+        return allByUserId.stream()
+                .map(this::mapToDto)
+                .toList();
+    }
+
+    private UserTelegramActivityDto mapToDto(UserTelegramActivity telegramActivity) {
+        return UserTelegramActivityDto.builder()
+                .id(telegramActivity.getId())
+                .userId(telegramActivity.getUserId())
+                .type(telegramActivity.getType())
+                .data(telegramActivity.getData())
+                .currentUserState(telegramActivity.getCurrentUserState())
+                .createdAt(telegramActivity.getCreatedAt())
+                .build();
     }
 
     private OrderDto mapToDto(Order order) {
@@ -95,7 +111,7 @@ public class DashboardController {
                 .telegramId(user.getTelegramId())
                 .username(user.getTelegramUsername())
                 .firstName(user.getTelegramFirstName())
-                .accountType(user.getAccountType().name())
+                .accountType(user.getAccountType() != null ? user.getAccountType().name() : "")
                 .mt5Account(user.getMt5AccNumber())
                 .googleSheetId(user.getGoogleSheetId())
                 .instruments(user.getAvailableInstruments().stream().filter(AppUserInstrument::getActive).map(this::mapToDto).toList())
