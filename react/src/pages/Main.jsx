@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import {
   Container,
   Box,
@@ -22,39 +23,41 @@ function Main({ toggleTheme, themeMode }) {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Mock user data - in a real app, this would come from an API
-  const mockUsers = [
-    { id: 1, telegramId: '12345678', username: 'user1', firstName: 'John' },
-    { id: 2, telegramId: '87654321', username: 'user2', firstName: 'Jane' },
-    { id: 3, telegramId: '11223344', username: 'admin', firstName: 'Admin' },
-    { id: 4, telegramId: '44332211', username: 'trader1', firstName: 'Mike' },
-    { id: 5, telegramId: '55667788', username: 'trader2', firstName: 'Sarah' },
-  ];
-
   // Load all users when component mounts
   useEffect(() => {
-    setIsLoading(true);
-    // Simulate API call with setTimeout
-    setTimeout(() => {
-      setUsers(mockUsers);
-      setIsLoading(false);
-    }, 500);
+    const fetchUsers = async () => {
+      setIsLoading(true);
+      try {
+        const response = await axios.get('/api/users');
+        setUsers(response.data);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        setUsers([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUsers();
   }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call with setTimeout
-    setTimeout(() => {
-      const filteredUsers = mockUsers.filter(user =>
-        user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.telegramId.includes(searchTerm) ||
-        user.firstName.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setUsers(filteredUsers);
-      setIsLoading(false);
-    }, 500);
+    const fetchSearchResults = async () => {
+      try {
+        const response = await axios.get(`/api/users?query=${encodeURIComponent(searchTerm)}`);
+        setUsers(response.data);
+      } catch (error) {
+        console.error('Error searching users:', error);
+        setUsers([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSearchResults();
   };
 
   const handleUserClick = (userId) => {
@@ -130,7 +133,7 @@ function Main({ toggleTheme, themeMode }) {
                       </Table.Header>
                       <Table.Body>
                         {users.map((user) => (
-                          <Table.Row key={user.id}>
+                          <Table.Row key={user.telegramId}>
                             <Table.Cell>{user.telegramId}</Table.Cell>
                             <Table.Cell>{user.firstName}</Table.Cell>
                             <Table.Cell>{user.username}</Table.Cell>
@@ -139,7 +142,7 @@ function Main({ toggleTheme, themeMode }) {
                                 size="1"
                                 variant="soft"
                                 color="cyan"
-                                onClick={() => handleUserClick(user.id)}
+                                onClick={() => handleUserClick(user.telegramId)}
                               >
                                 Просмотр деталей
                               </Button>

@@ -30,9 +30,9 @@ function App() {
 
   // Auth guard component
   const ProtectedRoute = ({ children }) => {
-    if (!isAuthenticated) {
-      return <Navigate to="/" />;
-    }
+    // if (!isAuthenticated) {
+    //   return <Navigate to="/" />;
+    // }
     return children;
   };
 

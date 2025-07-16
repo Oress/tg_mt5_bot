@@ -8,4 +8,15 @@ export default defineConfig({
         react(),
         tailwindcss()
     ],
+    server: {
+        proxy: {
+            '/api': {
+                target: 'http://homelab.lan:8080', // Your Java server URL
+                changeOrigin: true,
+                secure: false,
+                // Optional: rewrite the path if needed
+                // rewrite: (path) => path.replace(/^\/api/, '')
+            }
+        }
+    }
 })

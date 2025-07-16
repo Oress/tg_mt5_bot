@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { 
   Container, 
   Box, 
@@ -13,130 +14,85 @@ import {
   Grid,
   ScrollArea,
   Separator,
-  Inset
 } from '@radix-ui/themes';
-import { ArrowLeftIcon } from '@radix-ui/react-icons';
+import { ArrowLeftIcon, ChevronDownIcon, ChevronRightIcon } from '@radix-ui/react-icons';
 
-function UserPage() {
-  const { userId } = useParams();
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('');
-  const [user, setUser] = useState(null);
+function RecentActivitySection({userId}) {
   const [activities, setActivities] = useState([]);
-  const [instruments, setInstruments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedInstrument, setSelectedInstrument] = useState(null);
-  const [openPositions, setOpenPositions] = useState([]);
-  const [orderHistory, setOrderHistory] = useState([]);
-
-  // Mock data - in a real app, this would come from API calls
-  const mockUsers = [
-    { id: 1, telegramId: '12345678', username: 'user1', firstName: 'John' },
-    { id: 2, telegramId: '87654321', username: 'user2', firstName: 'Jane' },
-    { id: 3, telegramId: '11223344', username: 'admin', firstName: 'Admin' },
-    { id: 4, telegramId: '44332211', username: 'trader1', firstName: 'Mike' },
-    { id: 5, telegramId: '55667788', username: 'trader2', firstName: 'Sarah' },
-  ];
-
-  const mockActivities = [
-    { id: 1, userId: 1, action: 'Menu Click', details: 'Main Menu', timestamp: '2025-07-14T10:15:30Z' },
-    { id: 2, userId: 1, action: 'View Balance', details: 'Account Balance Check', timestamp: '2025-07-14T10:16:45Z' },
-    { id: 3, userId: 1, action: 'Place Order', details: 'Buy USD/CAD', timestamp: '2025-07-14T10:20:15Z' },
-    { id: 4, userId: 1, action: 'Text Input', details: 'Search for EUR/USD', timestamp: '2025-07-14T10:25:00Z' },
-    { id: 5, userId: 1, action: 'Place Order', details: 'Sell EUR/USD', timestamp: '2025-07-14T10:30:22Z' },
-    { id: 6, userId: 2, action: 'Menu Click', details: 'Settings Menu', timestamp: '2025-07-14T09:10:30Z' },
-    { id: 7, userId: 3, action: 'View Balance', details: 'Account Balance Check', timestamp: '2025-07-14T11:05:15Z' },
-  ];
-
-  const mockInstruments = [
-    { id: 1, name: 'USD/CAD', clientBaseOwned: 10000, houseBaseOwned: 5000, totalBaseOwned: 15000 },
-    { id: 2, name: 'EUR/USD', clientBaseOwned: 8000, houseBaseOwned: 7000, totalBaseOwned: 15000 },
-    { id: 3, name: 'GBP/JPY', clientBaseOwned: 12000, houseBaseOwned: 3000, totalBaseOwned: 15000 },
-    { id: 4, name: 'AUD/NZD', clientBaseOwned: 6000, houseBaseOwned: 9000, totalBaseOwned: 15000 },
-  ];
-
-  const mockOpenPositions = {
-    'USD/CAD': [
-      { id: 1, type: 'Buy', amount: 1000, openPrice: 1.3450, currentPrice: 1.3500, profit: 50, openDate: '2025-07-13T14:30:00Z' },
-      { id: 2, type: 'Sell', amount: 500, openPrice: 1.3550, currentPrice: 1.3500, profit: 25, openDate: '2025-07-14T09:15:00Z' },
-    ],
-    'EUR/USD': [
-      { id: 3, type: 'Buy', amount: 2000, openPrice: 1.0950, currentPrice: 1.0975, profit: 50, openDate: '2025-07-12T10:45:00Z' },
-      { id: 4, type: 'Sell', amount: 1500, openPrice: 1.1000, currentPrice: 1.0975, profit: 37.5, openDate: '2025-07-13T16:20:00Z' },
-    ],
-  };
-
-  const mockOrderHistory = {
-    'USD/CAD': [
-      { id: 101, type: 'Buy', amount: 800, openPrice: 1.3400, closePrice: 1.3450, profit: 40, openDate: '2025-07-10T11:30:00Z', closeDate: '2025-07-11T15:45:00Z' },
-      { id: 102, type: 'Sell', amount: 1200, openPrice: 1.3600, closePrice: 1.3550, profit: 60, openDate: '2025-07-08T09:20:00Z', closeDate: '2025-07-09T14:10:00Z' },
-      { id: 103, type: 'Buy', amount: 500, openPrice: 1.3350, closePrice: 1.3400, profit: 25, openDate: '2025-07-05T10:15:00Z', closeDate: '2025-07-06T16:30:00Z' },
-    ],
-    'EUR/USD': [
-      { id: 104, type: 'Buy', amount: 1000, openPrice: 1.0900, closePrice: 1.0950, profit: 50, openDate: '2025-07-09T13:45:00Z', closeDate: '2025-07-10T11:20:00Z' },
-      { id: 105, type: 'Sell', amount: 1500, openPrice: 1.1050, closePrice: 1.1000, profit: 75, openDate: '2025-07-07T14:30:00Z', closeDate: '2025-07-08T10:15:00Z' },
-      { id: 106, type: 'Buy', amount: 700, openPrice: 1.0850, closePrice: 1.0900, profit: 35, openDate: '2025-07-04T09:10:00Z', closeDate: '2025-07-05T15:40:00Z' },
-    ],
-  };
 
   useEffect(() => {
-    // Simulate API calls to fetch data
-    setLoading(true);
-
-    // Find user
-    const foundUser = mockUsers.find(u => u.id === parseInt(userId));
-
-    if (foundUser) {
-      setUser(foundUser);
-
-      // Get user activities
-      const userActivities = mockActivities.filter(a => a.userId === parseInt(userId));
-      setActivities(userActivities);
-
-      // Set instruments
-      setInstruments(mockInstruments);
-
-      // Set default active tab to first instrument if available
-      if (mockInstruments.length > 0) {
-        const firstInstrument = mockInstruments[0];
-        setActiveTab(firstInstrument.name);
-        setSelectedInstrument(firstInstrument);
-
-        // Set open positions and order history for the selected instrument
-        setOpenPositions(mockOpenPositions[firstInstrument.name] || []);
-        setOrderHistory(mockOrderHistory[firstInstrument.name] || []);
+    const fetchData = async () => {
+      try {
+        const activitiesResponse = await axios.get(`/api/users/${userId}/activities`);
+        setActivities(activitiesResponse.data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        // You might want to set an error state here to display to the user
       }
-    }
+    };
 
-    setLoading(false);
-  }, [userId]);
+    fetchData();
+  }, [userId])
 
-  const handleTabChange = (instrumentName) => {
-    setActiveTab(instrumentName);
-    const instrument = instruments.find(i => i.name === instrumentName);
-    setSelectedInstrument(instrument);
+  return (
+      <Card size="2" mb="6">
+        <Flex direction="column" gap="3">
+          <Heading size="4">Недавняя активность</Heading>
+          <Separator size="4" />
 
-    // Update open positions and order history based on selected instrument
-    setOpenPositions(mockOpenPositions[instrumentName] || []);
-    setOrderHistory(mockOrderHistory[instrumentName] || []);
-  };
+          {activities.length > 0 ? (
+              <Box>
+                <ScrollArea scrollbars="horizontal" style={{ maxWidth: '100%' }}>
+                  <Table.Root variant="surface">
+                    <Table.Header>
+                      <Table.Row>
+                        <Table.ColumnHeaderCell>Дата</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Состояние</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Тип</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Данные</Table.ColumnHeaderCell>
+                      </Table.Row>
+                    </Table.Header>
+                    <Table.Body>
+                      {activities.map((activity) => (
+                          <Table.Row key={activity.id}>
+                            <Table.Cell>{new Date(activity.createdAt).toLocaleString()}</Table.Cell>
+                            <Table.Cell>{activity.currentUserState}</Table.Cell>
+                            <Table.Cell>{activity.type}</Table.Cell>
+                            <Table.Cell>{activity.data}</Table.Cell>
+                          </Table.Row>
+                      ))}
+                    </Table.Body>
+                  </Table.Root>
+                </ScrollArea>
+              </Box>
+          ) : (
+              <Flex justify="center" py="4">
+                <Text color="gray">Недавняя активность не найдена</Text>
+              </Flex>
+          )}
+        </Flex>
+      </Card>
+  );
+}
 
-  const handleBack = () => {
-    navigate('/main');
-  };
-
-  if (loading) {
-    return (
+function LoadingUserPage() {
+  return (
       <Box style={{ minHeight: '100vh', backgroundColor: 'var(--gray-2)' }}>
         <Flex align="center" justify="center" style={{ height: '100vh' }}>
           <Text size="5" color="gray">Загрузка...</Text>
         </Flex>
       </Box>
-    );
-  }
+  );
+}
 
-  if (!user) {
-    return (
+function UserNotFound() {
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    navigate('/main');
+  };
+
+  return (
       <Box style={{ minHeight: '100vh', backgroundColor: 'var(--gray-2)' }}>
         <Flex align="center" justify="center" style={{ height: '100vh' }}>
           <Flex direction="column" align="center" gap="4">
@@ -148,19 +104,25 @@ function UserPage() {
           </Flex>
         </Flex>
       </Box>
-    );
-  }
+  );
+}
+
+function UserPageHeader() {
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    navigate('/main');
+  };
 
   return (
-    <Box style={{ minHeight: '100vh', backgroundColor: 'var(--gray-2)' }}>
       <Box style={{ backgroundColor: 'var(--color-panel-solid)', boxShadow: 'var(--shadow-2)' }}>
         <Container size="3">
-          <Flex 
-            justify={{ initial: "center", sm: "between" }} 
-            align="center" 
-            py="5"
-            direction={{ initial: "column", sm: "row" }}
-            gap={{ initial: "4", sm: "0" }}
+          <Flex
+              justify={{ initial: "center", sm: "between" }}
+              align="center"
+              py="5"
+              direction={{ initial: "column", sm: "row" }}
+              gap={{ initial: "4", sm: "0" }}
           >
             <Heading size={{ initial: "5", sm: "6" }}>Детали пользователя</Heading>
             <Button onClick={handleBack} size="3" color="cyan">
@@ -170,94 +132,473 @@ function UserPage() {
           </Flex>
         </Container>
       </Box>
+  );
+}
 
-      <Container size="3" py="6">
-        {/* User Info Section */}
-        <Card size="2" mb="6">
-          <Flex direction="column" gap="3">
-            <Heading size="4">Информация о пользователе</Heading>
-            <Separator size="4" />
-            {/* Responsive grid that changes from 1 column on mobile to 3 columns on desktop */}
-            <Grid columns={{ initial: "1", sm: "2", md: "3" }} gap="4">
-              <Card size="1">
-                <Flex direction="column" gap="1" p="2">
-                  <Text size="2" color="gray">Telegram ID</Text>
-                  <Text size="4" weight="medium">{user.telegramId}</Text>
-                </Flex>
-              </Card>
-              <Card size="1">
-                <Flex direction="column" gap="1" p="2">
-                  <Text size="2" color="gray">Имя</Text>
-                  <Text size="4" weight="medium">{user.firstName}</Text>
-                </Flex>
-              </Card>
-              <Card size="1">
-                <Flex direction="column" gap="1" p="2">
-                  <Text size="2" color="gray">Имя пользователя</Text>
-                  <Text size="4" weight="medium">{user.username}</Text>
-                </Flex>
-              </Card>
-            </Grid>
-          </Flex>
-        </Card>
-
-        {/* Recent Activity Section */}
-        <Card size="2" mb="6">
-          <Flex direction="column" gap="3">
-            <Heading size="4">Недавняя активность</Heading>
-            <Separator size="4" />
-
-            {activities.length > 0 ? (
-              <Box>
-                {/* Desktop view - Table */}
-                <Box display={{ initial: 'none', md: 'block' }}>
-                  <ScrollArea scrollbars="horizontal" style={{ maxWidth: '100%' }}>
-                    <Table.Root variant="surface">
-                      <Table.Header>
-                        <Table.Row>
-                          <Table.ColumnHeaderCell>Действие</Table.ColumnHeaderCell>
-                          <Table.ColumnHeaderCell>Детали</Table.ColumnHeaderCell>
-                          <Table.ColumnHeaderCell>Время</Table.ColumnHeaderCell>
-                        </Table.Row>
-                      </Table.Header>
-                      <Table.Body>
-                        {activities.map((activity) => (
-                          <Table.Row key={activity.id}>
-                            <Table.Cell>{activity.action}</Table.Cell>
-                            <Table.Cell>{activity.details}</Table.Cell>
-                            <Table.Cell>{new Date(activity.timestamp).toLocaleString()}</Table.Cell>
-                          </Table.Row>
-                        ))}
-                      </Table.Body>
-                    </Table.Root>
-                  </ScrollArea>
-                </Box>
-
-                {/* Mobile view - Cards */}
-                <Flex direction="column" gap="3" display={{ initial: 'flex', md: 'none' }}>
-                  {activities.map((activity) => (
-                    <Card key={activity.id} size="1">
-                      <Flex direction="column" gap="2" p="3">
-                        <Flex justify="between" align="center">
-                          <Text weight="bold">{activity.action}</Text>
-                          <Text size="1" color="gray">{new Date(activity.timestamp).toLocaleString()}</Text>
-                        </Flex>
-                        <Text>{activity.details}</Text>
-                      </Flex>
-                    </Card>
-                  ))}
-                </Flex>
-              </Box>
-            ) : (
-              <Flex justify="center" py="4">
-                <Text color="gray">Недавняя активность не найдена</Text>
+function UserInfoSection({user}) {
+  return (
+      <Card size="2" mb="6">
+        <Flex direction="column" gap="3">
+          <Heading size="4">Информация о пользователе</Heading>
+          <Separator size="4" />
+          {/* Responsive grid that changes from 1 column on mobile to 3 columns on desktop */}
+          <Grid columns={{ initial: "1", sm: "2", md: "3" }} gap="4">
+            <Card size="1">
+              <Flex direction="column" gap="1" p="2">
+                <Text size="2" color="gray">Telegram ID</Text>
+                <Text size="4" weight="medium">{user.telegramId}</Text>
               </Flex>
-            )}
+            </Card>
+            <Card size="1">
+              <Flex direction="column" gap="1" p="2">
+                <Text size="2" color="gray">Имя</Text>
+                <Text size="4" weight="medium">{user.firstName}</Text>
+              </Flex>
+            </Card>
+            <Card size="1">
+              <Flex direction="column" gap="1" p="2">
+                <Text size="2" color="gray">Имя пользователя</Text>
+                <Text size="4" weight="medium">{user.username}</Text>
+              </Flex>
+            </Card>
+            <Card size="1">
+              <Flex direction="column" gap="1" p="2">
+                <Text size="2" color="gray">Тип аккаунта Герчик</Text>
+                <Text size="4" weight="medium">{user.accountType}</Text>
+              </Flex>
+            </Card>
+            <Card size="1">
+              <Flex direction="column" gap="1" p="2">
+                <Text size="2" color="gray">№ аккаунта Герчик</Text>
+                <Text size="4" weight="medium">{user.mt5Account}</Text>
+              </Flex>
+            </Card>
+            <Card size="1">
+              <Flex direction="column" gap="1" p="2">
+                <Text size="2" color="gray">Google Sheet</Text>
+                <Text size="4" weight="medium">{user.googleSheetId}</Text>
+              </Flex>
+            </Card>
+          </Grid>
+        </Flex>
+      </Card>
+  );
+}
+
+function formatOrderType(type) {
+  switch (type) {
+    case 'MT5_LONG':
+      return 'Покупка';
+    case 'MT5_SHORT':
+      return 'Продажа';
+    default:
+      return type;
+  }
+}
+
+function RegularHedgeDetails({selectedInstrument, userId}) {
+  const [orderHistory, setOrderHistory] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Set default active tab to first instrument if available
+        if (selectedInstrument) {
+          // Fetch open positions for the selected instrument
+          // const positionsResponse = await axios.get(`/api/users/${userId}/orders/${firstInstrument.id}`);
+          // setOpenPositions(positionsResponse.data);
+
+          // Fetch order history for the selected instrument
+          const historyResponse = await axios.get(`/api/users/${userId}/orders/${selectedInstrument.id}`);
+          setOrderHistory(historyResponse.data);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        // You might want to set an error state here to display to the user
+      }
+    };
+
+    fetchData();
+  }, [selectedInstrument, userId]);
+
+  return (
+      <Box pt="4" >
+        {/* Ownership Info */}
+        <Grid gap="4" mb="6">
+          <Card size="1">
+            <Flex direction="column" gap="1" p="3" align="center" justify="center">
+              <Text size="2" color="gray">{selectedInstrument.base} Клиента</Text>
+              <Text size={{ initial: "5", md: "6" }} weight="bold" color="blue">{selectedInstrument.clientOwnedBaseAmount}</Text>
+            </Flex>
+          </Card>
+        </Grid>
+
+        {/* Order History */}
+        <Box>
+          <Heading size="3" mb="3">История ордеров</Heading>
+          {orderHistory.length > 0 ? (
+              <Box>
+                <ScrollArea scrollbars="horizontal" style={{ maxWidth: '100%' }}>
+                  <Table.Root variant="surface" layout="auto">
+                    <Table.Header>
+                      <Table.Row>
+                        <Table.ColumnHeaderCell># Сделки</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Тип</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Статус</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Цена</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Дата</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>№ Аккаунта</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Сумма в базовой валюте</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Лоты</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Сумма ордера в базовой валюте</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Клиент, До, Сумма в базовой валюте</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Клиент, После, Сумма в базовой валюте</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>ID</Table.ColumnHeaderCell>
+                      </Table.Row>
+                    </Table.Header>
+                    <Table.Body>
+                      {orderHistory.map((order) => (
+                          <Table.Row key={order.id}>
+                            <Table.Cell minWidth="100px">{order.deal}</Table.Cell>
+                            <Table.Cell weight="medium">
+                              <Text color={order.type === 'MT5_LONG' ? 'green' : 'red'} style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
+                                {formatOrderType(order.type)}
+                              </Text>
+                            </Table.Cell>
+                            <Table.Cell>{order.status}</Table.Cell>
+                            <Table.Cell>{order.price}</Table.Cell>
+                            <Table.Cell minWidth="180px">{(new Date(order.createdAt).toLocaleString())}</Table.Cell>
+                            <Table.Cell minWidth="120px">{order.mt5AccNumber}</Table.Cell>
+                            <Table.Cell minWidth="160px">{order.userBaseAmount} {selectedInstrument.base}</Table.Cell>
+                            <Table.Cell>{order.executedVolume}</Table.Cell>
+                            <Table.Cell minWidth="160px">{order.executedBaseAmount} {selectedInstrument.base}</Table.Cell>
+                            <Table.Cell minWidth="160px">{order.clientBaseAmountFrom} {selectedInstrument.base}</Table.Cell>
+                            <Table.Cell minWidth="160px">{order.clientBaseAmountTo} {selectedInstrument.base}</Table.Cell>
+                            <Table.Cell minWidth="300px">{order.id}</Table.Cell>
+                          </Table.Row>
+                      ))}
+                    </Table.Body>
+                  </Table.Root>
+                </ScrollArea>
+              </Box>
+          ) : (
+              <Flex justify="center" py="4">
+                <Text color="gray">Нет истории заказов для этого инструмента</Text>
+              </Flex>
+          )}
+        </Box>
+      </Box>
+  )
+}
+
+function InverseHedgeDetails({selectedInstrument, userId}) {
+  const [openPositions, setOpenPositions] = useState([]);
+  const [orderHistory, setOrderHistory] = useState([]);
+  const [expandedRows, setExpandedRows] = useState({});
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Set default active tab to first instrument if available
+        if (selectedInstrument) {
+          // Fetch open positions for the selected instrument
+          const positionsResponse = await axios.get(`/api/users/${userId}/orders/${selectedInstrument.id}`, {
+            params: {
+              type: "open"
+            }
+          });
+          setOpenPositions(positionsResponse.data);
+
+          // Fetch order history for the selected instrument
+          const historyResponse = await axios.get(`/api/users/${userId}/orders/${selectedInstrument.id}`);
+          setOrderHistory(historyResponse.data);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        // You might want to set an error state here to display to the user
+      }
+    };
+
+    fetchData();
+  }, [selectedInstrument, userId]);
+
+  return (
+      <Box pt="4" >
+        {/* Ownership Info */}
+        <Grid columns={{ initial: "1", sm: "2", md: "3" }} gap="4" mb="6">
+          <Card size="1">
+            <Flex direction="column" gap="1" p="3" align="center" justify="center">
+              <Text size="2" color="gray">{selectedInstrument.quote} Клиента</Text>
+              <Text size={{ initial: "5", md: "6" }} weight="bold" color="purple">{selectedInstrument.clientOwnedQuoteAmount}</Text>
+            </Flex>
+          </Card>
+          <Card size="1">
+            <Flex direction="column" gap="1" p="3" align="center" justify="center">
+              <Text size="2" color="gray">{selectedInstrument.base} Клиента</Text>
+              <Text size={{ initial: "5", md: "6" }} weight="bold" color="blue">{selectedInstrument.clientOwnedBaseAmount}</Text>
+            </Flex>
+          </Card>
+          <Card size="1">
+            <Flex direction="column" gap="1" p="3" align="center" justify="center">
+              <Text size="2" color="gray">{selectedInstrument.base} Димы</Text>
+              <Text size={{ initial: "5", md: "6" }} weight="bold" color="green">{selectedInstrument.houseOwnedBaseAmount}</Text>
+            </Flex>
+          </Card>
+        </Grid>
+
+        {/* Open Positions */}
+        {/* No sense to show them for regular hedge */}
+        <Box mb="6">
+          <Heading size="3" mb="3">Текущие открытые позиции</Heading>
+          {openPositions.length > 0 ? (
+              <Box>
+                <ScrollArea scrollbars="horizontal" style={{ maxWidth: '100%' }}>
+                  <Table.Root variant="surface">
+                    <Table.Header>
+                      <Table.Row>
+                        <Table.ColumnHeaderCell># Сделки</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Дата</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Цена</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Остаток для расхеджирования</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Сумма в котируемой валюте </Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Сумма в базовой валюте</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Сумма ордера в базовой валюте</Table.ColumnHeaderCell>
+
+                        <Table.ColumnHeaderCell>ID</Table.ColumnHeaderCell>
+                      </Table.Row>
+                    </Table.Header>
+                    <Table.Body>
+                      {openPositions.map((order) => (
+                          <Table.Row key={order.id}>
+                            <Table.Cell minWidth="100px">{order.deal}</Table.Cell>
+                            <Table.Cell minWidth="180px">{(new Date(order.createdAt).toLocaleString())}</Table.Cell>
+                            <Table.Cell>
+                              <Text weight="medium">
+                                {order.price}
+                              </Text>
+                              </Table.Cell>
+                            <Table.Cell minWidth="160px">
+                              <Text weight="medium" color='green'>
+                                {order.quoteAmountLeftToUnhedge} / {order.userEnteredQuoteAmount}
+                              </Text>
+                            </Table.Cell>
+                            <Table.Cell minWidth="160px">{order.userEnteredQuoteAmount} {selectedInstrument.quote}</Table.Cell>
+                            <Table.Cell minWidth="160px">{order.userBaseAmount} {selectedInstrument.base}</Table.Cell>
+                            <Table.Cell minWidth="160px">{order.executedBaseAmount} {selectedInstrument.base}</Table.Cell>
+                            <Table.Cell minWidth="300px">{order.id}</Table.Cell>
+                          </Table.Row>
+                      ))}
+                    </Table.Body>
+                  </Table.Root>
+                </ScrollArea>
+              </Box>
+          ) : (
+              <Flex justify="center" py="4">
+                <Text color="gray">Нет открытых позиций для этого инструмента</Text>
+              </Flex>
+          )}
+        </Box>
+
+        {/* Order History */}
+        <Box>
+          <Heading size="3" mb="3">История заказов</Heading>
+          {orderHistory.length > 0 ? (
+              <Box>
+                <ScrollArea scrollbars="horizontal" style={{ maxWidth: '100%' }}>
+                  <Table.Root variant="surface" layout="auto">
+                    <Table.Header>
+                      <Table.Row>
+                        <Table.ColumnHeaderCell># Сделки</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Тип</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Статус</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Цена</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Дата</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>№ Аккаунта</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Сумма в базовой валюте</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Сумма в котируемой валюте </Table.ColumnHeaderCell>
+
+                        <Table.ColumnHeaderCell>Лоты</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Сумма ордера в базовой валюте</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Дима, До, Сумма в базовой валюте</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Дима, После, Сумма в базовой валюте</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Клиент, До, Сумма в базовой валюте</Table.ColumnHeaderCell>
+                        <Table.ColumnHeaderCell>Клиент, После, Сумма в базовой валюте</Table.ColumnHeaderCell>
+
+                        <Table.ColumnHeaderCell>ID</Table.ColumnHeaderCell>
+                      </Table.Row>
+                    </Table.Header>
+                    <Table.Body>
+                      {orderHistory.map((order) => (
+                        <>
+                          <Table.Row 
+                            key={order.id} 
+                            onClick={() => {
+                              if (order.type === 'MT5_SHORT') {
+                                setExpandedRows(prev => ({
+                                  ...prev,
+                                  [order.id]: !prev[order.id]
+                                }));
+                              }
+                            }}
+                          >
+                            <Table.Cell minWidth="100px">{order.deal}</Table.Cell>
+                            <Table.Cell weight="medium">
+                              <Flex align="center" gap="1">
+                                {(order.type === 'MT5_SHORT') && (
+                                  expandedRows[order.id] ? <ChevronDownIcon /> : <ChevronRightIcon />
+                                )}
+                                <Text color={order.type === 'MT5_LONG' ? 'green' : 'red'} style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
+                                  {formatOrderType(order.type)}
+                                </Text>
+                              </Flex>
+                            </Table.Cell>
+                            <Table.Cell>{order.status}</Table.Cell>
+                            <Table.Cell>{order.price}</Table.Cell>
+                            <Table.Cell minWidth="180px">{(new Date(order.createdAt).toLocaleString())}</Table.Cell>
+                            <Table.Cell minWidth="120px">{order.mt5AccNumber}</Table.Cell>
+                            <Table.Cell minWidth="160px">{order.userBaseAmount} {selectedInstrument.base}</Table.Cell>
+                            <Table.Cell minWidth="160px">{order.userEnteredQuoteAmount} {selectedInstrument.quote}</Table.Cell>
+
+                            <Table.Cell>{order.executedVolume}</Table.Cell>
+                            <Table.Cell minWidth="160px">{order.executedBaseAmount} {selectedInstrument.base}</Table.Cell>
+                            {/*<Table.Cell minWidth="160px">{order.quoteAmountLeftToUnhedge}</Table.Cell>*/}
+                            <Table.Cell minWidth="160px">{order.houseBaseAmountFrom} {selectedInstrument.base}</Table.Cell>
+                            <Table.Cell minWidth="160px">{order.houseBaseAmountTo} {selectedInstrument.base}</Table.Cell>
+                            <Table.Cell minWidth="160px">{order.clientBaseAmountFrom} {selectedInstrument.base}</Table.Cell>
+                            <Table.Cell minWidth="160px">{order.clientBaseAmountTo} {selectedInstrument.base}</Table.Cell>
+
+                            <Table.Cell minWidth="290px">{order.id}</Table.Cell>
+                          </Table.Row>
+
+                          {expandedRows[order.id] && order.type === 'MT5_SHORT' && (
+                            <Table.Row>
+                              <Table.Cell colSpan="16">
+                                <Box pl="2" py="2">
+                                  <Table.Root variant="surface" layout="auto" size="1">
+                                      <Table.Header>
+                                        <Table.Row>
+                                          <Table.ColumnHeaderCell># Сделки</Table.ColumnHeaderCell>
+                                          <Table.ColumnHeaderCell>Часть {selectedInstrument.quote} закрыто</Table.ColumnHeaderCell>
+                                          <Table.ColumnHeaderCell>Остаток {selectedInstrument.quote} в сделке</Table.ColumnHeaderCell>
+                                          <Table.ColumnHeaderCell>Еквивалент в {selectedInstrument.base}</Table.ColumnHeaderCell>
+                                          <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
+                                        </Table.Row>
+                                      </Table.Header>
+                                      <Table.Body>
+                                        {order.consumptions.map(consumedOrder => (
+                                          <Table.Row>
+                                            <Table.Cell width="200px">{consumedOrder.consumedOrder.deal}</Table.Cell>
+                                            <Table.Cell width="200px">{consumedOrder.consumedQuoteAmount}</Table.Cell>
+                                            <Table.Cell width="200px">{consumedOrder.leftQuoteAmount}</Table.Cell>
+                                            <Table.Cell width="200px">{consumedOrder.baseEquivalent}</Table.Cell>
+                                          </Table.Row>
+                                        ))}
+                                      </Table.Body>
+                                    </Table.Root>
+                                </Box>
+                              </Table.Cell>
+                            </Table.Row>
+                          )}
+                        </>
+                      ))}
+                    </Table.Body>
+                  </Table.Root>
+                </ScrollArea>
+              </Box>
+          ) : (
+              <Flex justify="center" py="4">
+                <Text color="gray">Нет истории заказов для этого инструмента</Text>
+              </Flex>
+          )}
+        </Box>
+      </Box>
+  )
+}
+
+function UserPage() {
+  const { userId } = useParams();
+  const [activeTab, setActiveTab] = useState('');
+  const [user, setUser] = useState(null);
+  const [instruments, setInstruments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedInstrument, setSelectedInstrument] = useState(null);
+
+  // API endpoints for data fetching
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Fetch user data
+        const userResponse = await axios.get(`/api/users/${userId}`);
+        setUser(userResponse.data);
+
+        // Fetch instruments
+        // const instrumentsResponse = await axios.get('/api/instruments');
+        // setInstruments(instrumentsResponse.data);
+        const instrumentsResp = userResponse.data.instruments || [];
+        instrumentsResp.sort((a, b) => a.label.localeCompare(b.label));
+        setInstruments(instrumentsResp);
+
+        // Set default active tab to first instrument if available
+        if (instrumentsResp.length > 0) {
+          const firstInstrument = instrumentsResp[0];
+          setActiveTab(firstInstrument.label);
+          setSelectedInstrument(firstInstrument);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        // You might want to set an error state here to display to the user
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [userId]);
+
+  const handleTabChange = (instrumentName) => {
+    setActiveTab(instrumentName);
+    const instrument = instruments.find(i => i.label === instrumentName);
+    setSelectedInstrument(instrument);
+  };
+
+  if (loading) {
+    return <LoadingUserPage />;
+  }
+
+  if (!user) {
+    return <UserNotFound />;
+  }
+
+  let detailsComponent;
+  switch (selectedInstrument?.mode) {
+    case 'SHORT':
+      detailsComponent = <RegularHedgeDetails selectedInstrument={selectedInstrument} userId={userId} />;
+      break;
+    case 'LONG':
+      detailsComponent = <InverseHedgeDetails selectedInstrument={selectedInstrument} userId={userId}/>;
+      break;
+    default:
+      detailsComponent = (
+          <Flex justify="center" py="4">
+            <Text color="gray">Выберите инструмент для просмотра информации</Text>
           </Flex>
-        </Card>
+      );
+      break;
+  }
+
+  return (
+    <Box style={{ minHeight: '100vh', backgroundColor: 'var(--gray-2)' }}>
+
+      <UserPageHeader />
+
+      <Container size="4" py="6">
+        {/* User Info Section */}
+        <UserInfoSection user={user} />
 
         {/* Instruments Section */}
-        <Card size="2">
+        <Card size="2" mb="6">
           <Flex direction="column" gap="3">
             <Heading size="4">Доступные инструменты</Heading>
             <Separator size="4" />
@@ -266,219 +607,14 @@ function UserPage() {
             <Tabs.Root defaultValue={activeTab} onValueChange={handleTabChange}>
               <Tabs.List>
                 {instruments.map((instrument) => (
-                  <Tabs.Trigger key={instrument.id} value={instrument.name}>
-                    {instrument.name}
+                  <Tabs.Trigger key={instrument.label} value={instrument.label}>
+                    {instrument.label}
                   </Tabs.Trigger>
                 ))}
               </Tabs.List>
 
               {/* Tab Content */}
-              {selectedInstrument && (
-                <Box pt="4">
-                  {/* Ownership Info */}
-                  <Grid columns={{ initial: "1", sm: "2", md: "3" }} gap="4" mb="6">
-                    <Card size="1">
-                      <Flex direction="column" gap="1" p="3" align="center" justify="center">
-                        <Text size="2" color="gray">Клиентская база</Text>
-                        <Text size={{ initial: "5", md: "6" }} weight="bold" color="blue">{selectedInstrument.clientBaseOwned.toLocaleString()}</Text>
-                      </Flex>
-                    </Card>
-                    <Card size="1">
-                      <Flex direction="column" gap="1" p="3" align="center" justify="center">
-                        <Text size="2" color="gray">База дома</Text>
-                        <Text size={{ initial: "5", md: "6" }} weight="bold" color="green">{selectedInstrument.houseBaseOwned.toLocaleString()}</Text>
-                      </Flex>
-                    </Card>
-                    <Card size="1">
-                      <Flex direction="column" gap="1" p="3" align="center" justify="center">
-                        <Text size="2" color="gray">Общая база</Text>
-                        <Text size={{ initial: "5", md: "6" }} weight="bold" color="purple">{selectedInstrument.totalBaseOwned.toLocaleString()}</Text>
-                      </Flex>
-                    </Card>
-                  </Grid>
-
-                  {/* Open Positions */}
-                  <Box mb="6">
-                    <Heading size="3" mb="3">Текущие открытые позиции</Heading>
-                    {openPositions.length > 0 ? (
-                      <Box>
-                        {/* Desktop view - Table */}
-                        <Box display={{ initial: 'none', md: 'block' }}>
-                          <ScrollArea scrollbars="horizontal" style={{ maxWidth: '100%' }}>
-                            <Table.Root variant="surface">
-                              <Table.Header>
-                                <Table.Row>
-                                  <Table.ColumnHeaderCell>Тип</Table.ColumnHeaderCell>
-                                  <Table.ColumnHeaderCell>Сумма</Table.ColumnHeaderCell>
-                                  <Table.ColumnHeaderCell>Цена открытия</Table.ColumnHeaderCell>
-                                  <Table.ColumnHeaderCell>Текущая цена</Table.ColumnHeaderCell>
-                                  <Table.ColumnHeaderCell>Прибыль</Table.ColumnHeaderCell>
-                                  <Table.ColumnHeaderCell>Дата открытия</Table.ColumnHeaderCell>
-                                </Table.Row>
-                              </Table.Header>
-                              <Table.Body>
-                                {openPositions.map((position) => (
-                                  <Table.Row key={position.id}>
-                                    <Table.Cell>
-                                      <Text color={position.type === 'Buy' ? 'green' : 'red'} weight="medium">
-                                        {position.type === 'Buy' ? 'Покупка' : 'Продажа'}
-                                      </Text>
-                                    </Table.Cell>
-                                    <Table.Cell>{position.amount.toLocaleString()}</Table.Cell>
-                                    <Table.Cell>{position.openPrice}</Table.Cell>
-                                    <Table.Cell>{position.currentPrice}</Table.Cell>
-                                    <Table.Cell>
-                                      <Text color={position.profit >= 0 ? 'green' : 'red'} weight="medium">
-                                        {position.profit >= 0 ? '+' : ''}{position.profit}
-                                      </Text>
-                                    </Table.Cell>
-                                    <Table.Cell>{new Date(position.openDate).toLocaleString()}</Table.Cell>
-                                  </Table.Row>
-                                ))}
-                              </Table.Body>
-                            </Table.Root>
-                          </ScrollArea>
-                        </Box>
-
-                        {/* Mobile view - Cards */}
-                        <Flex direction="column" gap="3" display={{ initial: 'flex', md: 'none' }}>
-                          {openPositions.map((position) => (
-                            <Card key={position.id} size="1">
-                              <Flex direction="column" gap="2" p="3">
-                                <Flex justify="between" align="center">
-                                  <Text color={position.type === 'Buy' ? 'green' : 'red'} weight="bold">
-                                    {position.type === 'Buy' ? 'Покупка' : 'Продажа'}
-                                  </Text>
-                                  <Text color={position.profit >= 0 ? 'green' : 'red'} weight="bold">
-                                    {position.profit >= 0 ? '+' : ''}{position.profit}
-                                  </Text>
-                                </Flex>
-                                <Grid columns="2" gap="2">
-                                  <Box>
-                                    <Text size="1" color="gray">Сумма</Text>
-                                    <Text>{position.amount.toLocaleString()}</Text>
-                                  </Box>
-                                  <Box>
-                                    <Text size="1" color="gray">Дата открытия</Text>
-                                    <Text>{new Date(position.openDate).toLocaleString()}</Text>
-                                  </Box>
-                                  <Box>
-                                    <Text size="1" color="gray">Цена открытия</Text>
-                                    <Text>{position.openPrice}</Text>
-                                  </Box>
-                                  <Box>
-                                    <Text size="1" color="gray">Текущая цена</Text>
-                                    <Text>{position.currentPrice}</Text>
-                                  </Box>
-                                </Grid>
-                              </Flex>
-                            </Card>
-                          ))}
-                        </Flex>
-                      </Box>
-                    ) : (
-                      <Flex justify="center" py="4">
-                        <Text color="gray">Нет открытых позиций для этого инструмента</Text>
-                      </Flex>
-                    )}
-                  </Box>
-
-                  {/* Order History */}
-                  <Box>
-                    <Heading size="3" mb="3">История заказов</Heading>
-                    {orderHistory.length > 0 ? (
-                      <Box>
-                        {/* Desktop view - Table */}
-                        <Box display={{ initial: 'none', md: 'block' }}>
-                          <ScrollArea scrollbars="horizontal" style={{ maxWidth: '100%' }}>
-                            <Table.Root variant="surface">
-                              <Table.Header>
-                                <Table.Row>
-                                  <Table.ColumnHeaderCell>Тип</Table.ColumnHeaderCell>
-                                  <Table.ColumnHeaderCell>Сумма</Table.ColumnHeaderCell>
-                                  <Table.ColumnHeaderCell>Цена открытия</Table.ColumnHeaderCell>
-                                  <Table.ColumnHeaderCell>Цена закрытия</Table.ColumnHeaderCell>
-                                  <Table.ColumnHeaderCell>Прибыль</Table.ColumnHeaderCell>
-                                  <Table.ColumnHeaderCell>Дата открытия</Table.ColumnHeaderCell>
-                                  <Table.ColumnHeaderCell>Дата закрытия</Table.ColumnHeaderCell>
-                                </Table.Row>
-                              </Table.Header>
-                              <Table.Body>
-                                {orderHistory.map((order) => (
-                                  <Table.Row key={order.id}>
-                                    <Table.Cell>
-                                      <Text color={order.type === 'Buy' ? 'green' : 'red'} weight="medium">
-                                        {order.type === 'Buy' ? 'Покупка' : 'Продажа'}
-                                      </Text>
-                                    </Table.Cell>
-                                    <Table.Cell>{order.amount.toLocaleString()}</Table.Cell>
-                                    <Table.Cell>{order.openPrice}</Table.Cell>
-                                    <Table.Cell>{order.closePrice}</Table.Cell>
-                                    <Table.Cell>
-                                      <Text color={order.profit >= 0 ? 'green' : 'red'} weight="medium">
-                                        {order.profit >= 0 ? '+' : ''}{order.profit}
-                                      </Text>
-                                    </Table.Cell>
-                                    <Table.Cell>{new Date(order.openDate).toLocaleString()}</Table.Cell>
-                                    <Table.Cell>{new Date(order.closeDate).toLocaleString()}</Table.Cell>
-                                  </Table.Row>
-                                ))}
-                              </Table.Body>
-                            </Table.Root>
-                          </ScrollArea>
-                        </Box>
-
-                        {/* Mobile view - Cards */}
-                        <Flex direction="column" gap="3" display={{ initial: 'flex', md: 'none' }}>
-                          {orderHistory.map((order) => (
-                            <Card key={order.id} size="1">
-                              <Flex direction="column" gap="2" p="3">
-                                <Flex justify="between" align="center">
-                                  <Text color={order.type === 'Buy' ? 'green' : 'red'} weight="bold">
-                                    {order.type === 'Buy' ? 'Покупка' : 'Продажа'}
-                                  </Text>
-                                  <Text color={order.profit >= 0 ? 'green' : 'red'} weight="bold">
-                                    {order.profit >= 0 ? '+' : ''}{order.profit}
-                                  </Text>
-                                </Flex>
-                                <Grid columns="2" gap="2">
-                                  <Box>
-                                    <Text size="1" color="gray">Сумма</Text>
-                                    <Text>{order.amount.toLocaleString()}</Text>
-                                  </Box>
-                                  <Box>
-                                    <Text size="1" color="gray">Цена открытия</Text>
-                                    <Text>{order.openPrice}</Text>
-                                  </Box>
-                                  <Box>
-                                    <Text size="1" color="gray">Цена закрытия</Text>
-                                    <Text>{order.closePrice}</Text>
-                                  </Box>
-                                </Grid>
-                                <Separator size="4" my="1" />
-                                <Grid columns="2" gap="2">
-                                  <Box>
-                                    <Text size="1" color="gray">Дата открытия</Text>
-                                    <Text>{new Date(order.openDate).toLocaleString()}</Text>
-                                  </Box>
-                                  <Box>
-                                    <Text size="1" color="gray">Дата закрытия</Text>
-                                    <Text>{new Date(order.closeDate).toLocaleString()}</Text>
-                                  </Box>
-                                </Grid>
-                              </Flex>
-                            </Card>
-                          ))}
-                        </Flex>
-                      </Box>
-                    ) : (
-                      <Flex justify="center" py="4">
-                        <Text color="gray">Нет истории заказов для этого инструмента</Text>
-                      </Flex>
-                    )}
-                  </Box>
-                </Box>
-              )}
+              {detailsComponent}
             </Tabs.Root>
           </Flex>
         </Card>
