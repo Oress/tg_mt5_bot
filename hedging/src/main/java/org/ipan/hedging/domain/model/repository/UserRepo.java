@@ -42,4 +42,11 @@ public interface UserRepo extends JpaRepository<AppUser, Long> {
                     select nextval('seq_hed_users_sheet_id')
                     """)
     Integer getNextSheetId();
+
+    @Query(value = """
+                    from AppUser u
+                    where lower(u.telegramUsername) like :query or lower(u.telegramFirstName) like :query
+                    order by u.telegramId, u.telegramUsername, u.telegramFirstName
+                    """)
+    List<AppUser> searchForUsers(String query);
 }

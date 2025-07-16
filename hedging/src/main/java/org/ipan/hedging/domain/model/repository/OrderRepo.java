@@ -1,6 +1,8 @@
 package org.ipan.hedging.domain.model.repository;
 
 import org.ipan.hedging.domain.model.Order;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -19,4 +21,9 @@ public interface OrderRepo extends JpaRepository<Order, UUID> {
 
     @Query("select o from Order o join fetch o.consumptions where o.id = :id")
     Order findOrderWithConsumptions(UUID id);
+
+    Page<Order> findAllByUserInstrumentId(Long userInstrumentId, Pageable pageable);
+
+    Page<Order> findAllByUserInstrumentIdOrderByCreatedAtDesc(Long userInstrumentId, Pageable pageable);
+    List<Order> findAllByUserInstrumentIdOrderByCreatedAtDesc(Long userInstrumentId);
 }
