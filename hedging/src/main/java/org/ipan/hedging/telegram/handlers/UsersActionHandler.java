@@ -21,9 +21,12 @@ import org.ipan.hedging.telegram.statetransitions.UpdateType;
 import org.ipan.hedging.telegram.utils.FormattingTools;
 import org.ipan.hedging.telegram.views.ManageUserActionsView;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @TransitionHandler
 @Slf4j
@@ -37,6 +40,7 @@ public class UsersActionHandler {
     private final Mt5ServiceImpl mt5Service;
     private final TelegramMessages telegramMessages;
     private final GoogleSheetsService googleSheetsService;
+    private final PasswordEncoder passwordEncoder;
 
     /*
     @MatchState(state = States.ADMIN_MANAGE_USERS_ACTION_PREVIEW, callbackData = InlineMenuCallbacks.MANAGE_USER_ACTION_VIEW_POSITIONS)
@@ -82,6 +86,19 @@ public class UsersActionHandler {
         manageUserActionsView.syncWithGoogleSheet(userState);
         telegramState.updateUserState(userState.getTelegramId(),
                 userState.withState(States.ADMIN_MANAGE_USER_SYNC_WITH_GOOGLE_SHEET));
+    }
+
+
+    @MatchState(state = States.ADMIN_MANAGE_USERS_ACTION_PREVIEW, callbackData = InlineMenuCallbacks.GENERATE_DASHBOARD_PWD)
+    public void generateDashboardPwd(UserState userState, Update update) {
+        UserEdit openedUser = telegramState.getOrCreateUserEdit(userState.getTelegramId());
+        String newPassword = UUID.randomUUID().toString().replaceAll("-", "");
+        AppUser byId = userRepo.findById(openedUser.getSelectedUserId()).get();
+        byId.setDashboardPwd(passwordEncoder.encode(newPassword));
+        userRepo.save(byId);
+        manageUserActionsView.generatedDashboardPassword(userState, openedUser.getSelectedUserId(), newPassword);
+        telegramState.updateUserState(userState.getTelegramId(),
+                userState.withState(States.ADMIN_MANAGE_USER_GENERATE_DASHBOARD_PWD));
     }
 
     @MatchState(state = States.ADMIN_MANAGE_USER_ACTION_PROMPT_CREDS, updateTypes = UpdateType.MESSAGE)

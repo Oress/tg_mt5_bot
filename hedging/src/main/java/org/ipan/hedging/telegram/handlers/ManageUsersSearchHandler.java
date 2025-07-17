@@ -92,6 +92,7 @@ public class ManageUsersSearchHandler {
             @MatchState(forAdmin = true, state = States.ADMIN_MANAGE_USER_ACTION_CHANGE_CREDS_SUCCESS, callbackData = InlineMenuCallbacks.GO_BACK),
             @MatchState(forAdmin = true, state = States.ADMIN_MANAGE_USER_ACTION_PROMPT_CREDS, callbackData = InlineMenuCallbacks.GO_BACK),
             @MatchState(forAdmin = true, state = States.ADMIN_MANAGE_USER_SYNC_WITH_GOOGLE_SHEET, callbackData = InlineMenuCallbacks.GO_BACK),
+            @MatchState(forAdmin = true, state = States.ADMIN_MANAGE_USER_GENERATE_DASHBOARD_PWD, callbackData = InlineMenuCallbacks.GO_BACK),
             @MatchState(forAdmin = true, state = States.ADMIN_MANAGE_USER_ACTION_CHANGE_INSTUMENTS, callbackData = InlineMenuCallbacks.GO_BACK),
     })
     public void openUserByCallback(UserState userState, Update update) {

@@ -128,6 +128,26 @@ public class ManageUserActionsView {
     }
 
     @SneakyThrows
+    public void generatedDashboardPassword(UserState userState, Long selectedUserId, String newPassword) {
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(userState.getChatId())
+                .messageId(userState.getMenuMessageId())
+                .text("""
+                        ✅ Пароль для доступа к дашборду успешно сгенерирован.
+                        Логин для доступа к дашборду: `%s`
+                        Новый пароль: `%s`
+                        
+                        Пожалуйста, сохраните его в надежном месте.
+                        """.formatted(selectedUserId, newPassword))
+                .replyMarkup(commonViews.getToMainMenuAndBackMarkup())
+                .parseMode("MARKDOWN")
+                .build();
+        tgClient.execute(message);
+    }
+
+
+    @SneakyThrows
     public void userWithTheSameAccAlreadyExists(UserState userState, String existingUser) {
         EditMessageText message = EditMessageText
                 .builder()
@@ -250,6 +270,13 @@ public class ManageUserActionsView {
 
         if (isDisabled) {
             builder
+                    .keyboardRow(
+                            new InlineKeyboardRow(
+                                    InlineKeyboardButton
+                                            .builder()
+                                            .text("🔑 Сгенерировать новый пароль для дашборда")
+                                            .callbackData(InlineMenuCallbacks.GENERATE_DASHBOARD_PWD)
+                                            .build()))
                     .keyboardRow(
                             new InlineKeyboardRow(
                                     InlineKeyboardButton

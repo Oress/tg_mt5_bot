@@ -10,6 +10,7 @@
                 <constraints primaryKey="true" nullable="true" unique="true"/>
             </column>
             <column name="role" type="text"/>
+            <column name="dashboard_pwd" type="text"/>
 
             <!-- Can be null for administrators -->
             <column name="mt5_acc_number" type="bigint" />

@@ -27,8 +27,9 @@ function App() {
     <Theme appearance={themeMode} accentColor="blue" radius="medium">
       <Router>
         <Routes>
-          <Route path="/" element={<Login />} />
-          <Route 
+          {/*<Route path="/" element={<Login />} />*/}
+          <Route path="/" element={<Main />} />
+          <Route
             path="/main" 
             element={
               <Main toggleTheme={toggleTheme} themeMode={themeMode} />

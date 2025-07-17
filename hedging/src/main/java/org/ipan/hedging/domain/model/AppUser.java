@@ -24,6 +24,9 @@ public class AppUser {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<AppUserInstrument> availableInstruments = new HashSet<>();
 
+    @Column(name = "dashboard_pwd")
+    private String dashboardPwd;
+
     @Column(name = "username")
     private String telegramUsername;
 
