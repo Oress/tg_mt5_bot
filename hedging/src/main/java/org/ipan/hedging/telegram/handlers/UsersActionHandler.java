@@ -2,6 +2,7 @@ package org.ipan.hedging.telegram.handlers;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.ipan.hedging.application.service.GoogleSheetsService;
 import org.ipan.hedging.application.service.Mt5ServiceImpl;
 import org.ipan.hedging.domain.model.AccountType;
 import org.ipan.hedging.domain.model.AppUser;
@@ -35,6 +36,7 @@ public class UsersActionHandler {
     private final ManageUserActionsView manageUserActionsView;
     private final Mt5ServiceImpl mt5Service;
     private final TelegramMessages telegramMessages;
+    private final GoogleSheetsService googleSheetsService;
 
     /*
     @MatchState(state = States.ADMIN_MANAGE_USERS_ACTION_PREVIEW, callbackData = InlineMenuCallbacks.MANAGE_USER_ACTION_VIEW_POSITIONS)
@@ -71,6 +73,15 @@ public class UsersActionHandler {
         manageUserActionsView.promptAccountCreds(userState);
         telegramState.updateUserState(userState.getTelegramId(),
                 userState.withState(States.ADMIN_MANAGE_USER_ACTION_PROMPT_CREDS));
+    }
+
+    @MatchState(state = States.ADMIN_MANAGE_USERS_ACTION_PREVIEW, callbackData = InlineMenuCallbacks.SYNC_WITH_GOOGLE_SHEET)
+    public void syncWithGoogleSheet(UserState userState, Update update) {
+        UserEdit openedUser = telegramState.getOrCreateUserEdit(userState.getTelegramId());
+        googleSheetsService.syncUser(openedUser.getSelectedUserId());
+        manageUserActionsView.syncWithGoogleSheet(userState);
+        telegramState.updateUserState(userState.getTelegramId(),
+                userState.withState(States.ADMIN_MANAGE_USER_SYNC_WITH_GOOGLE_SHEET));
     }
 
     @MatchState(state = States.ADMIN_MANAGE_USER_ACTION_PROMPT_CREDS, updateTypes = UpdateType.MESSAGE)

@@ -112,6 +112,22 @@ public class ManageUserActionsView {
     }
 
     @SneakyThrows
+    public void syncWithGoogleSheet(UserState userState) {
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(userState.getChatId())
+                .messageId(userState.getMenuMessageId())
+                .text("""
+                        ✅ Синхронизация с Google Sheet запущена.
+                        Пожалуйста, подождите, пока данные будут обновлены.
+                        """)
+                .replyMarkup(commonViews.getToMainMenuAndBackMarkup())
+                .parseMode("MARKDOWN")
+                .build();
+        tgClient.execute(message);
+    }
+
+    @SneakyThrows
     public void userWithTheSameAccAlreadyExists(UserState userState, String existingUser) {
         EditMessageText message = EditMessageText
                 .builder()
@@ -234,6 +250,13 @@ public class ManageUserActionsView {
 
         if (isDisabled) {
             builder
+                    .keyboardRow(
+                            new InlineKeyboardRow(
+                                    InlineKeyboardButton
+                                            .builder()
+                                            .text("🔁 Синхронизация с Google Sheet")
+                                            .callbackData(InlineMenuCallbacks.SYNC_WITH_GOOGLE_SHEET)
+                                            .build()))
                     .keyboardRow(
                             new InlineKeyboardRow(
                                     InlineKeyboardButton

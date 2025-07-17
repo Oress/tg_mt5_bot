@@ -35,6 +35,7 @@ public class InlineMenuCallbacks {
     public static final String MANAGE_USER_ACTION_DEACTIVATE = "manage_user_action_deactivate";
     public static final String MANAGE_USER_ACTION_CHANGE_INSTRUMENTS = "manage_user_action_change_instruments";
     public static final String MANAGE_USER_ACTION_CHANGE_GERCHIK_CREDS = "manage_user_action_change_gerchik_creds";
+    public static final String SYNC_WITH_GOOGLE_SHEET = "sync_with_google_sheet";
 
     // menu actions
     public static final String MENU_SHOW_BALANCE = "menu_show_balance";

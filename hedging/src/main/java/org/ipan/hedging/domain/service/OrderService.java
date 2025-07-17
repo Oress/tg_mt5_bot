@@ -139,7 +139,7 @@ public class OrderService {
                     orderConsumption.setConsumedOrder(orderToConsume);
                     orderConsumption.setConsumedQuoteAmount(plannedOrderConsumption.getQuoteConsumptionAmount());
                     orderConsumption.setLeftQuoteAmount(orderToConsume.getQuoteAmountLeftToUnhedge());
-                    orderConsumption.setBaseEquivalent(plannedOrderConsumption.getQuoteConsumptionAmount().divide(order.getPrice(), RoundingMode.HALF_DOWN));
+                    orderConsumption.setBaseEquivalent(plannedOrderConsumption.getQuoteConsumptionAmount().divide(orderToConsume.getPrice(), RoundingMode.HALF_DOWN));
                     order.getConsumptions().add(orderConsumption);
                 }
             }

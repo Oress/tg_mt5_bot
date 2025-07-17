@@ -19,6 +19,7 @@ import java.util.UUID;
 @Table(name = "hed_orders")
 @Slf4j
 public class Order {
+    public static final BigDecimal NEG_ONE = BigDecimal.valueOf(-1);
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -44,6 +45,8 @@ public class Order {
     @Column(name = "acc_number")
     private Integer mt5AccNumber;
 
+    // base equivalent of amount entered by user
+    // in case of closing USD/CAD positions it is a oldOrder.price * closeQuoteAmount
     @Column(name = "user_base_amount")
     private BigDecimal userBaseAmount;
 
@@ -79,6 +82,33 @@ public class Order {
     @CreationTimestamp
     @Column(name = "created_at")
     private Instant createdAt;
+
+    public BigDecimal getUserAmountForGoogleSheet() {
+        BigDecimal result = getUserEnteredAmount();
+        if (isHedge()) {
+            result = result.multiply(NEG_ONE);
+        }
+        return result;
+    }
+
+    public BigDecimal getBaseEquivalentForGoogleSheet() {
+        BigDecimal result = userBaseAmount;
+        if (isHedge()) {
+            result = result.multiply(NEG_ONE);
+        }
+        return result;
+    }
+
+
+    private boolean isHedge() {
+        return (OrderType.MT5_LONG.equals(type) && InstrumentMode.LONG.equals(userInstrument.getInstrument().getMode()))
+                || (OrderType.MT5_SHORT.equals(type) && InstrumentMode.SHORT.equals(userInstrument.getInstrument().getMode()));
+    }
+
+    private boolean isHedgeOut() {
+        return (OrderType.MT5_LONG.equals(type) && InstrumentMode.SHORT.equals(userInstrument.getInstrument().getMode()))
+                || (OrderType.MT5_SHORT.equals(type) && InstrumentMode.LONG.equals(userInstrument.getInstrument().getMode()));
+    }
 
     public BigDecimal getUserEnteredAmount() {
         if (userInstrument != null && userInstrument.getInstrument() != null) {

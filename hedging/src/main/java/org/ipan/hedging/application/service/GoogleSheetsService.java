@@ -19,6 +19,7 @@ import org.ipan.hedging.GoogleSheetsConfig;
 import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.repository.OrderRepo;
 import org.ipan.hedging.domain.model.repository.UserRepo;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -41,6 +43,8 @@ public class GoogleSheetsService {
     private static final String MD_KEY_SHEET_LAST_SYNC_DT = "last_sheet_sync_dt";
     private static final String APPLICATION_NAME = "Hedging Bot";
     private static final List<String> SCOPES = List.of(SheetsScopes.SPREADSHEETS, DriveScopes.DRIVE, DriveScopes.DRIVE_FILE);
+    public static final String EUR_USD = "EUR/USD";
+    public static final String USD_CAD = "USD/CAD";
 
     private final GoogleSheetsConfig config;
     private final UserRepo userRepo;
@@ -125,7 +129,7 @@ public class GoogleSheetsService {
                 createMeta = false;
             }
 
-            List<Order> ordersForSync = orderRepo.findAllForSyncByInstrument(lastSyncDt, user.getTelegramId(), user.getSymbolByLabelAndAccType(instrument.getLabel()));
+            List<Order> ordersForSync = orderRepo.findAllForSyncByInstrument(lastSyncDt, user.getTelegramId(), instrument.getLabel());
 
             if (ordersForSync.isEmpty()) {
                 log.info("No orders to sync for user {}", user.getTelegramId());
@@ -158,6 +162,11 @@ public class GoogleSheetsService {
                             )
                     );
 
+            List<RowData> rowDataStream = ordersForSync
+                    .stream()
+                    .map(o -> createRowDataFromOrderDependingOnInstrument(o, instrument))
+                    .toList();
+
             BatchUpdateSpreadsheetResponse batchUpdate = sheets.spreadsheets().batchUpdate(
                     user.getGoogleSheetId(),
                     new BatchUpdateSpreadsheetRequest()
@@ -167,7 +176,7 @@ public class GoogleSheetsService {
                                                     new AppendCellsRequest()
                                                             .setFields("*")
                                                             .setSheetId(sheetId)
-                                                            .setRows(ordersForSync.stream().map(this::createRowDataFromOrder).toList())
+                                                            .setRows(rowDataStream)
                                             ),
                                             createMeta
                                                     ? new Request().setCreateDeveloperMetadata(createMt)
@@ -179,9 +188,20 @@ public class GoogleSheetsService {
         }
     }
 
+    private RowData createRowDataFromOrderDependingOnInstrument(Order order, Instrument instrument) {
+        if (EUR_USD.equals(instrument.getLabel())) {
+            return createRowDataFromOrderEURUSDHedge(order);
+        } else if (USD_CAD.equals(instrument.getLabel())) {
+            return createRowDataFromOrderUSDCADHedge(order);
+        } else {
+            log.error("Unsupported instrument mode: {}", instrument.getMode());
+            throw new RuntimeException("Unsupported instrument mode: " + instrument.getMode());
+        }
+    }
+
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-    private RowData createRowDataFromOrder(Order order) {
-        BigDecimal euroAmount = order.getExecutedBaseAmount().multiply(OrderType.MT5_SHORT.equals(order.getType()) ? BigDecimal.valueOf(-1) : BigDecimal.ONE);
+    private RowData createRowDataFromOrderEURUSDHedge(Order order) {
+        BigDecimal euroAmount = order.getUserAmountForGoogleSheet();
 
         String rateInnerPart = "IF(B:B<0,(%s*%s+B:B*C:C)/F:F,%s)".formatted(relCell(-1, -1), relCell(0, -1), relCell(0, -1));
         String rateOuterPart = "=%s".formatted(isFirstRow("C:C", rateInnerPart));
@@ -257,6 +277,84 @@ public class GoogleSheetsService {
                 ));
     }
 
+    private RowData createRowDataFromOrderUSDCADHedge(Order order) {
+        BigDecimal cadAmount = order.getUserAmountForGoogleSheet();
+        BigDecimal usdtEquivalent = order.getBaseEquivalentForGoogleSheet();
+
+        String rateInnerPart = "IF(B:B<0,(%s*%s+B:B*C:C)/F:F,%s)".formatted(relCell(-1, -1), relCell(0, -1), relCell(0, -1));
+        String rateOuterPart = "=%s".formatted(isFirstRow("C:C", rateInnerPart));
+
+        String depTotalInnerPart = "%s+H:H+%s".formatted(relCell(0, -1), relCell(+1, -1));
+        String depTotalOuterPart = "=%s".formatted(isFirstRow("H:H", depTotalInnerPart));
+
+        CellFormat currencyFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("#,##0.00"));
+        CellFormat numberFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("0.00000"));
+        return new RowData()
+                .setValues(List.of(
+                        // Дата
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setStringValue(formatter.format(order.getCreatedAt().atZone(ZoneId.of("UTC"))))
+                                ),
+                        // Сумма CAD
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setNumberValue(cadAmount.doubleValue())
+                                ),
+                        // Фикс
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setNumberValue(order.getPrice().doubleValue())
+                                ).setUserEnteredFormat(
+                                        numberFormat
+                                ),
+                        // USDT
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setNumberValue(usdtEquivalent.doubleValue())
+                                ).setUserEnteredFormat(
+                                        currencyFormat
+                                ),
+                        // Ком. 0,10
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setFormulaValue("=IF(D:D<0,D:D*-0.1%,\"\")")
+                                ).setUserEnteredFormat(
+                                        currencyFormat
+                                ),
+                        // Захеджировано
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setFormulaValue("=B:B+%s".formatted(isFirstRow("0", relCell(0, -1))))
+                                ),
+                        // Rate
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setFormulaValue(rateOuterPart)
+                                ).setUserEnteredFormat(numberFormat),
+                        // Deposit
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setFormulaValue("=IF(B:B>0,-B:B*(C:C-G:G),-E:E)")
+                                ).setUserEnteredFormat(currencyFormat),
+                        // Deposit total
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setFormulaValue(depTotalOuterPart)
+                                ).setUserEnteredFormat(currencyFormat),
+                        // Payment deposit amount
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setStringValue("")
+                                ).setUserEnteredFormat(currencyFormat),
+                        // Balance
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setFormulaValue("=I:I+J:J")
+                                ).setUserEnteredFormat(currencyFormat)
+                ));
+    }
+
     private String isFirstRow(String tStm, String fStm) {
         return "IF(ROW()=2,%s,%s)".formatted(tStm, fStm);
     }
@@ -288,17 +386,7 @@ public class GoogleSheetsService {
             }
 
             ArrayMap<String, Object> addTableRequest = new ArrayMap<>();
-            addTableRequest.put("table", new ArrayMap<String, Object>() {{
-                put("name", getTableNameForUser(user, instrument));
-                put("tableId", expectedId);
-                put("range", new ArrayMap<String, Object>() {{
-                    put("sheetId", sheetId);
-                    put("startColumnIndex", 0);
-                    put("endColumnIndex", SHORT_COLUMNS_PROPS.size());
-                    put("startRowIndex", 0);
-                }});
-                put("columnProperties", SHORT_COLUMNS_PROPS);
-            }});
+            addTableRequest.put("table", getCreateTableRequestBasedOnTheInstrument(user, instrument, expectedId, sheetId));
 
             BatchUpdateSpreadsheetResponse execute = sheets.spreadsheets().batchUpdate(user.getGoogleSheetId(),
                     new BatchUpdateSpreadsheetRequest().setRequests(
@@ -309,6 +397,28 @@ public class GoogleSheetsService {
             log.info("Table created for user {} with id {}, {}", user.getTelegramId(), expectedId, execute);
         }
 
+    }
+
+    @NotNull
+    private ArrayMap<String, Object> getCreateTableRequestBasedOnTheInstrument(AppUser user, Instrument instrument, String expectedId, Integer sheetId) {
+        List<? extends ArrayMap<String, Object>> coloumnProperties = switch (instrument.getLabel()) {
+            case EUR_USD -> EUR_USD_COLUMNS_PROPS;
+            case USD_CAD -> USD_CAD_COLUMNS_PROPS;
+            default -> new ArrayList<>();
+        };
+
+        ArrayMap<String, Object> arrayMap = new ArrayMap<>() {{
+            put("name", getTableNameForUser(user, instrument));
+            put("tableId", expectedId);
+            put("range", new ArrayMap<String, Object>() {{
+                put("sheetId", sheetId);
+                put("startColumnIndex", 0);
+                put("endColumnIndex", coloumnProperties.size());
+                put("startRowIndex", 0);
+            }});
+            put("columnProperties", coloumnProperties);
+        }};
+        return arrayMap;
     }
 
     @SneakyThrows
@@ -406,7 +516,7 @@ public class GoogleSheetsService {
         private String columnType;
     }
 
-    private static final List<ColumnDefinition> SHORT_COLUMNS = List.of(
+    private static final List<ColumnDefinition> EUR_USD_COLUMNS = List.of(
             new ColumnDefinition("Дата (UTC)", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Сумма", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Фикс", "COLUMN_TYPE_UNSPECIFIED"),
@@ -420,9 +530,30 @@ public class GoogleSheetsService {
             new ColumnDefinition("Баланс", "COLUMN_TYPE_UNSPECIFIED")
     );
 
+    private static final List<ColumnDefinition> USD_CAD_COLUMNS = List.of(
+            new ColumnDefinition("Дата (UTC)", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Сумма CAD", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Фикс", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("USDT", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Ком. 0.1%", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("В позиции", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Ставка", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Депозит", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Депозит  всего", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Сумма оплаты депозита", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Баланс", "COLUMN_TYPE_UNSPECIFIED")
+    );
+
     AtomicInteger ai = new AtomicInteger(0);
-    List<? extends ArrayMap<String, Object>> SHORT_COLUMNS_PROPS = SHORT_COLUMNS.stream().map(c -> new ArrayMap<String, Object>() {{
+    List<? extends ArrayMap<String, Object>> EUR_USD_COLUMNS_PROPS = EUR_USD_COLUMNS.stream().map(c -> new ArrayMap<String, Object>() {{
         put("columnIndex", ai.getAndIncrement());
+        put("columnName", c.columnName);
+        put("columnType", c.columnType);
+    }}).toList();
+
+    AtomicInteger ai1 = new AtomicInteger(0);
+    List<? extends ArrayMap<String, Object>> USD_CAD_COLUMNS_PROPS = USD_CAD_COLUMNS.stream().map(c -> new ArrayMap<String, Object>() {{
+        put("columnIndex", ai1.getAndIncrement());
         put("columnName", c.columnName);
         put("columnType", c.columnType);
     }}).toList();

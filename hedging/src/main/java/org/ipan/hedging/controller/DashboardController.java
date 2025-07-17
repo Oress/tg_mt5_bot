@@ -115,7 +115,7 @@ public class DashboardController {
                 .firstName(user.getTelegramFirstName())
                 .accountType(user.getAccountType() != null ? user.getAccountType().name() : "")
                 .mt5Account(user.getMt5AccNumber())
-                .googleSheetId(user.getGoogleSheetId())
+                .googleSheetId(user.getGoogleSheetId() != null ? "https://docs.google.com/spreadsheets/d/" + user.getGoogleSheetId() : null)
                 .instruments(user.getAvailableInstruments().stream().filter(AppUserInstrument::getActive).map(this::mapToDto).toList())
                 .build();
     }

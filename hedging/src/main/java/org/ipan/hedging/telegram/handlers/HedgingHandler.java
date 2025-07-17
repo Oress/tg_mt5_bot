@@ -84,7 +84,7 @@ public class HedgingHandler {
     private final HedgeLabels hedgeLabels;
     private final Mt5ServiceImpl mt5Service;
     private final TelegramMessages telegramMessages;
-    private final Optional<GoogleSheetsService> googleSheetsService;
+    private final GoogleSheetsService googleSheetsService;
     private final OrderOrchestrator orderOrchestrator;
     private final InstrumentRepo instrumentRepo;
 
@@ -330,8 +330,7 @@ public class HedgingHandler {
                         currentBalance.toString(),
                         instrumentBySymbol.getSymbolByMode()
                 );
-                // TODO: uncomment later
-//                googleSheetsService.syncUser(userState.getTelegramId());
+                googleSheetsService.syncUser(userState.getTelegramId());
             }
         } catch (Exception e) {
             log.error("Error when placing order: ", e);

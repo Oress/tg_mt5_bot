@@ -1,21 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { 
-  Container, 
-  Box, 
-  Heading, 
-  Text, 
-  Button, 
-  Card, 
-  Flex, 
+import {
+  Container,
+  Box,
+  Heading,
+  Text,
+  Button,
+  Card,
+  Flex,
   Table,
   Tabs,
   Grid,
   ScrollArea,
-  Separator,
+  Separator, Link,
 } from '@radix-ui/themes';
-import { ArrowLeftIcon, ChevronDownIcon, ChevronRightIcon } from '@radix-ui/react-icons';
+import {ArrowLeftIcon, ChevronDownIcon, ChevronRightIcon, OpenInNewWindowIcon} from '@radix-ui/react-icons';
 
 function RecentActivitySection({userId}) {
   const [activities, setActivities] = useState([]);
@@ -176,7 +176,14 @@ function UserInfoSection({user}) {
             <Card size="1">
               <Flex direction="column" gap="1" p="2">
                 <Text size="2" color="gray">Google Sheet</Text>
-                <Text size="4" weight="medium">{user.googleSheetId}</Text>
+                {user.googleSheetId && (
+                    <Link href={user.googleSheetId} target="_blank">
+                      <Flex align="center" gap="1">
+                        <Text size="4" weight="medium">Открыть</Text>
+                        <OpenInNewWindowIcon />
+                      </Flex>
+                    </Link>
+                )}
               </Flex>
             </Card>
           </Grid>
