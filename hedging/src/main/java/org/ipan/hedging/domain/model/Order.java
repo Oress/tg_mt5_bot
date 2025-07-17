@@ -45,6 +45,12 @@ public class Order {
     @Column(name = "acc_number")
     private Integer mt5AccNumber;
 
+    @Column(name = "mt5_resp_code")
+    private Integer mt5RespCode;
+
+    @Column(name = "mt5_resp_comment")
+    private Integer mt5RespComment;
+
     // base equivalent of amount entered by user
     // in case of closing USD/CAD positions it is a oldOrder.price * closeQuoteAmount
     @Column(name = "user_base_amount")

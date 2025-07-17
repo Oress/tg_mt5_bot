@@ -102,6 +102,8 @@ public class OrderService {
         order.setBid(BigDecimal.valueOf(orderDetails.getBid()));
         order.setPrice(BigDecimal.valueOf(orderDetails.getPrice()).setScale(8, RoundingMode.HALF_DOWN));
         order.setExecutedVolume(BigDecimal.valueOf(orderDetails.getVolume()));
+        order.setMt5RespCode(orderDetails.getRetcode());
+        order.setMt5RespComment(orderDetails.getRetcode());
         order.setStatus(OrderStatus.COMPLETE);
 
         order.setHouseBaseAmountFrom(volumeCalculation.getOldHouseOwnedBase());
@@ -149,4 +151,17 @@ public class OrderService {
 
         return order;
     }
+
+    @Transactional
+    public Order refundOrder(UUID id, Mt5ServiceImpl.OrderDetails orderDetails) {
+        log.info("Refunding order with id: {} orderDetails: {}", id, orderDetails);
+        Order order = orderRepo.findById(id).get();
+        order.setStatus(OrderStatus.ERROR);
+        if (orderDetails != null) {
+            order.setMt5RespCode(orderDetails.getRetcode());
+            order.setMt5RespComment(orderDetails.getRetcode());
+        }
+        return order;
+    }
+
 }

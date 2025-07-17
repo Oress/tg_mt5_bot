@@ -150,6 +150,8 @@
             <column name="city" type="text" />
             <column name="deal" type="bigint" />
             <column name="mt5_order" type="bigint" />
+            <column name="mt5_resp_code" type="int" />
+            <column name="mt5_resp_comment" type="text" />
             <column name="type" type="text"/>
             <column name="status" type="text"/>
             <column name="acc_number" type="bigint"/>

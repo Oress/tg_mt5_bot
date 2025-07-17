@@ -273,7 +273,7 @@ class MT5Service:
                     "symbol": symbol,
                     "volume": float(volume),
                     "type": MetaTrader5.ORDER_TYPE_SELL,
-                    "comment": f"TG Bot order open",
+                    "comment": f"TGBot place short",
                     "price": info_tick.bid,
                     # "deviation": deviation,
                     # "type_time": MetaTrader5.ORDER_TIME_GTC,
@@ -344,7 +344,7 @@ class MT5Service:
                     "price": info_tick.ask,
                     # "deviation": deviation,
                     # "magic": ea_magic_number,
-                    "comment": "TG Bot order close",
+                    "comment": "TGBot place long",
                     "type_time": MetaTrader5.ORDER_TIME_GTC,
                     "type_filling": MetaTrader5.ORDER_FILLING_FOK,
                 }

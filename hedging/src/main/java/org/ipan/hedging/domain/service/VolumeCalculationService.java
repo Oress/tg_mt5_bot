@@ -39,6 +39,7 @@ public class VolumeCalculationService {
     private class ShortVolumeCalculationStrategy implements CalculationStrategy {
         @Override
         public VolumeCalculation calculate(VolumeCalculationParams params) {
+            log.info("Short volume calculation for params: {}", params);
             BigDecimal executionBaseAmount = BigDecimal.valueOf(params.getUserAmount());
 
             BigDecimal executionVolume = executionBaseAmount
@@ -99,11 +100,11 @@ public class VolumeCalculationService {
                 // e.g. 4000 or 1000
                 newTotalBaseAmount = tempClientBaseAmount.setScale(-3, RoundingMode.HALF_UP);
             } else {
-                // TODO: What should be the priority when closing positions?
-                //  1) Max number of closed orders?
-                //  2) Orders with the highest left to unhedge?
-                //  3) Latest/Earliest orders?
-                //  4) ????
+                BigDecimal userAmountBd = BigDecimal.valueOf(params.getUserAmount());
+                if (params.getUserInstrument().getClientOwnedQuoteAmount().compareTo(userAmountBd) < 0) {
+                    log.error("Insufficient client owned base amount: {} for execution base amount: {}", params.getUserInstrument().getClientOwnedBaseAmount(), userAmountBd);
+                    throw new IllegalArgumentException("Insufficient client owned base amount for the operation");
+                }
 
                 // HEDGE OUT
                 // find all open orders with non-closed positions (left to unhedge > 0)

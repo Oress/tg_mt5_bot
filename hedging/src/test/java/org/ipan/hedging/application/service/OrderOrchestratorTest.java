@@ -77,7 +77,6 @@ class OrderOrchestratorTest {
         this.volumeCalculationService = volumeCalculationService;
     }
 
-
     @BeforeAll
     static void beforeAll() {
         postgres.start();
@@ -120,10 +119,21 @@ class OrderOrchestratorTest {
     }
 
     @Test
+    public void placeOrder_simpleHedge_mt5NonAcceptableCode() {
+        PlaceOrderResponse placeOrderResponse = placeEurUsdOrderCanceledResponse(1000, false, 1.36);
+        Order order = placeOrderResponse.getOrder();
+        assertThat(order.getStatus()).isEqualByComparingTo(OrderStatus.ERROR);
+    }
+
+    @Test
     public void placeOrder_simpleHedge_lessThanOwnException() {
         Assertions.assertThrows(IllegalArgumentException.class, () -> placeEurUsdOrderResponse(1000, true, 1.36));
     }
 
+    @Test
+    public void placeOrder_invHedge_lessThanOwnException() {
+        Assertions.assertThrows(IllegalArgumentException.class, () -> placeUsdCadOrderResponse(1000, false, 1.36));
+    }
 
     @Test
     public void placeOrder_simpleHedge_orderFieldsCheck() {
@@ -366,6 +376,28 @@ class OrderOrchestratorTest {
         return orderOrchestrator.placeOrder(command);
     }
 
+    private PlaceOrderResponse placeEurUsdOrderCanceledResponse(Integer userAmount, boolean isBuy, Double price) {
+        Mt5ServiceImpl.SymbolInfo symbolInfo = createMockSymbolInfo();
+        when(mt5Service.symbolInfo(any(), any())).thenReturn(symbolInfo);
+
+        PlaceOrderCommand command = PlaceOrderCommand.builder()
+                .isBuy(isBuy)
+                .userId(USER_ID)
+                .instrumentLabel(EURUSD)
+                .userAmount(userAmount)
+                .build();
+
+        Mt5ServiceImpl.InfoTick infoTick = createMockInfoTick(price);
+
+        Double volume1 = BigDecimal.valueOf(userAmount).divide(BigDecimal.valueOf(symbolInfo.getTrade_contract_size()), 2, RoundingMode.HALF_DOWN).doubleValue();
+        Mt5ServiceImpl.OrderDetails orderDetails1 = createMockFailedOrderDetails(price, volume1);
+
+        when(mt5Service.getInfoTick(any(), any())).thenReturn(infoTick);
+        when(mt5Service.placeLongOrder(any(),any(),any(), any())).thenReturn(orderDetails1);
+        when(mt5Service.placeShortOrder(any(),any(), any(), any())).thenReturn(orderDetails1);
+        return orderOrchestrator.placeOrder(command);
+    }
+
     private PlaceOrderResponse placeUsdCadOrderResponse(Integer userAmount, boolean isBuy, Double price) {
         Mt5ServiceImpl.SymbolInfo symbolInfo = createMockSymbolInfo();
         when(mt5Service.symbolInfo(any(), any())).thenReturn(symbolInfo);
@@ -430,6 +462,16 @@ class OrderOrchestratorTest {
         return order;
     }
 */
+    private Mt5ServiceImpl.OrderDetails createMockFailedOrderDetails(Double price, Double volume) {
+        Mt5ServiceImpl.OrderDetails orderDetails = new Mt5ServiceImpl.OrderDetails();
+        orderDetails.setRetcode(10006); // rejected for some reason
+        orderDetails.setPrice(price);
+        orderDetails.setBid(price);
+        orderDetails.setAsk(price);
+        orderDetails.setVolume(volume);
+        return orderDetails;
+    }
+
 
     private Mt5ServiceImpl.OrderDetails createMockOrderDetails(Double price, Double volume) {
         Mt5ServiceImpl.OrderDetails orderDetails = new Mt5ServiceImpl.OrderDetails();
