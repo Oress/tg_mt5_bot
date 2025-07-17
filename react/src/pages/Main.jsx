@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import {
   Container,
   Box,
@@ -28,7 +28,7 @@ function Main({ toggleTheme, themeMode }) {
     const fetchUsers = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get('/api/users');
+        const response = await api.get('/users');
         setUsers(response.data);
       } catch (error) {
         console.error('Error fetching users:', error);
@@ -47,7 +47,7 @@ function Main({ toggleTheme, themeMode }) {
 
     const fetchSearchResults = async () => {
       try {
-        const response = await axios.get(`/api/users?query=${encodeURIComponent(searchTerm)}`);
+        const response = await api.get(`/users?query=${encodeURIComponent(searchTerm)}`);
         setUsers(response.data);
       } catch (error) {
         console.error('Error searching users:', error);
@@ -64,9 +64,17 @@ function Main({ toggleTheme, themeMode }) {
     navigate(`/user/${userId}`);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      // Call the logout endpoint to invalidate the session
+      await api.post('/auth/logout');
+      // Navigate to login page
+      navigate('/');
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // Even if there's an error, navigate to login page
+      navigate('/');
+    }
   };
 
   return (

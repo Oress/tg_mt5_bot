@@ -12,6 +12,7 @@ import {
   Callout 
 } from '@radix-ui/themes';
 import { ExclamationTriangleIcon } from '@radix-ui/react-icons';
+import api from '../api';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -19,7 +20,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Simple validation
@@ -28,17 +29,29 @@ export default function Login() {
       return;
     }
 
-    // In a real app, you would make an API call to authenticate
-    // For now, we'll just simulate a successful login
-    // and redirect to the main page
+    try {
+      // Make a real API call to authenticate
+      await api.post('/auth/login', {
+        username,
+        password
+      });
 
-    // Simulating authentication
-    if (username === 'admin' && password === 'password') {
-      // Store authentication state (in a real app, you'd use a token)
-      localStorage.setItem('isAuthenticated', 'true');
+      // If we get here, authentication was successful
+      // No need to store anything in localStorage as we're using HTTP session cookies
       navigate('/main');
-    } else {
-      setError('Неверные учетные данные');
+    } catch (error) {
+      console.error('Login error:', error);
+
+      if (error.response) {
+        // Handle different error status codes
+        if (error.response.status === 401) {
+          setError('Неверные учетные данные');
+        } else {
+          setError('Ошибка входа. Пожалуйста, попробуйте позже.');
+        }
+      } else {
+        setError('Ошибка сети. Пожалуйста, проверьте подключение.');
+      }
     }
   };
 

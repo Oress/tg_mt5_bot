@@ -5,6 +5,7 @@ import { Theme } from '@radix-ui/themes';
 import Login from './pages/Login';
 import Main from './pages/Main';
 import UserPage from './pages/UserPage';
+import api from './api';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -12,8 +13,19 @@ function App() {
 
   useEffect(() => {
     // Check if user is authenticated on component mount
-    const authStatus = localStorage.getItem('isAuthenticated');
-    setIsAuthenticated(authStatus === 'true');
+    const checkAuthStatus = async () => {
+      try {
+        // Make an API call to check if the user is authenticated
+        await api.get('/auth/status');
+        // If the call succeeds, the user is authenticated
+        setIsAuthenticated(true);
+      } catch (error) {
+        // If the call fails with a 403, the user is not authenticated
+        setIsAuthenticated(false);
+      }
+    };
+
+    checkAuthStatus();
 
     // Check for saved theme preference
     const savedTheme = localStorage.getItem('themeMode');
@@ -30,9 +42,9 @@ function App() {
 
   // Auth guard component
   const ProtectedRoute = ({ children }) => {
-    // if (!isAuthenticated) {
-    //   return <Navigate to="/" />;
-    // }
+    if (!isAuthenticated) {
+      return <Navigate to="/" />;
+    }
     return children;
   };
 

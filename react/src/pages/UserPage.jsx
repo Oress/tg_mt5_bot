@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import {
   Container,
   Box,
@@ -23,7 +23,7 @@ function RecentActivitySection({userId}) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const activitiesResponse = await axios.get(`/api/users/${userId}/activities`);
+        const activitiesResponse = await api.get(`/users/${userId}/activities`);
         setActivities(activitiesResponse.data);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -212,11 +212,11 @@ function RegularHedgeDetails({selectedInstrument, userId}) {
         // Set default active tab to first instrument if available
         if (selectedInstrument) {
           // Fetch open positions for the selected instrument
-          // const positionsResponse = await axios.get(`/api/users/${userId}/orders/${firstInstrument.id}`);
+          // const positionsResponse = await api.get(`/users/${userId}/orders/${firstInstrument.id}`);
           // setOpenPositions(positionsResponse.data);
 
           // Fetch order history for the selected instrument
-          const historyResponse = await axios.get(`/api/users/${userId}/orders/${selectedInstrument.id}`);
+          const historyResponse = await api.get(`/users/${userId}/orders/${selectedInstrument.id}`);
           setOrderHistory(historyResponse.data);
         }
       } catch (error) {
@@ -309,7 +309,7 @@ function InverseHedgeDetails({selectedInstrument, userId}) {
         // Set default active tab to first instrument if available
         if (selectedInstrument) {
           // Fetch open positions for the selected instrument
-          const positionsResponse = await axios.get(`/api/users/${userId}/orders/${selectedInstrument.id}`, {
+          const positionsResponse = await api.get(`/users/${userId}/orders/${selectedInstrument.id}`, {
             params: {
               type: "open"
             }
@@ -317,7 +317,7 @@ function InverseHedgeDetails({selectedInstrument, userId}) {
           setOpenPositions(positionsResponse.data);
 
           // Fetch order history for the selected instrument
-          const historyResponse = await axios.get(`/api/users/${userId}/orders/${selectedInstrument.id}`);
+          const historyResponse = await api.get(`/users/${userId}/orders/${selectedInstrument.id}`);
           setOrderHistory(historyResponse.data);
         }
       } catch (error) {
@@ -537,11 +537,11 @@ function UserPage() {
       setLoading(true);
       try {
         // Fetch user data
-        const userResponse = await axios.get(`/api/users/${userId}`);
+        const userResponse = await api.get(`/users/${userId}`);
         setUser(userResponse.data);
 
         // Fetch instruments
-        // const instrumentsResponse = await axios.get('/api/instruments');
+        // const instrumentsResponse = await api.get('/instruments');
         // setInstruments(instrumentsResponse.data);
         const instrumentsResp = userResponse.data.instruments || [];
         instrumentsResp.sort((a, b) => a.label.localeCompare(b.label));
