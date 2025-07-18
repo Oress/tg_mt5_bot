@@ -7,12 +7,10 @@ import org.ipan.hedging.domain.model.Instrument;
 import org.ipan.hedging.telegram.InlineMenuCallbacks;
 import org.ipan.hedging.telegram.i18n.CommonLabels;
 import org.ipan.hedging.telegram.i18n.HedgeLabels;
-import org.ipan.hedging.telegram.state.HedgeOpState;
 import org.ipan.hedging.telegram.state.UserState;
 import org.ipan.hedging.telegram.utils.ParseUtils;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.ParseMode;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -121,7 +119,7 @@ public class HedgeViews {
                         unit,
                         price == null ? "N/A" : BigDecimal.valueOf(price).setScale(5, RoundingMode.HALF_DOWN).toString())
                 )
-                .replyMarkup(getAdminMenuReplyMarkup())
+                .replyMarkup(orderPreviewMarkup())
                 .build();
         tgClient.execute(message);
     }
@@ -321,7 +319,7 @@ public class HedgeViews {
     }
 
 
-    private InlineKeyboardMarkup getAdminMenuReplyMarkup() {
+    private InlineKeyboardMarkup orderPreviewMarkup() {
         return InlineKeyboardMarkup
                 .builder()
                 .keyboardRow(
@@ -330,7 +328,9 @@ public class HedgeViews {
                                         .builder()
                                         .text(hedgeLabels.placeOrder())
                                         .callbackData(InlineMenuCallbacks.HEDGE_PLACE_ORDER)
-                                        .build(),
+                                        .build()))
+                .keyboardRow(
+                        new InlineKeyboardRow(
                                 InlineKeyboardButton
                                         .builder()
                                         .text(hedgeLabels.changeOrder())
