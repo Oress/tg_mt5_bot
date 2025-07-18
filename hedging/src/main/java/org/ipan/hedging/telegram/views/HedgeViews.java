@@ -98,7 +98,7 @@ public class HedgeViews {
                 .builder()
                 .chatId(userState.getChatId())
                 .messageId(userState.getMenuMessageId())
-                .text(hedgeLabels.promptVolumeForOutInverse(unit, label, avail))
+                .text(hedgeLabels.promptVolumeForOut(unit, label, avail))
                 .replyMarkup(commonViews.getToMainMenuMarkup())
                 .parseMode("MARKDOWN")
                 .build();
@@ -266,6 +266,7 @@ public class HedgeViews {
                 .build();
     }
 
+    // The order of operations is intentional here. Request of the client
     private InlineKeyboardMarkup longOperationsMarkup() {
         return InlineKeyboardMarkup
                 .builder()
@@ -273,12 +274,12 @@ public class HedgeViews {
                         new InlineKeyboardRow(
                                 InlineKeyboardButton
                                         .builder()
-                                        .text(hedgeLabels.buy())
+                                        .text(hedgeLabels.sell())
                                         .callbackData(InlineMenuCallbacks.HEDGE_OP_BUY)
                                         .build(),
                                 InlineKeyboardButton
                                         .builder()
-                                        .text(hedgeLabels.sell())
+                                        .text(hedgeLabels.buy())
                                         .callbackData(InlineMenuCallbacks.HEDGE_OP_SELL)
                                         .build()
                         ))

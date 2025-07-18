@@ -256,12 +256,11 @@ public class HedgingHandler {
             Double price = mt5Service.getPriceForShort(user, symbol);
             telegramState.updateHedgeOp(userState.getTelegramId(), hedgeOp.withUserAmount(amount));
 
-            Instrument instrumentBySymbol = user.findInstrumentBySymbol(symbol);
             hedgeViews.showPreview(userState,
-                    InlineMenuCallbacks.HEDGE_OP_SELL.equals(hedgeOp.getOperation()) ? hedgeLabels.sell() : hedgeLabels.buy(),
-                    instrumentBySymbol.getLabel(),
+                    getLabelForOperationAndInstrument(hedgeOp.getOperation(), instrument),
+                    instrument.getLabel(),
                     amountStr,
-                    instrumentBySymbol.getSymbolByMode(),
+                    instrument.getSymbolByMode(),
                     price);
             telegramState.updateUserState(userState.getTelegramId(), userState.withState(States.HEDGE_PREVIEW));
         } catch (NumberFormatException e) {
@@ -324,7 +323,7 @@ public class HedgingHandler {
                 hedgeViews.successOrder(userState,
                         order.getId().toString(),
                         FormattingTools.formatDateToUtc(order.getCreatedAt()),
-                        InlineMenuCallbacks.HEDGE_OP_SELL.equals(hedgeOp.getOperation()) ? hedgeLabels.sell() : hedgeLabels.buy(),
+                        getLabelForOperationAndInstrument(hedgeOp.getOperation(), instrument),
                         instrumentBySymbol.getLabel(),
                         order.getUserEnteredAmount().setScale(0, RoundingMode.HALF_DOWN).toString(),
                         order.getPrice().setScale(5, RoundingMode.HALF_DOWN).toString(),
@@ -354,5 +353,11 @@ public class HedgingHandler {
     private boolean isHedgeOut(Instrument instrument, String operation) {
         return (InstrumentMode.SHORT.equals(instrument.getMode()) && InlineMenuCallbacks.HEDGE_OP_BUY.equals(operation))
                 || (InstrumentMode.LONG.equals(instrument.getMode()) && InlineMenuCallbacks.HEDGE_OP_SELL.equals(operation));
+    }
+
+    private String getLabelForOperationAndInstrument(String operation, Instrument instrument) {
+        return InstrumentMode.LONG.equals(instrument.getMode())
+            ? InlineMenuCallbacks.HEDGE_OP_SELL.equals(operation) ? hedgeLabels.buy() : hedgeLabels.sell()
+            : InlineMenuCallbacks.HEDGE_OP_SELL.equals(operation) ? hedgeLabels.sell() : hedgeLabels.buy();
     }
 }

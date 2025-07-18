@@ -41,15 +41,6 @@ public class HedgeLabels {
                 """.formatted(unit, label, avail, unit);
     }
 
-    public String promptVolumeForOutInverse(String unit, String label, String avail) {
-        return """
-                *Сколько %s?* (Напишите сумму в чат📝)
-                Инструмент: %s
-                Доступно для продажи: %s %s
-                """.formatted(unit, label, avail, unit);
-    }
-
-
     public String promptVolume(String unit, String label) {
         return """
                 *Сколько %s?* (Напишите сумму в чат📝)
