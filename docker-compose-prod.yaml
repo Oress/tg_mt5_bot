@@ -32,6 +32,7 @@ services:
         condition: service_healthy
         required: true
     volumes:
+      - ./cache:/cache
       - appLogs:${LOGS_FOLDER}
       - ./keys:/keys
     environment:
