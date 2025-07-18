@@ -25,6 +25,8 @@ services:
     restart: unless-stopped
     image: hedging_bot
     build: ./hedging
+    ports:
+      - 8080:8080
     depends_on:
       postgres:
         condition: service_healthy
