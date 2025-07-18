@@ -335,7 +335,7 @@ public class GoogleSheetsService {
                         // Deposit
                         new CellData()
                                 .setUserEnteredValue(
-                                        new ExtendedValue().setFormulaValue("=IF(B:B>0,B:B*(C:C-G:G),-E:E)")
+                                        new ExtendedValue().setFormulaValue("=IF(B:B>0,(C:C/G:G-1)*B:B/C:C,-E:E)")
                                 ).setUserEnteredFormat(currencyFormat),
                         // Deposit total
                         new CellData()
