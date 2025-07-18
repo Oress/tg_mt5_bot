@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 public class CronJobConfig {
     private final TelegramAuditJob telegramAuditJob;
 
-    @Scheduled(fixedDelayString = "${app.cron.telegram-audit.fixed-rate:30}", timeUnit = TimeUnit.SECONDS)
+//    @Scheduled(fixedDelayString = "${app.cron.telegram-audit.fixed-rate:30}", timeUnit = TimeUnit.SECONDS)
     public void persistTelegramAudit() {
         try {
             if (telegramAuditJob.hasPendingCommands()) {

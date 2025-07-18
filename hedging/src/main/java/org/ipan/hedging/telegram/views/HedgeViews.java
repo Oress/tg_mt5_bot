@@ -206,7 +206,7 @@ public class HedgeViews {
                 .chatId(userState.getChatId())
                 .messageId(userState.getMenuMessageId())
                 .text(hedgeLabels.orderFailed())
-                .replyMarkup(commonViews.getToMainMenuMarkup())
+//                .replyMarkup(commonViews.getToMainMenuMarkup())
                 .build();
         tgClient.execute(message);
     }

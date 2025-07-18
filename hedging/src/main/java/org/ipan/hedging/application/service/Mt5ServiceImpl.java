@@ -48,7 +48,7 @@ public class Mt5ServiceImpl implements Mt5Service {
                 .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
                 .build();
         ResponseEntity<SymbolInfoResponse> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), getSymbolReq, SymbolInfoResponse.class);
-        log.info("validate credentials response {}", resp);
+        log.info("symbolInfo response {}", resp.toString());
         return resp.getBody().getInfo();
     }
 

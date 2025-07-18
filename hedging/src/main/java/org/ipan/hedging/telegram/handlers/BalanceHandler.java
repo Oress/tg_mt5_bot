@@ -47,7 +47,7 @@ public class BalanceHandler {
             balanceViews.noOpenPositions(userState);
         } else {
             log.info("user has open positions: {}", user.getTelegramId());
-            balanceViews.showBalance(userState, user, tradePos);
+            balanceViews.showBalance(userState, user);
         }
 
         telegramState.updateUserState(userState.getTelegramId(), userState.withState(States.BALANCE_REVIEW));

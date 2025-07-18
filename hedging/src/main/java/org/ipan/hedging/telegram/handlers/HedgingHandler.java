@@ -316,8 +316,9 @@ public class HedgingHandler {
                 if (InstrumentMode.LONG.equals(instrument.getMode())) {
                     currentBalance = userInstrument.getClientOwnedQuoteAmount().setScale(0, RoundingMode.HALF_DOWN);
                 } else {
-                    Mt5ServiceImpl.TradePos tp = mt5Service.positionsGet(user, symbol);
-                    currentBalance = BigDecimal.valueOf(tp.getVolume()).multiply(BigDecimal.valueOf(symbolInfo.getTrade_contract_size())).setScale(0, RoundingMode.HALF_DOWN);
+                    currentBalance = userInstrument.getClientOwnedBaseAmount().setScale(0, RoundingMode.HALF_DOWN);
+//                    Mt5ServiceImpl.TradePos tp = mt5Service.positionsGet(user, symbol);
+//                    currentBalance = BigDecimal.valueOf(tp.getVolume()).multiply(BigDecimal.valueOf(symbolInfo.getTrade_contract_size())).setScale(0, RoundingMode.HALF_DOWN);
                 }
 
                 hedgeViews.successOrder(userState,

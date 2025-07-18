@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import org.ipan.hedging.application.service.Mt5ServiceImpl;
 import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.model.Instrument;
+import org.ipan.hedging.domain.model.InstrumentMode;
 import org.ipan.hedging.telegram.i18n.BalanceLabels;
 import org.ipan.hedging.telegram.i18n.CommonLabels;
 import org.ipan.hedging.telegram.state.UserState;
@@ -42,16 +43,25 @@ public class BalanceViews {
     }
 
     @SneakyThrows
-    public void showBalance(UserState userState, AppUser user, List<Mt5ServiceImpl.TradePos> tradePos) {
-        String positionsStr = tradePos.stream().map(tp -> {
-            Mt5ServiceImpl.SymbolInfo symbolInfo = mt5Service.symbolInfo(user, tp.getSymbol());
-            BigDecimal baseEquivalent = BigDecimal.valueOf(tp.getVolume() * symbolInfo.getTrade_contract_size()).setScale(0, RoundingMode.HALF_DOWN);
-            Instrument instrument = user.findInstrumentBySymbol(tp.getSymbol());
+    public void showBalance(UserState userState, AppUser user) {
+        String positionsStr = user.getAvailableInstruments().stream().filter(i -> i.getActive()).map(userInstrument -> {
+//            Mt5ServiceImpl.SymbolInfo symbolInfo = mt5Service.symbolInfo(user, tp.getSymbol());
+//            BigDecimal hedgedAmount = BigDecimal.valueOf(tp.getVolume() * symbolInfo.getTrade_contract_size()).setScale(0, RoundingMode.HALF_DOWN);
+            Instrument instrument = userInstrument.getInstrument();
+
+            BigDecimal hedgedAmount = null;
+            if (InstrumentMode.LONG.equals(instrument.getMode())) {
+                hedgedAmount = userInstrument.getClientOwnedQuoteAmount();
+            } else if (InstrumentMode.SHORT.equals(instrument.getMode())) {
+                hedgedAmount = userInstrument.getClientOwnedBaseAmount();
+            }
+            hedgedAmount = hedgedAmount.setScale(0, RoundingMode.HALF_DOWN);
+
             return """
                     Инструмент: %s
                     Захеджировано: %s %s
                     """
-                    .formatted(instrument.getLabel(), baseEquivalent, instrument.getSymbolByMode());
+                    .formatted(instrument.getLabel(), hedgedAmount, instrument.getSymbolByMode());
         }).collect(Collectors.joining("\n"));
 
         EditMessageText message = EditMessageText
