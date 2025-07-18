@@ -311,7 +311,7 @@ public class GoogleSheetsService {
                         // USDT
                         new CellData()
                                 .setUserEnteredValue(
-                                        new ExtendedValue().setNumberValue(usdtEquivalent.doubleValue())
+                                        new ExtendedValue().setFormulaValue("=IF(B:B<>0,B:B*C:C,\"\")")
                                 ).setUserEnteredFormat(
                                         currencyFormat
                                 ),
