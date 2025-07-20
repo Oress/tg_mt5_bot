@@ -17,7 +17,7 @@ import {
 } from '@radix-ui/themes';
 import {ArrowLeftIcon, ChevronDownIcon, ChevronRightIcon, OpenInNewWindowIcon} from '@radix-ui/react-icons';
 
-function RecentActivitySection({userId}) {
+function RecentActivitySection({userId, refreshTrigger}) {
   const [activities, setActivities] = useState([]);
 
   useEffect(() => {
@@ -32,7 +32,7 @@ function RecentActivitySection({userId}) {
     };
 
     fetchData();
-  }, [userId])
+  }, [userId, refreshTrigger])
 
   return (
       <Card size="2" mb="6">
@@ -107,15 +107,26 @@ function UserNotFound() {
   );
 }
 
-function UserPageHeader() {
+function UserPageHeader({ onRefresh, isRefreshing, user }) {
   const navigate = useNavigate();
 
   const handleBack = () => {
     navigate('/main');
   };
 
+  // Determine which user identifier to display
+  const userIdentifier = user ? (user.username || user.firstName || user.telegramId) : '';
+
   return (
-      <Box style={{ backgroundColor: 'var(--color-panel-solid)', boxShadow: 'var(--shadow-2)' }}>
+      <Box style={{ 
+        backgroundColor: 'var(--color-panel-solid)', 
+        boxShadow: 'var(--shadow-2)',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        zIndex: 999
+      }}>
         <Container size="3">
           <Flex
               justify={{ initial: "center", sm: "between" }}
@@ -124,11 +135,25 @@ function UserPageHeader() {
               direction={{ initial: "column", sm: "row" }}
               gap={{ initial: "4", sm: "0" }}
           >
-            <Heading size={{ initial: "5", sm: "6" }}>Детали пользователя</Heading>
-            <Button onClick={handleBack} size="3" color="cyan">
-              <ArrowLeftIcon />
-              <Text size={{ initial: "2", sm: "3" }}>Назад к поиску</Text>
-            </Button>
+            <Heading size={{ initial: "5", sm: "6" }}>
+              Детали пользователя {userIdentifier && `- ${userIdentifier}`}
+            </Heading>
+            <Flex gap="3">
+              <Button 
+                onClick={onRefresh} 
+                size="3" 
+                color="green" 
+                disabled={isRefreshing}
+              >
+                <Text size={{ initial: "2", sm: "3" }}>
+                  {isRefreshing ? 'Обновление...' : 'Обновить'}
+                </Text>
+              </Button>
+              <Button onClick={handleBack} size="3" color="cyan">
+                <ArrowLeftIcon />
+                <Text size={{ initial: "2", sm: "3" }}>Назад к поиску</Text>
+              </Button>
+            </Flex>
           </Flex>
         </Container>
       </Box>
@@ -203,30 +228,30 @@ function formatOrderType(type) {
   }
 }
 
-function RegularHedgeDetails({selectedInstrument, userId}) {
+function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
   const [orderHistory, setOrderHistory] = useState([]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Set default active tab to first instrument if available
-        if (selectedInstrument) {
-          // Fetch open positions for the selected instrument
-          // const positionsResponse = await api.get(`/users/${userId}/orders/${firstInstrument.id}`);
-          // setOpenPositions(positionsResponse.data);
+  const fetchData = async () => {
+    try {
+      // Set default active tab to first instrument if available
+      if (selectedInstrument) {
+        // Fetch open positions for the selected instrument
+        // const positionsResponse = await api.get(`/users/${userId}/orders/${firstInstrument.id}`);
+        // setOpenPositions(positionsResponse.data);
 
-          // Fetch order history for the selected instrument
-          const historyResponse = await api.get(`/users/${userId}/orders/${selectedInstrument.id}`);
-          setOrderHistory(historyResponse.data);
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        // You might want to set an error state here to display to the user
+        // Fetch order history for the selected instrument
+        const historyResponse = await api.get(`/users/${userId}/orders/${selectedInstrument.id}`);
+        setOrderHistory(historyResponse.data);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      // You might want to set an error state here to display to the user
+    }
+  };
 
+  useEffect(() => {
     fetchData();
-  }, [selectedInstrument, userId]);
+  }, [selectedInstrument, userId, refreshTrigger]);
 
   return (
       <Box pt="4" >
@@ -298,36 +323,36 @@ function RegularHedgeDetails({selectedInstrument, userId}) {
   )
 }
 
-function InverseHedgeDetails({selectedInstrument, userId}) {
+function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
   const [openPositions, setOpenPositions] = useState([]);
   const [orderHistory, setOrderHistory] = useState([]);
   const [expandedRows, setExpandedRows] = useState({});
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Set default active tab to first instrument if available
-        if (selectedInstrument) {
-          // Fetch open positions for the selected instrument
-          const positionsResponse = await api.get(`/users/${userId}/orders/${selectedInstrument.id}`, {
-            params: {
-              type: "open"
-            }
-          });
-          setOpenPositions(positionsResponse.data);
+  const fetchData = async () => {
+    try {
+      // Set default active tab to first instrument if available
+      if (selectedInstrument) {
+        // Fetch open positions for the selected instrument
+        const positionsResponse = await api.get(`/users/${userId}/orders/${selectedInstrument.id}`, {
+          params: {
+            type: "open"
+          }
+        });
+        setOpenPositions(positionsResponse.data);
 
-          // Fetch order history for the selected instrument
-          const historyResponse = await api.get(`/users/${userId}/orders/${selectedInstrument.id}`);
-          setOrderHistory(historyResponse.data);
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        // You might want to set an error state here to display to the user
+        // Fetch order history for the selected instrument
+        const historyResponse = await api.get(`/users/${userId}/orders/${selectedInstrument.id}`);
+        setOrderHistory(historyResponse.data);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      // You might want to set an error state here to display to the user
+    }
+  };
 
+  useEffect(() => {
     fetchData();
-  }, [selectedInstrument, userId]);
+  }, [selectedInstrument, userId, refreshTrigger]);
 
   return (
       <Box pt="4" >
@@ -529,38 +554,42 @@ function UserPage() {
   const [instruments, setInstruments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedInstrument, setSelectedInstrument] = useState(null);
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
   // API endpoints for data fetching
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Fetch user data
-        const userResponse = await api.get(`/users/${userId}`);
-        setUser(userResponse.data);
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      // Fetch user data
+      const userResponse = await api.get(`/users/${userId}`);
+      setUser(userResponse.data);
 
-        // Fetch instruments
-        // const instrumentsResponse = await api.get('/instruments');
-        // setInstruments(instrumentsResponse.data);
-        const instrumentsResp = userResponse.data.instruments || [];
-        instrumentsResp.sort((a, b) => a.label.localeCompare(b.label));
-        setInstruments(instrumentsResp);
+      // Fetch instruments
+      // const instrumentsResponse = await api.get('/instruments');
+      // setInstruments(instrumentsResponse.data);
+      const instrumentsResp = userResponse.data.instruments || [];
+      instrumentsResp.sort((a, b) => a.label.localeCompare(b.label));
+      setInstruments(instrumentsResp);
 
-        // Set default active tab to first instrument if available
-        if (instrumentsResp.length > 0) {
-          const firstInstrument = instrumentsResp[0];
-          setActiveTab(firstInstrument.label);
-          setSelectedInstrument(firstInstrument);
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        // You might want to set an error state here to display to the user
-      } finally {
-        setLoading(false);
+      // Set default active tab to first instrument if available
+      if (instrumentsResp.length > 0) {
+        const firstInstrument = instrumentsResp[0];
+        setActiveTab(firstInstrument.label);
+        setSelectedInstrument(firstInstrument);
       }
-    };
 
+      // Increment refresh counter to trigger child component refreshes
+      setRefreshCounter(prev => prev + 1);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      // You might want to set an error state here to display to the user
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, [userId]);
 
@@ -581,10 +610,10 @@ function UserPage() {
   let detailsComponent;
   switch (selectedInstrument?.mode) {
     case 'SHORT':
-      detailsComponent = <RegularHedgeDetails selectedInstrument={selectedInstrument} userId={userId} />;
+      detailsComponent = <RegularHedgeDetails selectedInstrument={selectedInstrument} userId={userId} refreshTrigger={refreshCounter} />;
       break;
     case 'LONG':
-      detailsComponent = <InverseHedgeDetails selectedInstrument={selectedInstrument} userId={userId}/>;
+      detailsComponent = <InverseHedgeDetails selectedInstrument={selectedInstrument} userId={userId} refreshTrigger={refreshCounter} />;
       break;
     default:
       detailsComponent = (
@@ -598,11 +627,14 @@ function UserPage() {
   return (
     <Box style={{ minHeight: '100vh', backgroundColor: 'var(--gray-2)' }}>
 
-      <UserPageHeader />
+      <UserPageHeader onRefresh={fetchData} isRefreshing={loading} user={user} />
 
-      <Container size="4" py="6">
+      <Container size="4" py="6" style={{ paddingTop: '80px' }}>
         {/* User Info Section */}
         <UserInfoSection user={user} />
+
+        {/* Recent Activity Section */}
+        <RecentActivitySection userId={userId} refreshTrigger={refreshCounter} />
 
         {/* Instruments Section */}
         <Card size="2" mb="6">
