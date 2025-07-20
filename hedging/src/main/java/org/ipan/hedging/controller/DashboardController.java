@@ -3,9 +3,7 @@ package org.ipan.hedging.controller;
 import lombok.AllArgsConstructor;
 import org.ipan.hedging.controller.dto.*;
 import org.ipan.hedging.domain.model.*;
-import org.ipan.hedging.domain.model.repository.OrderRepo;
-import org.ipan.hedging.domain.model.repository.UserRepo;
-import org.ipan.hedging.domain.model.repository.UserTelegramActivityRepository;
+import org.ipan.hedging.domain.model.repository.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +17,8 @@ public class DashboardController {
     private final UserRepo userRepo;
     private final OrderRepo orderRepo;
     private final UserTelegramActivityRepository userTelegramActivityRepo;
+    private final UserBalanceActionsRepository userBalanceActionsRepository;
+    private final AppUserInstrumentRepository appUserInstrumentRepository;
 
     @GetMapping("/users")
     @Transactional(readOnly = true)
@@ -62,6 +62,60 @@ public class DashboardController {
                 .map(this::mapToDto)
                 .toList();
     }
+
+    @GetMapping("/users/{telegramId}/instruments/{userInstrumentId}/balance-actions")
+    @Transactional(readOnly = true)
+    public List<UserBalanceActionsDto> userBalanceActions(@PathVariable Long userInstrumentId) {
+        List<UserBalanceAction> allByUserId = userBalanceActionsRepository.findByUserInstrumentIdOrderByDateDesc(userInstrumentId);
+        return allByUserId.stream()
+                .map(this::mapToDto)
+                .toList();
+    }
+
+    @PostMapping("/users/{telegramId}/instruments/{userInstrumentId}/balance-actions")
+    @Transactional
+    public UserBalanceActionsDto createUserBalanceActions(@PathVariable Long userInstrumentId,
+                                                          @RequestBody UserBalanceActionsDto payload) {
+        AppUserInstrument userInstrument = appUserInstrumentRepository.getReferenceById(userInstrumentId);
+
+        UserBalanceAction newItem = new UserBalanceAction();
+        newItem.setType(BalanceActionType.valueOf(payload.getType()));
+        newItem.setDate(payload.getDate());
+        newItem.setAmount(payload.getAmount());
+        newItem.setUserInstrument(userInstrument);
+
+        newItem = userBalanceActionsRepository.save(newItem);
+        return mapToDto(newItem);
+    }
+
+    @PutMapping("/users/{telegramId}/instruments/{userInstrumentId}/balance-actions/{id}")
+    @Transactional
+    public UserBalanceActionsDto updateUserBalanceActions(@PathVariable Long id,
+                                                          @RequestBody UserBalanceActionsDto payload) {
+        UserBalanceAction byId = userBalanceActionsRepository.findById(id).get();
+        byId.setType(BalanceActionType.valueOf(payload.getType()));
+        byId.setDate(payload.getDate());
+        byId.setAmount(payload.getAmount());
+        return mapToDto(byId);
+    }
+
+    @DeleteMapping("/users/{telegramId}/instruments/{userInstrumentId}/balance-actions/{id}")
+    @Transactional
+    public ResponseEntity<?> deleteUserBalanceAction(@PathVariable Long id) {
+        userBalanceActionsRepository.deleteById(id);
+        return ResponseEntity.ok().build();
+    }
+
+    private UserBalanceActionsDto mapToDto(UserBalanceAction userBalanceAction) {
+        return UserBalanceActionsDto.builder()
+                .id(userBalanceAction.getId())
+                .type(userBalanceAction.getType().name())
+                .amount(userBalanceAction.getAmount())
+                .date(userBalanceAction.getDate())
+                .createdAt(userBalanceAction.getCreatedAt())
+                .build();
+    }
+
 
     private UserTelegramActivityDto mapToDto(UserTelegramActivity telegramActivity) {
         return UserTelegramActivityDto.builder()
