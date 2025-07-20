@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import {useState, useEffect} from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import {
@@ -13,67 +13,22 @@ import {
   Tabs,
   Grid,
   ScrollArea,
-  Separator, Link,
+  Separator,
+  Link,
+  TextField,
+  SegmentedControl,
+  Dialog,
+  IconButton,
 } from '@radix-ui/themes';
-import {ArrowLeftIcon, ChevronDownIcon, ChevronRightIcon, OpenInNewWindowIcon} from '@radix-ui/react-icons';
-
-function RecentActivitySection({userId, refreshTrigger}) {
-  const [activities, setActivities] = useState([]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const activitiesResponse = await api.get(`/users/${userId}/activities`);
-        setActivities(activitiesResponse.data);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        // You might want to set an error state here to display to the user
-      }
-    };
-
-    fetchData();
-  }, [userId, refreshTrigger])
-
-  return (
-      <Card size="2" mb="6">
-        <Flex direction="column" gap="3">
-          <Heading size="4">Недавняя активность</Heading>
-          <Separator size="4" />
-
-          {activities.length > 0 ? (
-              <Box>
-                <ScrollArea scrollbars="horizontal" style={{ maxWidth: '100%' }}>
-                  <Table.Root variant="surface">
-                    <Table.Header>
-                      <Table.Row>
-                        <Table.ColumnHeaderCell>Дата</Table.ColumnHeaderCell>
-                        <Table.ColumnHeaderCell>Состояние</Table.ColumnHeaderCell>
-                        <Table.ColumnHeaderCell>Тип</Table.ColumnHeaderCell>
-                        <Table.ColumnHeaderCell>Данные</Table.ColumnHeaderCell>
-                      </Table.Row>
-                    </Table.Header>
-                    <Table.Body>
-                      {activities.map((activity) => (
-                          <Table.Row key={activity.id}>
-                            <Table.Cell>{new Date(activity.createdAt).toLocaleString()}</Table.Cell>
-                            <Table.Cell>{activity.currentUserState}</Table.Cell>
-                            <Table.Cell>{activity.type}</Table.Cell>
-                            <Table.Cell>{activity.data}</Table.Cell>
-                          </Table.Row>
-                      ))}
-                    </Table.Body>
-                  </Table.Root>
-                </ScrollArea>
-              </Box>
-          ) : (
-              <Flex justify="center" py="4">
-                <Text color="gray">Недавняя активность не найдена</Text>
-              </Flex>
-          )}
-        </Flex>
-      </Card>
-  );
-}
+import {
+  ArrowLeftIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  OpenInNewWindowIcon,
+  PlusIcon,
+  Pencil1Icon,
+  TrashIcon
+} from '@radix-ui/react-icons';
 
 function LoadingUserPage() {
   return (
@@ -118,8 +73,8 @@ function UserPageHeader({ onRefresh, isRefreshing, user }) {
   const userIdentifier = user ? (user.username || user.firstName || user.telegramId) : '';
 
   return (
-      <Box style={{ 
-        backgroundColor: 'var(--color-panel-solid)', 
+      <Box style={{
+        backgroundColor: 'var(--color-panel-solid)',
         boxShadow: 'var(--shadow-2)',
         position: 'fixed',
         top: 0,
@@ -139,10 +94,10 @@ function UserPageHeader({ onRefresh, isRefreshing, user }) {
               Детали пользователя {userIdentifier && `- ${userIdentifier}`}
             </Heading>
             <Flex gap="3">
-              <Button 
-                onClick={onRefresh} 
-                size="3" 
-                color="green" 
+              <Button
+                onClick={onRefresh}
+                size="3"
+                color="green"
                 disabled={isRefreshing}
               >
                 <Text size={{ initial: "2", sm: "3" }}>
@@ -265,6 +220,14 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
           </Card>
         </Grid>
 
+        {/* Deposits and Withdrawals Section */}
+        <DepositsWithdrawalsSection
+          userId={userId}
+          instrumentId={selectedInstrument.id}
+          refreshTrigger={refreshTrigger}
+          instrumentInfo={selectedInstrument}
+        />
+
         {/* Order History */}
         <Box>
           <Heading size="3" mb="3">История ордеров</Heading>
@@ -378,6 +341,14 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
           </Card>
         </Grid>
 
+        {/* Deposits and Withdrawals Section */}
+        <DepositsWithdrawalsSection
+          userId={userId}
+          instrumentId={selectedInstrument.id}
+          refreshTrigger={refreshTrigger}
+          instrumentInfo={selectedInstrument}
+        />
+
         {/* Open Positions */}
         {/* No sense to show them for regular hedge */}
         <Box mb="6">
@@ -462,8 +433,8 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
                     <Table.Body>
                       {orderHistory.map((order) => (
                         <>
-                          <Table.Row 
-                            key={order.id} 
+                          <Table.Row
+                            key={order.id}
                             onClick={() => {
                               if (order.type === 'MT5_SHORT') {
                                 setExpandedRows(prev => ({
@@ -545,6 +516,317 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
         </Box>
       </Box>
   )
+}
+
+function DepositsWithdrawalsSection({ userId, instrumentId, refreshTrigger, instrumentInfo }) {
+  const [transactions, setTransactions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [currentTransaction, setCurrentTransaction] = useState(null);
+  const [transactionToDelete, setTransactionToDelete] = useState(null);
+  const [amount, setAmount] = useState('');
+  const [date, setDate] = useState(new Date());
+  const [time, setTime] = useState(new Date());
+  const [actionType, setActionType] = useState('DEPOSIT');
+  const [errors, setErrors] = useState({});
+
+  const fetchTransactions = async () => {
+    setIsLoading(true);
+    try {
+      const response = await api.get(`/users/${userId}/instruments/${instrumentId}/balance-actions`);
+      setTransactions(response.data || []);
+    } catch (error) {
+      console.error('Error fetching deposits:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (instrumentId) {
+      fetchTransactions();
+    }
+  }, [userId, instrumentId, refreshTrigger]);
+
+  const handleOpenDialog = (transaction = null) => {
+    // Reset errors
+    setErrors({});
+
+    const now = transaction ? new Date(transaction.date) : new Date();
+    const day = now.getDate().toString().padStart(2, '0');
+    const month = (now.getMonth()+1).toString().padStart(2, '0');
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const year = now.getFullYear();
+
+    if (transaction) {
+      // Edit mode
+      setCurrentTransaction(transaction);
+      setAmount(transaction.amount);
+      setDate(`${year}-${month}-${day}`);
+      setTime(`${hours}:${minutes}`);
+      setActionType(transaction.type)
+    } else {
+      // Add mode
+      setCurrentTransaction(null);
+      setAmount('');
+      setDate(`${year}-${month}-${day}`);
+      setTime(`${hours}:${minutes}`);
+      setActionType('DEPOSIT');
+    }
+    setIsDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setErrors({});
+  };
+
+  const handleOpenDeleteConfirm = (transaction) => {
+    setTransactionToDelete(transaction);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const handleCloseDeleteConfirm = () => {
+    setIsDeleteConfirmOpen(false);
+    setTransactionToDelete(null);
+  };
+
+  const handleDelete = async () => {
+    if (!transactionToDelete) return;
+
+    try {
+      await api.delete(`/users/${userId}/instruments/${instrumentId}/balance-actions/${transactionToDelete.id}`);
+
+      // Refresh the transactions list
+      fetchTransactions();
+      handleCloseDeleteConfirm();
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+    }
+  };
+
+  const handleSubmit = async () => {
+    // Reset errors
+    setErrors({});
+
+    // Validate fields
+    const newErrors = {};
+
+    if (!amount || parseFloat(amount) <= 0) {
+      newErrors.amount = 'Пожалуйста, введите сумму больше нуля';
+    }
+
+    if (!date) {
+      newErrors.date = 'Пожалуйста, выберите дату';
+    }
+
+    // If there are errors, display them and stop submission
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    try {
+      if (currentTransaction) {
+        // Update existing transaction
+        await api.put(`/users/${userId}/instruments/${instrumentId}/balance-actions/${currentTransaction.id}`, {
+          amount: amount,
+          type: actionType,
+          date: new Date(date + ' ' + time)
+        });
+      } else {
+        // Create new transaction
+        await api.post(`/users/${userId}/instruments/${instrumentId}/balance-actions`, {
+          amount: amount,
+          type: actionType,
+          date: new Date(date + ' ' + time)
+        });
+      }
+
+      // Refresh the transactions list
+      fetchTransactions();
+      handleCloseDialog();
+    } catch (error) {
+      console.error('Error saving transaction:', error);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    const dt = new Date(dateString);
+    const hour = dt.getHours().toString().padStart(2, '0');
+    const minute = dt.getMinutes().toString().padStart(2, '0');
+    const day = dt.getDate().toString().padStart(2, '0');
+    const month = (dt.getMonth()+1).toString().padStart(2, '0');
+    const year = dt.getFullYear();
+    return `${day}.${month}.${year} ${hour}:${minute}`;
+  };
+
+  return (
+    <Card size="2" mb="6">
+      <Flex direction="column" gap="3">
+        <Flex justify="between" align="center">
+          <Heading size="4">Депозиты и выводы {instrumentInfo && `(${instrumentInfo.label})`}</Heading>
+          <Button onClick={() => handleOpenDialog()} color="green">
+            <PlusIcon />
+            Добавить запись
+          </Button>
+        </Flex>
+        <Separator size="4" />
+
+        {isLoading ? (
+          <Flex justify="center" py="4">
+            <Text color="gray">Загрузка...</Text>
+          </Flex>
+        ) : transactions.length > 0 ? (
+          <ScrollArea scrollbars="horizontal" style={{ maxWidth: '100%' }}>
+            <Table.Root variant="surface">
+              <Table.Header>
+                <Table.Row>
+                  <Table.ColumnHeaderCell>Тип</Table.ColumnHeaderCell>
+                  <Table.ColumnHeaderCell>Сумма</Table.ColumnHeaderCell>
+                  <Table.ColumnHeaderCell>Дата</Table.ColumnHeaderCell>
+                  <Table.ColumnHeaderCell>Действия</Table.ColumnHeaderCell>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {transactions.map((transaction) => (
+                  <Table.Row key={transaction.id}>
+                    <Table.Cell width="20px">
+                      <Text color={transaction.type === 'DEPOSIT' ? 'green' : 'red'} weight="medium">
+                        {transaction.type === 'DEPOSIT' ? 'Депозит' : 'Вывод'}
+                      </Text>
+                    </Table.Cell>
+                    <Table.Cell minWidth="150px">
+                      <Text weight="medium">
+                        {transaction.amount} {instrumentInfo.quote}
+                      </Text>
+                    </Table.Cell>
+                    <Table.Cell minWidth="150px" width="200px">{formatDate(transaction.date)}</Table.Cell>
+                    <Table.Cell width="60px">
+                      <Flex gap="4">
+                        <IconButton
+                          variant="ghost"
+                          color="gray"
+                          onClick={() => handleOpenDialog(transaction)}
+                        >
+                          <Pencil1Icon />
+                        </IconButton>
+                          <IconButton
+                            variant="ghost"
+                            color="red"
+                            onClick={() => handleOpenDeleteConfirm(transaction)}
+                          >
+                            <TrashIcon />
+                          </IconButton>
+                      </Flex>
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table.Root>
+          </ScrollArea>
+        ) : (
+          <Flex justify="center" py="4">
+            <Text color="gray">Нет записей о депозитах и выводах для этого инструмента</Text>
+          </Flex>
+        )}
+      </Flex>
+
+      {/* Dialog for adding/editing transactions */}
+      <Dialog.Root open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog.Content style={{ maxWidth: 450 } }>
+          <Dialog.Title>
+            {currentTransaction ? 'Редактировать запись' : 'Добавить новую запись'}
+          </Dialog.Title>
+
+          <Flex direction="column" gap="3" mt="4">
+            <SegmentedControl.Root value={actionType} onValueChange={(e) => setActionType(e)}>
+              <SegmentedControl.Item value="DEPOSIT">Депозит</SegmentedControl.Item>
+              <SegmentedControl.Item value="WITHDRAWAL">Вывод</SegmentedControl.Item>
+            </SegmentedControl.Root>
+
+            <Flex gap="1" direction="column">
+              <TextField.Root
+                  placeholder="Сумма"
+                  type="number"
+                  min={0}
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  color={errors.amount ? "red" : undefined}>
+              </TextField.Root>
+
+              {errors.amount && (
+                  <Text size="1" color="red" as="div">
+                    {errors.amount}
+                  </Text>
+              )}
+            </Flex>
+
+            <Flex gap="1" direction="column">
+              <Flex gap="1">
+                <TextField.Root
+                    className="w-full"
+                    placeholder="Дата"
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    color={errors.date ? "red" : undefined}>
+                </TextField.Root>
+
+                <TextField.Root 
+                    placeholder="Время"
+                    type="time"
+                    value={time}
+                    onChange={(e) => setTime(e.target.value)}>
+                </TextField.Root>
+              </Flex>
+
+              {errors.date && (
+                <Text size="1" color="red" as="div">
+                  {errors.date}
+                </Text>
+              )}
+            </Flex>
+          </Flex>
+
+          <Flex gap="3" mt="4" justify="end">
+            <Dialog.Close>
+              <Button variant="soft" color="gray">
+                Отмена
+              </Button>
+            </Dialog.Close>
+            <Button onClick={handleSubmit}>
+              {currentTransaction ? 'Сохранить' : 'Добавить'}
+            </Button>
+          </Flex>
+        </Dialog.Content>
+      </Dialog.Root>
+
+      {/* Dialog for confirming deletion */}
+      <Dialog.Root open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <Dialog.Content style={{ maxWidth: 450 }}>
+          <Dialog.Title>Подтверждение удаления</Dialog.Title>
+
+          <Text size="3" mt="4">
+            Вы уверены, что хотите удалить эту запись?
+          </Text>
+
+          <Flex gap="3" mt="4" justify="end">
+            <Dialog.Close>
+              <Button variant="soft" color="gray" onClick={handleCloseDeleteConfirm}>
+                Отмена
+              </Button>
+            </Dialog.Close>
+            <Button color="red" onClick={handleDelete}>
+              Удалить
+            </Button>
+          </Flex>
+        </Dialog.Content>
+      </Dialog.Root>
+    </Card>
+  );
 }
 
 function UserPage() {
@@ -632,9 +914,6 @@ function UserPage() {
       <Container size="4" py="6" style={{ paddingTop: '80px' }}>
         {/* User Info Section */}
         <UserInfoSection user={user} />
-
-        {/* Recent Activity Section */}
-        <RecentActivitySection userId={userId} refreshTrigger={refreshCounter} />
 
         {/* Instruments Section */}
         <Card size="2" mb="6">
