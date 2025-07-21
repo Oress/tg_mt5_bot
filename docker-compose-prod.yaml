@@ -36,6 +36,7 @@ services:
       - appLogs:${LOGS_FOLDER}
       - ./keys:/keys
     environment:
+      - APP_MAPDB_PATH=/cache/hedging.db
       - LOGS_FOLDER
       - POSTGRES_URL
       - POSTGRES_DB
