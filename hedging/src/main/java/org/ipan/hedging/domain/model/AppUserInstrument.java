@@ -34,6 +34,9 @@ public class AppUserInstrument {
 
     private Boolean active = Boolean.FALSE;
 
+    @Column(name = "last_ggl_sheet_sync")
+    private Instant lastGoogleSheetSync;
+
     @CreationTimestamp
     @Column(name = "created_at")
     private Instant createdAt;

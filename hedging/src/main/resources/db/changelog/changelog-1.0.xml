@@ -81,6 +81,7 @@
             <column name="client_owned_base_amount" type="decimal(20,8)"/>
 <!--            <column name="total_owned_base_amount" type="decimal(20,8)" />-->
 
+            <column name="last_ggl_sheet_sync" type="TIMESTAMP" />
             <column name="created_at" type="TIMESTAMP" defaultValue="now()"/>
             <column name="active" type="boolean"/>
         </createTable>

@@ -100,34 +100,12 @@ public class GoogleSheetsService {
 
     @SneakyThrows
     private void syncDataForUser(AppUser user, Instant syncDt) {
-        Instant lastSyncDt = Instant.EPOCH;
-        Boolean createMeta = true;
-
         for (AppUserInstrument userInstrument : user.getAvailableInstruments()) {
+            Instant lastSyncDt = userInstrument.getLastGoogleSheetSync() == null
+                    ? Instant.EPOCH
+                    : userInstrument.getLastGoogleSheetSync();
             Instrument instrument = userInstrument.getInstrument();
             Integer sheetId = userInstrument.getSheetId();
-
-            List<DataFilter> metadataFilters = List.of(
-                new DataFilter()
-                        .setDeveloperMetadataLookup(
-                                new DeveloperMetadataLookup()
-                                        .setMetadataKey(MD_KEY_SHEET_LAST_SYNC_DT)
-                                        .setMetadataLocation(
-                                                new DeveloperMetadataLocation()
-                                                        .setSheetId(sheetId)
-                                        )
-                        )
-            );
-            SearchDeveloperMetadataResponse execute = sheets.spreadsheets().developerMetadata().search(user.getGoogleSheetId(),
-                    new SearchDeveloperMetadataRequest().setDataFilters(metadataFilters)
-            ).execute();
-
-            List<MatchedDeveloperMetadata> matchedDeveloperMetadata = execute.getMatchedDeveloperMetadata();
-            if (matchedDeveloperMetadata != null && !matchedDeveloperMetadata.isEmpty()) {
-                String metadataValue = matchedDeveloperMetadata.get(0).getDeveloperMetadata().getMetadataValue();
-                lastSyncDt = Instant.parse(metadataValue);
-                createMeta = false;
-            }
 
             List<Order> ordersForSync = orderRepo.findAllForSyncByInstrument(lastSyncDt, user.getTelegramId(), instrument.getLabel());
 
@@ -135,32 +113,6 @@ public class GoogleSheetsService {
                 log.info("No orders to sync for user {}", user.getTelegramId());
                 continue;
             }
-
-            CreateDeveloperMetadataRequest createMt = new CreateDeveloperMetadataRequest()
-                    .setDeveloperMetadata(new DeveloperMetadata()
-                            .setVisibility("DOCUMENT")
-                            .setMetadataId(sheetId)
-                            .setMetadataKey(MD_KEY_SHEET_LAST_SYNC_DT)
-                            .setMetadataValue(syncDt.toString())
-                            .setLocation(
-                                    new DeveloperMetadataLocation()
-                                            .setSheetId(sheetId)
-                            )
-                    );
-
-            UpdateDeveloperMetadataRequest updateMt = new UpdateDeveloperMetadataRequest()
-                    .setDataFilters(metadataFilters)
-                    .setFields("*")
-                    .setDeveloperMetadata(new DeveloperMetadata()
-                            .setVisibility("DOCUMENT")
-                            .setMetadataId(sheetId)
-                            .setMetadataKey(MD_KEY_SHEET_LAST_SYNC_DT)
-                            .setMetadataValue(syncDt.toString())
-                            .setLocation(
-                                    new DeveloperMetadataLocation()
-                                            .setSheetId(sheetId)
-                            )
-                    );
 
             List<RowData> rowDataStream = ordersForSync
                     .stream()
@@ -177,13 +129,11 @@ public class GoogleSheetsService {
                                                             .setFields("*")
                                                             .setSheetId(sheetId)
                                                             .setRows(rowDataStream)
-                                            ),
-                                            createMeta
-                                                    ? new Request().setCreateDeveloperMetadata(createMt)
-                                                    : new Request().setUpdateDeveloperMetadata(updateMt)
+                                            )
                                     )
                             )
             ).execute();
+            userInstrument.setLastGoogleSheetSync(syncDt);
             log.info("result batchUpdate {}", batchUpdate);
         }
     }
@@ -508,6 +458,10 @@ public class GoogleSheetsService {
 
     private String getTableNameForUser(AppUser user, Instrument instrument) {
         return "HEDGE_%s_%s".formatted(user.getTelegramId(), instrument.getLabel().replace("/","_"));
+    }
+
+    private String getMetadataKeyForInstrument(Instrument instrument) {
+        return "%s_%s_%s".formatted(MD_KEY_SHEET_LAST_SYNC_DT, instrument.getBase(), instrument.getQuote());
     }
 
     @AllArgsConstructor
