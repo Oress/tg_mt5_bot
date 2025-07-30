@@ -2,22 +2,21 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import {
-  Container,
-  Box,
-  Heading,
-  Text,
-  TextField,
-  Button,
   Card,
-  Flex,
+  Button,
+  Input,
   Table,
-  Separator,
-  ScrollArea,
-  IconButton
-} from '@radix-ui/themes';
-import { MagnifyingGlassIcon, ExitIcon, MoonIcon, SunIcon } from '@radix-ui/react-icons';
+  Typography,
+  Flex,
+  Divider,
+  Space,
+  Spin,
+  theme
+} from 'antd';
+import { SearchOutlined, LogoutOutlined, MoonOutlined, SunOutlined } from '@ant-design/icons';
 
 function Main({ toggleTheme, themeMode }) {
+  const { token } = theme.useToken();
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -77,104 +76,124 @@ function Main({ toggleTheme, themeMode }) {
     }
   };
 
+  const columns = [
+    {
+      title: 'Telegram ID',
+      dataIndex: 'telegramId',
+      key: 'telegramId',
+    },
+    {
+      title: 'Имя',
+      dataIndex: 'firstName',
+      key: 'firstName',
+    },
+    {
+      title: 'Имя пользователя',
+      dataIndex: 'username',
+      key: 'username',
+    },
+    {
+      title: 'Действия',
+      key: 'actions',
+      render: (_, user) => (
+        <Button
+          type="link"
+          onClick={() => handleUserClick(user.telegramId)}
+        >
+          Просмотр деталей
+        </Button>
+      ),
+    },
+  ];
+
   return (
-    <Box style={{ minHeight: '100vh', backgroundColor: 'var(--gray-2)' }}>
-      <Box style={{ backgroundColor: 'var(--color-panel-solid)', boxShadow: 'var(--shadow-2)' }}>
-        <Container size="3">
-          <Flex justify="between" align="center" py="5">
-            <Heading size="6">Панель управления</Heading>
-            <Flex gap="3" align="center">
-              <IconButton 
-                size="2" 
-                variant="ghost" 
+    <div style={{ minHeight: '100vh', backgroundColor: token.colorBgLayout }}>
+      <div style={{ backgroundColor: token.colorBgContainer, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
+          <Flex justify="space-between" align="center">
+            <Typography.Title level={2} style={{ margin: 0 }}>
+              Панель управления
+            </Typography.Title>
+            <Space>
+              <Button 
+                type="text"
+                icon={themeMode === 'light' ? <MoonOutlined /> : <SunOutlined />}
                 onClick={toggleTheme}
-                aria-label={themeMode === 'light' ? 'Переключиться на темную тему' : 'Переключиться на светлую тему'}
+                title={themeMode === 'light' ? 'Переключиться на темную тему' : 'Переключиться на светлую тему'}
+              />
+              <Button 
+                danger 
+                icon={<LogoutOutlined />} 
+                onClick={handleLogout}
               >
-                {themeMode === 'light' ? <MoonIcon /> : <SunIcon />}
-              </IconButton>
-              <Button color="red" variant="soft" onClick={handleLogout}>
-                <ExitIcon />
                 Выйти
               </Button>
-            </Flex>
+            </Space>
           </Flex>
-        </Container>
-      </Box>
+        </div>
+      </div>
 
-      <Container size="3" py="6">
-        <Card size="2" mb="6">
-          <Flex direction="column" gap="4">
-            <Heading size="4">Поиск пользователей</Heading>
-            <Separator size="4" />
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
+        <Card>
+          <Space direction="vertical" size="large" style={{ width: '100%' }}>
+            <Typography.Title level={3} style={{ margin: 0 }}>
+              Поиск пользователей
+            </Typography.Title>
+            <Divider style={{ margin: 0 }} />
 
             <form onSubmit={handleSearch}>
-              <Flex gap="2">
-                <TextField.Root size="2" style={{ flexGrow: 1 }}
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder="Поиск по имени, имени пользователя или Telegram ID"
+              <Space.Compact style={{ width: '100%' }}>
+                <Input
+                  size="large"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Поиск по имени, имени пользователя или Telegram ID"
+                  style={{ flex: 1 }}
+                />
+                <Button 
+                  type="primary" 
+                  htmlType="submit" 
+                  size="large"
+                  icon={<SearchOutlined />}
                 >
-                </TextField.Root>
-                <Button type="submit" size="2" color="cyan">
-                  <MagnifyingGlassIcon />
                   Поиск
                 </Button>
-              </Flex>
+              </Space.Compact>
             </form>
 
             {isLoading ? (
-              <Flex justify="center" py="4">
-                <Text color="gray">Загрузка...</Text>
+              <Flex justify="center" style={{ padding: '40px 0' }}>
+                <Spin size="large" />
               </Flex>
             ) : (
-              <Box>
+              <div>
                 {users.length > 0 ? (
-                  <ScrollArea scrollbars="horizontal" style={{ maxWidth: '100%' }}>
-                    <Table.Root variant="surface">
-                      <Table.Header>
-                        <Table.Row>
-                          <Table.ColumnHeaderCell>Telegram ID</Table.ColumnHeaderCell>
-                          <Table.ColumnHeaderCell>Имя</Table.ColumnHeaderCell>
-                          <Table.ColumnHeaderCell>Имя пользователя</Table.ColumnHeaderCell>
-                          <Table.ColumnHeaderCell>Действия</Table.ColumnHeaderCell>
-                        </Table.Row>
-                      </Table.Header>
-                      <Table.Body>
-                        {users.map((user) => (
-                          <Table.Row key={user.telegramId}>
-                            <Table.Cell>{user.telegramId}</Table.Cell>
-                            <Table.Cell>{user.firstName}</Table.Cell>
-                            <Table.Cell>{user.username}</Table.Cell>
-                            <Table.Cell>
-                              <Button
-                                size="1"
-                                variant="soft"
-                                color="cyan"
-                                onClick={() => handleUserClick(user.telegramId)}
-                              >
-                                Просмотр деталей
-                              </Button>
-                            </Table.Cell>
-                          </Table.Row>
-                        ))}
-                      </Table.Body>
-                    </Table.Root>
-                  </ScrollArea>
+                  <Table
+                    columns={columns}
+                    dataSource={users}
+                    rowKey="telegramId"
+                    scroll={{ x: true }}
+                    pagination={false}
+                  />
                 ) : searchTerm ? (
-                  <Flex justify="center" py="4">
-                    <Text color="gray">Не найдено пользователей, соответствующих "{searchTerm}"</Text>
+                  <Flex justify="center" style={{ padding: '40px 0' }}>
+                    <Typography.Text type="secondary">
+                      Не найдено пользователей, соответствующих "{searchTerm}"
+                    </Typography.Text>
                   </Flex>
                 ) : (
-                  <Flex justify="center" py="4">
-                    <Text color="gray">Нет доступных пользователей</Text>
+                  <Flex justify="center" style={{ padding: '40px 0' }}>
+                    <Typography.Text type="secondary">
+                      Нет доступных пользователей
+                    </Typography.Text>
                   </Flex>
                 )}
-              </Box>
+              </div>
             )}
-          </Flex>
+          </Space>
         </Card>
-      </Container>
-    </Box>
+      </div>
+    </div>
   );
 }
 

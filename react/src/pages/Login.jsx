@@ -1,20 +1,20 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Container, 
-  Box,
-  Heading,
-  Text, 
-  TextField, 
-  Button, 
   Card, 
+  Button, 
+  Input, 
+  Alert, 
+  Typography, 
   Flex, 
-  Callout 
-} from '@radix-ui/themes';
-import { ExclamationTriangleIcon } from '@radix-ui/react-icons';
+  Form,
+  theme
+} from 'antd';
+import { ExclamationCircleOutlined } from '@ant-design/icons';
 import api from '../api';
 
 export default function Login() {
+  const { token } = theme.useToken();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -56,47 +56,53 @@ export default function Login() {
   };
 
   return (
-    <Box style={{ minHeight: '100vh', backgroundColor: 'var(--gray-2)' }}>
-      <Container size="1" style={{ height: '100vh' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: token.colorBgLayout, padding: '20px' }}>
+      <div style={{ height: '100vh', maxWidth: '400px', margin: '0 auto' }}>
         <Flex align="center" justify="center" style={{ height: '100%' }}>
-          <Card size="3" style={{ width: '100%', maxWidth: '400px' }}>
-            <Flex direction="column" gap="5">
-              <Heading size="6" align="center">Вход в панель управления</Heading>
+          <Card style={{ width: '100%', maxWidth: '400px' }}>
+            <Flex vertical gap="large">
+              <Typography.Title level={2} style={{ textAlign: 'center', margin: 0 }}>
+                Вход в панель управления
+              </Typography.Title>
 
               {error && (
-                <Callout.Root color="red" size="1">
-                  <Callout.Icon>
-                    <ExclamationTriangleIcon />
-                  </Callout.Icon>
-                  <Callout.Text>{error}</Callout.Text>
-                </Callout.Root>
+                <Alert
+                  message={error}
+                  type="error"
+                  icon={<ExclamationCircleOutlined />}
+                  showIcon
+                />
               )}
 
               <form onSubmit={handleSubmit}>
-                <Flex direction="column" gap="4">
-                  <Box>
-                    <Text as="label" size="2" weight="medium" htmlFor="username">
+                <Flex vertical gap="middle">
+                  <div>
+                    <Typography.Text strong style={{ display: 'block', marginBottom: '8px' }}>
                       Имя пользователя
-                    </Text>
-                    <TextField.Root size="3"
-                                    id="username"
-                                    value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
-                                    placeholder="Введите имя пользователя">
-                    </TextField.Root>
-                  </Box>
+                    </Typography.Text>
+                    <Input
+                      size="large"
+                      id="username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="Введите имя пользователя"
+                    />
+                  </div>
 
-                  <Box>
-                    <Text as="label" size="2" weight="medium" htmlFor="password">
+                  <div>
+                    <Typography.Text strong style={{ display: 'block', marginBottom: '8px' }}>
                       Пароль
-                    </Text>
-                    <TextField.Root size="3" id="password" type="password" value={password}
-                                    placeholder="Введите пароль"
-                                    onChange={(e) => setPassword(e.target.value)}>
-                    </TextField.Root>
-                  </Box>
+                    </Typography.Text>
+                    <Input.Password
+                      size="large"
+                      id="password"
+                      value={password}
+                      placeholder="Введите пароль"
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
 
-                  <Button type="submit" size="3" color="cyan">
+                  <Button type="primary" htmlType="submit" size="large" block>
                     Войти
                   </Button>
                 </Flex>
@@ -104,7 +110,7 @@ export default function Login() {
             </Flex>
           </Card>
         </Flex>
-      </Container>
-    </Box>
+      </div>
+    </div>
   );
 }

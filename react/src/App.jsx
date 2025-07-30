@@ -1,7 +1,7 @@
 
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Theme } from '@radix-ui/themes';
+import { ConfigProvider, theme } from 'antd';
 import Login from './pages/Login';
 import Main from './pages/Main';
 import UserPage from './pages/UserPage';
@@ -24,11 +24,19 @@ function App() {
   };
 
   return (
-    <Theme appearance={themeMode} accentColor="blue" radius="medium">
+    <ConfigProvider
+      theme={{
+        algorithm: themeMode === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
+        token: {
+          colorPrimary: '#1677ff',
+          borderRadius: 6,
+        },
+      }}
+    >
       <Router>
         <Routes>
           {/*<Route path="/" element={<Login />} />*/}
-          <Route path="/" element={<Main />} />
+          <Route path="/" element={<Main toggleTheme={toggleTheme} themeMode={themeMode} />} />
           <Route
             path="/main" 
             element={
@@ -38,13 +46,13 @@ function App() {
           <Route 
             path="/user/:userId" 
             element={
-              <UserPage />
+              <UserPage toggleTheme={toggleTheme} themeMode={themeMode} />
             }
           />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Router>
-    </Theme>
+    </ConfigProvider>
   );
 }
 
