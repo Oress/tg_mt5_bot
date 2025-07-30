@@ -26,6 +26,9 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         generate_statistics: false
 app:
+  auth:
+    jwtExpirationMs: 100000000
+    jwtSecret: ${APP_JWT_SECRET:thisisaverylongsecretkeyforuseinthejtwtokengenerationprocess123}
   gsheets:
     sa-json: ${APP_GGL_SA_FILE_LOCATION}
     emails: ${APP_GGL_SHARE_EMAILS}
