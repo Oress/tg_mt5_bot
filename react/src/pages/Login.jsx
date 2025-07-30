@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
   Card, 
   Button, 
@@ -18,7 +17,6 @@ export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,7 +36,8 @@ export default function Login() {
 
       // If we get here, authentication was successful
       // No need to store anything in localStorage as we're using HTTP session cookies
-      navigate('/main');
+      // Reload the page to trigger authentication check in App component
+      window.location.href = '/main';
     } catch (error) {
       console.error('Login error:', error);
 
