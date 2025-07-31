@@ -17,16 +17,16 @@ import {
   Grid,
   Row,
   Col,
-  theme
+  theme, InputNumber, DatePicker, Radio, Collapse, Statistic
 } from 'antd';
-import { 
+import {
   ArrowLeftOutlined,
   DownOutlined,
   RightOutlined,
   ExportOutlined,
   PlusOutlined,
   EditOutlined,
-  DeleteOutlined
+  DeleteOutlined, DownloadOutlined, LinkOutlined
 } from "@ant-design/icons";
 
 function LoadingUserPage() {
@@ -108,7 +108,7 @@ function UserPageHeader({ onRefresh, isRefreshing, user }) {
             >
               {isRefreshing ? 'Обновление...' : 'Обновить'}
             </Button>
-            <Button 
+            <Button
               onClick={handleBack}
               icon={<ArrowLeftOutlined />}
             >
@@ -133,69 +133,48 @@ function UserInfoSection({user}) {
           <Col xs={24} sm={12} md={8}>
             <Card size="small">
               <Space direction="vertical" size="small">
-                <Typography.Text type="secondary">Telegram ID</Typography.Text>
-                <Typography.Text strong style={{ fontSize: '16px' }}>
-                  {user.telegramId}
-                </Typography.Text>
+                <Statistic title="Telegram ID" value={user.telegramId} formatter={(val)=>val} />
               </Space>
             </Card>
           </Col>
           <Col xs={24} sm={12} md={8}>
             <Card size="small">
               <Space direction="vertical" size="small">
-                <Typography.Text type="secondary">Имя</Typography.Text>
-                <Typography.Text strong style={{ fontSize: '16px' }}>
-                  {user.firstName}
-                </Typography.Text>
+                <Statistic title="Имя" value={user.firstName} />
               </Space>
             </Card>
           </Col>
           <Col xs={24} sm={12} md={8}>
             <Card size="small">
               <Space direction="vertical" size="small">
-                <Typography.Text type="secondary">Имя пользователя</Typography.Text>
-                <Typography.Text strong style={{ fontSize: '16px' }}>
-                  {user.username}
-                </Typography.Text>
+                <Statistic title="Имя пользователя" value={user.username} />
               </Space>
             </Card>
           </Col>
           <Col xs={24} sm={12} md={8}>
             <Card size="small">
               <Space direction="vertical" size="small">
-                <Typography.Text type="secondary">Тип аккаунта Герчик</Typography.Text>
-                <Typography.Text strong style={{ fontSize: '16px' }}>
-                  {user.accountType}
-                </Typography.Text>
+                <Statistic title="Тип аккаунта Герчик" value={user.accountType} />
               </Space>
             </Card>
           </Col>
           <Col xs={24} sm={12} md={8}>
             <Card size="small">
               <Space direction="vertical" size="small">
-                <Typography.Text type="secondary">№ аккаунта Герчик</Typography.Text>
-                <Typography.Text strong style={{ fontSize: '16px' }}>
-                  {user.mt5Account}
-                </Typography.Text>
+                <Statistic title="№ аккаунта Герчик" value={user.mt5Account} />
               </Space>
             </Card>
           </Col>
           <Col xs={24} sm={12} md={8}>
             <Card size="small">
               <Space direction="vertical" size="small">
-                <Typography.Text type="secondary">Google Sheet</Typography.Text>
-                {user.googleSheetId && (
-                  <Typography.Link 
-                    href={user.googleSheetId} 
-                    target="_blank"
-                    style={{ fontSize: '16px', fontWeight: 500 }}
-                  >
-                    <Space align="center" size="small">
-                      Открыть
-                      <ExportOutlined />
-                    </Space>
-                  </Typography.Link>
-                )}
+                <Statistic title="Google Sheet" value={user.googleSheetId}
+                formatter={(val) =>
+                    <Button type="link" href={val} size="large"
+                    icon={<LinkOutlined />}
+                    >Открыть</Button>
+                }
+                />
               </Space>
             </Card>
           </Col>
@@ -253,9 +232,9 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
       dataIndex: 'type',
       key: 'type',
       render: (type) => (
-        <Typography.Text 
-          style={{ 
-            fontWeight: 'bold', 
+        <Typography.Text
+          style={{
+            fontWeight: 'bold',
             textTransform: 'uppercase',
             color: type === 'MT5_LONG' ? '#52c41a' : '#ff4d4f'
           }}
@@ -336,11 +315,11 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
           <Card size="small">
             <Flex direction="vertical" gap="small" align="center" justify="center">
               <Typography.Text type="secondary">{selectedInstrument.base} Клиента</Typography.Text>
-              <Typography.Text 
-                strong 
-                style={{ 
-                  fontSize: '24px', 
-                  color: '#1677ff' 
+              <Typography.Text
+                strong
+                style={{
+                  fontSize: '24px',
+                  color: '#1677ff'
                 }}
               >
                 {selectedInstrument.clientOwnedBaseAmount}
@@ -423,11 +402,11 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
             <Card size="small">
               <Flex direction="vertical" gap="small" align="center" justify="center">
                 <Typography.Text type="secondary">{selectedInstrument.quote} Клиента</Typography.Text>
-                <Typography.Text 
-                  strong 
-                  style={{ 
-                    fontSize: '24px', 
-                    color: '#722ed1' 
+                <Typography.Text
+                  strong
+                  style={{
+                    fontSize: '24px',
+                    color: '#722ed1'
                   }}
                 >
                   {selectedInstrument.clientOwnedQuoteAmount}
@@ -439,11 +418,11 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
             <Card size="small">
               <Flex direction="vertical" gap="small" align="center" justify="center">
                 <Typography.Text type="secondary">{selectedInstrument.base} Клиента</Typography.Text>
-                <Typography.Text 
-                  strong 
-                  style={{ 
-                    fontSize: '24px', 
-                    color: '#1677ff' 
+                <Typography.Text
+                  strong
+                  style={{
+                    fontSize: '24px',
+                    color: '#1677ff'
                   }}
                 >
                   {selectedInstrument.clientOwnedBaseAmount}
@@ -455,11 +434,11 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
             <Card size="small">
               <Flex direction="vertical" gap="small" align="center" justify="center">
                 <Typography.Text type="secondary">{selectedInstrument.base} Димы</Typography.Text>
-                <Typography.Text 
-                  strong 
-                  style={{ 
-                    fontSize: '24px', 
-                    color: '#52c41a' 
+                <Typography.Text
+                  strong
+                  style={{
+                    fontSize: '24px',
+                    color: '#52c41a'
                   }}
                 >
                   {selectedInstrument.houseOwnedBaseAmount}
@@ -580,9 +559,9 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
                       {(type === 'MT5_SHORT') && (
                         expandedRows[order.id] ? <DownOutlined /> : <RightOutlined />
                       )}
-                      <Typography.Text 
-                        style={{ 
-                          fontWeight: 'bold', 
+                      <Typography.Text
+                        style={{
+                          fontWeight: 'bold',
                           textTransform: 'uppercase',
                           color: type === 'MT5_LONG' ? '#52c41a' : '#ff4d4f'
                         }}
@@ -755,7 +734,6 @@ function DepositsWithdrawalsSection({ userId, instrumentId, refreshTrigger, inst
   const [transactionToDelete, setTransactionToDelete] = useState(null);
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date());
-  const [time, setTime] = useState(new Date());
   const [actionType, setActionType] = useState('DEPOSIT');
   const [errors, setErrors] = useState({});
 
@@ -782,25 +760,18 @@ function DepositsWithdrawalsSection({ userId, instrumentId, refreshTrigger, inst
     setErrors({});
 
     const now = transaction ? new Date(transaction.date) : new Date();
-    const day = now.getDate().toString().padStart(2, '0');
-    const month = (now.getMonth()+1).toString().padStart(2, '0');
-    const hours = now.getHours().toString().padStart(2, '0');
-    const minutes = now.getMinutes().toString().padStart(2, '0');
-    const year = now.getFullYear();
 
     if (transaction) {
       // Edit mode
       setCurrentTransaction(transaction);
       setAmount(transaction.amount);
-      setDate(`${year}-${month}-${day}`);
-      setTime(`${hours}:${minutes}`);
+      setDate(now);
       setActionType(transaction.type)
     } else {
       // Add mode
       setCurrentTransaction(null);
       setAmount('');
-      setDate(`${year}-${month}-${day}`);
-      setTime(`${hours}:${minutes}`);
+      setDate(now);
       setActionType('DEPOSIT');
     }
     setIsDialogOpen(true);
@@ -835,6 +806,13 @@ function DepositsWithdrawalsSection({ userId, instrumentId, refreshTrigger, inst
     }
   };
 
+  const formatCurrency = (amount, currency = 'USD', locale = 'en-US') => {
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currency
+    }).format(amount);
+  };
+
   const handleSubmit = async () => {
     // Reset errors
     setErrors({});
@@ -862,14 +840,14 @@ function DepositsWithdrawalsSection({ userId, instrumentId, refreshTrigger, inst
         await api.put(`/users/${userId}/instruments/${instrumentId}/balance-actions/${currentTransaction.id}`, {
           amount: amount,
           type: actionType,
-          date: new Date(date + ' ' + time)
+          date: new Date(date)
         });
       } else {
         // Create new transaction
         await api.post(`/users/${userId}/instruments/${instrumentId}/balance-actions`, {
           amount: amount,
           type: actionType,
-          date: new Date(date + ' ' + time)
+          date: new Date(date)
         });
       }
 
@@ -898,8 +876,8 @@ function DepositsWithdrawalsSection({ userId, instrumentId, refreshTrigger, inst
       key: 'type',
       width: 100,
       render: (type) => (
-        <Typography.Text 
-          style={{ 
+        <Typography.Text
+          style={{
             fontWeight: 500,
             color: type === 'DEPOSIT' ? '#52c41a' : '#ff4d4f'
           }}
@@ -914,7 +892,7 @@ function DepositsWithdrawalsSection({ userId, instrumentId, refreshTrigger, inst
       width: 150,
       render: (_, transaction) => (
         <Typography.Text strong>
-          {transaction.amount} {instrumentInfo.quote}
+          {formatCurrency(transaction.amount, instrumentInfo.quote)}
         </Typography.Text>
       ),
     },
@@ -925,7 +903,7 @@ function DepositsWithdrawalsSection({ userId, instrumentId, refreshTrigger, inst
       width: 200,
       render: (date) => formatDate(date),
     },
-    {
+/*    {
       title: 'Действия',
       key: 'actions',
       width: 120,
@@ -944,135 +922,143 @@ function DepositsWithdrawalsSection({ userId, instrumentId, refreshTrigger, inst
           />
         </Space>
       ),
-    },
+    }*/,
   ];
 
   return (
-    <Card style={{ marginBottom: '24px' }}>
-      <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-        <Flex justify="space-between" align="center">
-          <Typography.Title level={4} style={{ margin: 0 }}>
-            Депозиты и выводы {instrumentInfo && `(${instrumentInfo.label})`}
-          </Typography.Title>
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />}
-            onClick={() => handleOpenDialog()}
-          >
-            Добавить запись
-          </Button>
+    <>
+    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+      <Flex justify="space-between" align="center">
+        <Typography.Title level={4} style={{ margin: 0 }}>
+          Депозиты и выводы {instrumentInfo && `(${instrumentInfo.label})`}
+        </Typography.Title>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => handleOpenDialog()}
+        >
+          Добавить запись
+        </Button>
+      </Flex>
+      <Divider style={{ margin: 0 }} />
+
+      {isLoading ? (
+        <Flex justify="center" style={{ padding: '40px 0' }}>
+          <Spin size="large" />
         </Flex>
-        <Divider style={{ margin: 0 }} />
+      ) : transactions.length > 0 ? (
+        <Table
+          style={{maxHeight: '400px', overflow: 'auto'}}
+          columns={columns}
+          dataSource={transactions}
+          rowKey="id"
+          scroll={{ x: true }}
+          pagination={false}
+          size="small"
+        />
+      ) : (
+        <Flex justify="center" style={{ padding: '40px 0' }}>
+          <Typography.Text type="secondary">
+            Нет записей о депозитах и выводах для этого инструмента
+          </Typography.Text>
+        </Flex>
+      )}
+    </Space>
 
-        {isLoading ? (
-          <Flex justify="center" style={{ padding: '40px 0' }}>
-            <Spin size="large" />
-          </Flex>
-        ) : transactions.length > 0 ? (
-          <Table
-            columns={columns}
-            dataSource={transactions}
-            rowKey="id"
-            scroll={{ x: true }}
-            pagination={false}
-            size="small"
+    <Modal
+      title={currentTransaction ? 'Редактировать запись' : 'Добавить новую запись'}
+      open={isDialogOpen}
+      onCancel={() => setIsDialogOpen(false)}
+      footer={[
+        <Button key="cancel" onClick={() => setIsDialogOpen(false)}>
+          Отмена
+        </Button>,
+        <Button key="submit" type="primary" onClick={handleSubmit}>
+          {currentTransaction ? 'Сохранить' : 'Добавить'}
+        </Button>
+      ]}
+      width={450}
+    >
+      <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+        <Radio.Group
+          block
+          value={actionType}
+          style={{ width: '100%' }}
+          options={[
+            { label: 'Депозит', value: 'DEPOSIT' },
+            { label: 'Вывод', value: 'WITHDRAWAL' }
+          ]}
+          onChange={(e) => setActionType(e.target.value)}
+          defaultValue="DEPOSIT"
+          optionType="button"
+          buttonStyle="solid"
+        />
+
+        <div>
+          <InputNumber
+            style={{ width: '100%' }}
+            placeholder="Сумма"
+            formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+            parser={value =>
+              value === null || value === void 0 ? void 0 : value.replace(/\$\s?|(,*)/g, '')
+            }
+            onChange={(e) => setAmount(e || 0)}
+            min={0}
+            value={amount}
+            status={errors.amount ? "error" : undefined}
           />
-        ) : (
-          <Flex justify="center" style={{ padding: '40px 0' }}>
-            <Typography.Text type="secondary">
-              Нет записей о депозитах и выводах для этого инструмента
+          {errors.amount && (
+            <Typography.Text type="danger" style={{ fontSize: '12px' }}>
+              {errors.amount}
             </Typography.Text>
-          </Flex>
-        )}
+          )}
+        </div>
+
+        {/*<div>
+              <Space.Compact style={{ width: '100%' }}>
+                <DatePicker
+                  placeholder="Дата"
+                  style={{ width: '100%' }}
+                  showTime
+                  format="DD.MM.YYYY HH:mm"
+                  timeFormat="HH:mm"
+                  onChange={(value, dateString) => {
+                    console.log('Selected Time: ', value);
+                    console.log('Formatted Selected Time: ', dateString);
+                    setDate(value);
+                  }}
+                />
+              </Space.Compact>
+              {errors.date && (
+                <Typography.Text type="danger" style={{ fontSize: '12px' }}>
+                  {errors.date}
+                </Typography.Text>
+              )}
+            </div>*/}
       </Space>
+    </Modal>
 
-      {/* Modal for adding/editing transactions */}
-      <Modal
-        title={currentTransaction ? 'Редактировать запись' : 'Добавить новую запись'}
-        open={isDialogOpen}
-        onCancel={() => setIsDialogOpen(false)}
-        footer={[
-          <Button key="cancel" onClick={() => setIsDialogOpen(false)}>
-            Отмена
-          </Button>,
-          <Button key="submit" type="primary" onClick={handleSubmit}>
-            {currentTransaction ? 'Сохранить' : 'Добавить'}
-          </Button>
-        ]}
-        width={450}
-      >
-        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-          <Segmented
-            value={actionType}
-            onChange={setActionType}
-            options={[
-              { label: 'Депозит', value: 'DEPOSIT' },
-              { label: 'Вывод', value: 'WITHDRAWAL' }
-            ]}
-          />
+    {/* Modal for confirming deletion */}
+    <Modal
+      title="Подтверждение удаления"
+      open={isDeleteConfirmOpen}
+      onCancel={handleCloseDeleteConfirm}
+      footer={[
+        <Button key="cancel" onClick={handleCloseDeleteConfirm}>
+          Отмена
+        </Button>,
+        <Button key="delete" type="primary" danger onClick={handleDelete}>
+          Удалить
+        </Button>
+      ]}
+      width={450}
+    >
+      <Typography.Text style={{ fontSize: '16px' }}>
+        Вы уверены, что хотите удалить эту запись?
+      </Typography.Text>
+    </Modal>
+    </>
 
-          <div>
-            <Input
-              placeholder="Сумма"
-              type="number"
-              min={0}
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              status={errors.amount ? "error" : undefined}
-            />
-            {errors.amount && (
-              <Typography.Text type="danger" style={{ fontSize: '12px' }}>
-                {errors.amount}
-              </Typography.Text>
-            )}
-          </div>
-
-          <div>
-            <Space.Compact style={{ width: '100%' }}>
-              <Input
-                placeholder="Дата"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                status={errors.date ? "error" : undefined}
-                style={{ flex: 1 }}
-              />
-              <Input
-                placeholder="Время"
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-              />
-            </Space.Compact>
-            {errors.date && (
-              <Typography.Text type="danger" style={{ fontSize: '12px' }}>
-                {errors.date}
-              </Typography.Text>
-            )}
-          </div>
-        </Space>
-      </Modal>
-
-      {/* Modal for confirming deletion */}
-      <Modal
-        title="Подтверждение удаления"
-        open={isDeleteConfirmOpen}
-        onCancel={handleCloseDeleteConfirm}
-        footer={[
-          <Button key="cancel" onClick={handleCloseDeleteConfirm}>
-            Отмена
-          </Button>,
-          <Button key="delete" type="primary" danger onClick={handleDelete}>
-            Удалить
-          </Button>
-        ]}
-        width={450}
-      >
-        <Typography.Text style={{ fontSize: '16px' }}>
-          Вы уверены, что хотите удалить эту запись?
-        </Typography.Text>
-      </Modal>
-    </Card>
   );
 }
 
