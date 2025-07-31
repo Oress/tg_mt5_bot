@@ -40,6 +40,7 @@ public class SecConfig {
                         .key("uniqueAndSecret")
                         .tokenValiditySeconds(86400)
                 )
+                .logout(logout -> logout.logoutUrl("/api/auth/logout").clearAuthentication(true).invalidateHttpSession(true))
                 .authorizeHttpRequests((requests) ->
                                 requests
                                         .requestMatchers("/error").permitAll()
