@@ -1,6 +1,7 @@
 package org.ipan.hedging.controller;
 
 import lombok.AllArgsConstructor;
+import org.ipan.hedging.application.service.GoogleSheetsService;
 import org.ipan.hedging.controller.dto.*;
 import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.repository.*;
@@ -8,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 
 @RestController
@@ -19,6 +22,7 @@ public class DashboardController {
     private final UserTelegramActivityRepository userTelegramActivityRepo;
     private final UserBalanceActionsRepository userBalanceActionsRepository;
     private final AppUserInstrumentRepository appUserInstrumentRepository;
+    private final GoogleSheetsService googleSheetsService;
 
     @GetMapping("/users")
     @Transactional(readOnly = true)
@@ -73,21 +77,40 @@ public class DashboardController {
     }
 
     @PostMapping("/users/{telegramId}/instruments/{userInstrumentId}/balance-actions")
-    @Transactional
     public UserBalanceActionsDto createUserBalanceActions(@PathVariable Long userInstrumentId,
                                                           @RequestBody UserBalanceActionsDto payload) {
         AppUserInstrument userInstrument = appUserInstrumentRepository.getReferenceById(userInstrumentId);
 
+        validateUserBalanceAction(payload);
+
         UserBalanceAction newItem = new UserBalanceAction();
         newItem.setType(BalanceActionType.valueOf(payload.getType()));
-        newItem.setDate(payload.getDate());
+//        newItem.setDate(payload.getDate());
+        newItem.setDate(Instant.now());
         newItem.setAmount(payload.getAmount());
         newItem.setUserInstrument(userInstrument);
 
         newItem = userBalanceActionsRepository.save(newItem);
+
+        googleSheetsService.syncUser(userInstrument.getUser().getTelegramId());
         return mapToDto(newItem);
     }
 
+    private void validateUserBalanceAction(UserBalanceActionsDto payload) {
+        if (payload == null) {
+            throw new IllegalArgumentException("Payload cannot be null");
+        }
+
+        if (payload.getType() == null || payload.getAmount() == null) {
+            throw new IllegalArgumentException("Payload type and amount cannot be null");
+        }
+
+        if (payload.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Amount must be greater than zero");
+        }
+    }
+
+/*
     @PutMapping("/users/{telegramId}/instruments/{userInstrumentId}/balance-actions/{id}")
     @Transactional
     public UserBalanceActionsDto updateUserBalanceActions(@PathVariable Long id,
@@ -98,6 +121,7 @@ public class DashboardController {
         byId.setAmount(payload.getAmount());
         return mapToDto(byId);
     }
+*/
 
     @DeleteMapping("/users/{telegramId}/instruments/{userInstrumentId}/balance-actions/{id}")
     @Transactional

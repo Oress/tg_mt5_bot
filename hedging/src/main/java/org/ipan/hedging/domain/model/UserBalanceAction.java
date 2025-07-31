@@ -35,4 +35,13 @@ public class UserBalanceAction {
     @CreationTimestamp
     @Column(name = "created_at")
     private Instant createdAt;
+
+    public BigDecimal getAmountForGoogleSheet() {
+        if (type == BalanceActionType.DEPOSIT) {
+            return amount;
+        } else if (type == BalanceActionType.WITHDRAWAL) {
+            return amount.negate();
+        }
+        return BigDecimal.ZERO;
+    }
 }

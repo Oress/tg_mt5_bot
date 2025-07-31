@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.ipan.hedging.GoogleSheetsConfig;
 import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.repository.OrderRepo;
+import org.ipan.hedging.domain.model.repository.UserBalanceActionRepo;
 import org.ipan.hedging.domain.model.repository.UserRepo;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.context.annotation.Profile;
@@ -51,8 +52,9 @@ public class GoogleSheetsService {
     private final Sheets sheets;
     private final Drive drive;
     private final OrderRepo orderRepo;
+    private final UserBalanceActionRepo userBalanceActionRepo;
 
-    public GoogleSheetsService(GoogleSheetsConfig config, UserRepo userRepo, OrderRepo orderRepo) throws IOException {
+    public GoogleSheetsService(GoogleSheetsConfig config, UserRepo userRepo, OrderRepo orderRepo, UserBalanceActionRepo userBalanceActionRepo) throws IOException {
         this.config = config;
         this.userRepo = userRepo;
 
@@ -73,6 +75,7 @@ public class GoogleSheetsService {
                 .setApplicationName(APPLICATION_NAME)
                 .build();
         this.orderRepo = orderRepo;
+        this.userBalanceActionRepo = userBalanceActionRepo;
     }
 
     @Transactional
@@ -107,17 +110,15 @@ public class GoogleSheetsService {
             Instrument instrument = userInstrument.getInstrument();
             Integer sheetId = userInstrument.getSheetId();
 
+            List<UserBalanceAction> balanceActions = userBalanceActionRepo.findAllForSyncByInstrument(lastSyncDt, user.getTelegramId(), instrument.getLabel());
             List<Order> ordersForSync = orderRepo.findAllForSyncByInstrument(lastSyncDt, user.getTelegramId(), instrument.getLabel());
 
-            if (ordersForSync.isEmpty()) {
+            if (ordersForSync.isEmpty() && balanceActions.isEmpty()) {
                 log.info("No orders to sync for user {}", user.getTelegramId());
                 continue;
             }
 
-            List<RowData> rowDataStream = ordersForSync
-                    .stream()
-                    .map(o -> createRowDataFromOrderDependingOnInstrument(o, instrument))
-                    .toList();
+            List<RowData> rowDataStream = getRowData(ordersForSync, balanceActions, instrument);
 
             BatchUpdateSpreadsheetResponse batchUpdate = sheets.spreadsheets().batchUpdate(
                     user.getGoogleSheetId(),
@@ -136,6 +137,28 @@ public class GoogleSheetsService {
             userInstrument.setLastGoogleSheetSync(syncDt);
             log.info("result batchUpdate {}", batchUpdate);
         }
+    }
+
+    @NotNull
+    private List<RowData> getRowData(List<Order> ordersForSync, List<UserBalanceAction> balanceActions, Instrument instrument) {
+        List<RowData> result = new ArrayList<>();
+        // assume that balanceActions are sorted
+
+        for(int i=0,j=0; i < ordersForSync.size() || j < balanceActions.size();) {
+            Order order = i < ordersForSync.size() ? ordersForSync.get(i) : null;
+            UserBalanceAction balanceAction = j < balanceActions.size() ? balanceActions.get(j) : null;
+
+            if (order != null && (balanceAction == null || order.getCreatedAt().isBefore(balanceAction.getDate()))) {
+                RowData rowData = createRowDataFromOrderDependingOnInstrument(order, instrument);
+                result.add(rowData);
+                i++;
+            } else if (balanceAction != null && (order == null || balanceAction.getDate().isBefore(order.getCreatedAt()))) {
+                RowData rowData = createRowDataFromBalanceAction(balanceAction);
+                result.add(rowData);
+                j++;
+            }
+        }
+        return result;
     }
 
     private RowData createRowDataFromOrderDependingOnInstrument(Order order, Instrument instrument) {
@@ -296,6 +319,64 @@ public class GoogleSheetsService {
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setStringValue("")
+                                ).setUserEnteredFormat(currencyFormat),
+                        // Balance
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setFormulaValue("=I:I+J:J")
+                                ).setUserEnteredFormat(currencyFormat)
+                ));
+    }
+
+    private RowData createRowDataFromBalanceAction(UserBalanceAction balanceAction) {
+        String rateInnerPart = "IF(B:B<0,(%s*%s+B:B*C:C)/F:F,%s)".formatted(relCell(-1, -1), relCell(0, -1), relCell(0, -1));
+        String rateOuterPart = "=%s".formatted(isFirstRow("C:C", rateInnerPart));
+
+        String depTotalInnerPart = "%s+H:H+%s".formatted(relCell(0, -1), relCell(+1, -1));
+        String depTotalOuterPart = "=%s".formatted(isFirstRow("H:H", depTotalInnerPart));
+
+        CellFormat currencyFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("#,##0.00"));
+        CellFormat numberFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("0.00000"));
+        BigDecimal amount = balanceAction.getAmountForGoogleSheet();
+        return new RowData()
+                .setValues(List.of(
+                        // Дата
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setStringValue(formatter.format(balanceAction.getDate().atZone(ZoneId.of("UTC"))))
+                                ),
+                        // Сумма
+                        new CellData(),
+                        // Фикс
+                        new CellData(),
+                        // USDT
+                        new CellData(),
+                        // Ком. 0,10
+                        new CellData(),
+                        // Захеджировано
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setFormulaValue("=B:B+%s".formatted(isFirstRow("0", relCell(0, -1))))
+                                ),
+                        // Rate
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setFormulaValue(rateOuterPart)
+                                ).setUserEnteredFormat(numberFormat),
+                        // Deposit
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setFormulaValue("=IF(B:B>0,(C:C/G:G-1)*B:B/C:C,-E:E)")
+                                ).setUserEnteredFormat(currencyFormat),
+                        // Deposit total
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setFormulaValue(depTotalOuterPart)
+                                ).setUserEnteredFormat(currencyFormat),
+                        // Payment deposit amount
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setNumberValue(amount.doubleValue())
                                 ).setUserEnteredFormat(currencyFormat),
                         // Balance
                         new CellData()
