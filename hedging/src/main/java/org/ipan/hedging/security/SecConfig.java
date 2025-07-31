@@ -6,14 +6,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @Slf4j
@@ -23,29 +24,45 @@ public class SecConfig {
     private final AuthEntryPointJwt authEntryPointJwt;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationManager authenticationManager) throws Exception {
-        DefaultSecurityFilterChain build = http
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        return http
                 .csrf(csrf -> csrf.disable())
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(authEntryPointJwt))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-//                .cors(cors -> cors.disable())
+//                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                        .maximumSessions(1)
+                        .maxSessionsPreventsLogin(false)
+                        .sessionRegistry(sessionRegistry())
+                )
+                .rememberMe(remember -> remember
+                        .alwaysRemember(true)
+                        .key("uniqueAndSecret")
+                        .tokenValiditySeconds(86400)
+                )
                 .authorizeHttpRequests((requests) ->
-                        requests
-                                .requestMatchers("/api/auth/login").permitAll()
-                                .requestMatchers("/", "/index.html").permitAll()
-                                .requestMatchers("/assets/**").permitAll()
-                                .anyRequest().authenticated()
+                                requests
+                                        .requestMatchers("/error").permitAll()
+                                        .requestMatchers("/api/auth/login").permitAll()
+                                        .requestMatchers("/", "/index.html").permitAll()
+                                        .requestMatchers("/assets/**").permitAll()
+                                        .anyRequest().authenticated()
 //                                .anyRequest().permitAll()
                 )
 //                .addFilterAfter(new AppLoginFilter(authenticationManager), BasicAuthenticationFilter.class)
+//                .addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class)
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
                 .authenticationProvider(authenticationProvider())
-                .addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class)
+                .with(AppSessionDsl.appSessionDsl(), (dsl) -> Customizer.withDefaults())
                 .build();
-        return build;
     }
 
+
+    @Bean
+    public SessionRegistry sessionRegistry() {
+        return new SessionRegistryImpl();
+    }
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
@@ -73,4 +90,11 @@ public class SecConfig {
         return new AuthTokenFilter();
     }
 
+/*
+    @Bean
+    public AppLoginFilter appLoginFilter(AuthenticationManager authenticationManager) {
+        AppLoginFilter appLoginFilter = new AppLoginFilter(authenticationManager);
+        return appLoginFilter;
+    }
+*/
 }

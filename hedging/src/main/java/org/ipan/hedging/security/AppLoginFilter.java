@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.Nullable;
@@ -31,9 +32,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.IOException;
 import java.util.Date;
 
-/*
-@RequestMapping("/api/auth")
 @Slf4j
+@Component
 public class AppLoginFilter extends AbstractAuthenticationProcessingFilter {
     private static final RequestMatcher DEFAULT_ANT_PATH_REQUEST_MATCHER = PathPatternRequestMatcher.withDefaults()
             .matcher(HttpMethod.POST, "/api/auth/login");
@@ -42,10 +42,11 @@ public class AppLoginFilter extends AbstractAuthenticationProcessingFilter {
     private String passwordParameter = "password";
     private ObjectMapper objectMapper = new ObjectMapper();
 
-    public AppLoginFilter() {
+/*    public AppLoginFilter() {
         super(DEFAULT_ANT_PATH_REQUEST_MATCHER);
-    }
+    }*/
 
+    @Autowired
     public AppLoginFilter(AuthenticationManager authenticationManager) {
         super(DEFAULT_ANT_PATH_REQUEST_MATCHER, authenticationManager);
     }
@@ -75,4 +76,3 @@ public class AppLoginFilter extends AbstractAuthenticationProcessingFilter {
         authRequest.setDetails(this.authenticationDetailsSource.buildDetails(request));
     }
 }
-*/

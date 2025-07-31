@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/*
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -42,7 +43,7 @@ public class AuthController {
 
         JwtResponse jwtResponse = new JwtResponse(jwt, userDetails.getId(), userDetails.getUsername(), roles);
 
-        setHttpOnlyJwtCookie(jwtResponse.getToken(), 24 * 60 * 60, response);
+//        setHttpOnlyJwtCookie(jwtResponse.getToken(), 24 * 60 * 60, response);
 
         return ApiResponse.success(jwtResponse);
     }
@@ -57,3 +58,4 @@ public class AuthController {
         response.addCookie(jwtCookie);
     }
 }
+*/
