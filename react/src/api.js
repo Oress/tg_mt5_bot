@@ -20,9 +20,11 @@ api.interceptors.response.use(
       
       // Clear any authentication data
       localStorage.removeItem('isAuthenticated');
-      
-      // Redirect to login page
-      window.location.href = '/login';
+
+      if (window.location.pathname !== '/login') {
+        // Redirect to login page
+        window.location.href = '/login';
+      }
     }
     
     // Return the error for further handling

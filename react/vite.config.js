@@ -12,7 +12,7 @@ export default defineConfig({
         proxy: {
             '/api': {
                 target: 'http://homelab.lan:8080', // Your Java server URL
-                changeOrigin: true,
+                changeOrigin: false,
                 secure: false,
                 // Optional: rewrite the path if needed
                 // rewrite: (path) => path.replace(/^\/api/, '')
