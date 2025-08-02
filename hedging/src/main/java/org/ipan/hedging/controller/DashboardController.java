@@ -6,6 +6,7 @@ import org.ipan.hedging.controller.dto.*;
 import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.repository.*;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +17,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api")
 @AllArgsConstructor
+@PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
 public class DashboardController {
     private final UserRepo userRepo;
     private final OrderRepo orderRepo;

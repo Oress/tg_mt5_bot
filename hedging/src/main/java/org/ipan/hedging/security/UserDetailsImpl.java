@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.ipan.hedging.domain.model.AppUser;
+import org.ipan.hedging.domain.model.UserRole;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -19,14 +20,15 @@ public class UserDetailsImpl implements UserDetails {
     private Long id;
     @JsonIgnore
     private String password;
-    
+    private UserRole role;
+
     public static UserDetailsImpl build(AppUser user) {
-        return new UserDetailsImpl(user.getTelegramId(), user.getDashboardPwd());
+        return new UserDetailsImpl(user.getTelegramId(), user.getDashboardPwd(), user.getRole());
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+        return List.of(role.toGrantedAuthority());
     }
 
     @Override
