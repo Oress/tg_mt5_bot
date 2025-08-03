@@ -19,10 +19,12 @@ import java.util.UUID;
 @Table(name = "hed_orders")
 @Slf4j
 public class Order {
-    public static final BigDecimal NEG_ONE = BigDecimal.valueOf(-1);
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_hed_orders")
+    @SequenceGenerator(name = "seq_hed_orders", sequenceName = "seq_hed_orders", allocationSize = 1)
+    private Long id;
+
+    private UUID correlationId;
 
     @ManyToOne
     @JoinColumn(name = "user_instrument_id")
@@ -102,7 +104,7 @@ public class Order {
     public BigDecimal getUserAmountForGoogleSheet() {
         BigDecimal result = getUserEnteredAmount();
         if (isHedge()) {
-            result = result.multiply(NEG_ONE);
+            result = result.negate();
         }
         return result;
     }
@@ -110,20 +112,20 @@ public class Order {
     public BigDecimal getBaseEquivalentForGoogleSheet() {
         BigDecimal result = userBaseAmount;
         if (isHedge()) {
-            result = result.multiply(NEG_ONE);
+            result = result.negate();
         }
         return result;
     }
 
 
     private boolean isHedge() {
-        return (OrderType.MT5_LONG.equals(type) && InstrumentMode.LONG.equals(userInstrument.getInstrument().getMode()))
-                || (OrderType.MT5_SHORT.equals(type) && InstrumentMode.SHORT.equals(userInstrument.getInstrument().getMode()));
+        return ((OrderType.MT5_LONG.equals(type) || OrderType.HOUSE_CLIENT_TRANSFER_LONG.equals(type)) && InstrumentMode.LONG.equals(userInstrument.getInstrument().getMode()))
+                || ((OrderType.MT5_SHORT.equals(type) || OrderType.HOUSE_CLIENT_TRANSFER_SHORT.equals(type)) && InstrumentMode.SHORT.equals(userInstrument.getInstrument().getMode()));
     }
 
-    private boolean isHedgeOut() {
-        return (OrderType.MT5_LONG.equals(type) && InstrumentMode.SHORT.equals(userInstrument.getInstrument().getMode()))
-                || (OrderType.MT5_SHORT.equals(type) && InstrumentMode.LONG.equals(userInstrument.getInstrument().getMode()));
+    public boolean isHedgeOut() {
+        return ((OrderType.MT5_LONG.equals(type) || OrderType.HOUSE_CLIENT_TRANSFER_LONG.equals(type)) && InstrumentMode.SHORT.equals(userInstrument.getInstrument().getMode()))
+                || ((OrderType.MT5_SHORT.equals(type) || OrderType.HOUSE_CLIENT_TRANSFER_SHORT.equals(type)) && InstrumentMode.LONG.equals(userInstrument.getInstrument().getMode()));
     }
 
     public BigDecimal getUserEnteredAmount() {

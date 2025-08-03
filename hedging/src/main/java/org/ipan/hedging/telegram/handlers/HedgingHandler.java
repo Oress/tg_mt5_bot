@@ -321,7 +321,7 @@ public class HedgingHandler {
                 }
 
                 hedgeViews.successOrder(userState,
-                        order.getId().toString(),
+                        order.getCorrelationId().toString(),
                         FormattingTools.formatDateToUtc(order.getCreatedAt()),
                         getLabelForOperationAndInstrument(hedgeOp.getOperation(), instrument),
                         instrumentBySymbol.getLabel(),

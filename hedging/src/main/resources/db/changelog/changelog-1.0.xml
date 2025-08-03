@@ -143,11 +143,20 @@
         </insert>
     </changeSet>
 
+
+    <changeSet id="create seq_hed_orders" author="oress">
+        <createSequence sequenceName="seq_hed_orders"
+                        dataType="bigint"
+                        incrementBy="1"
+                        startValue="1"/>
+    </changeSet>
+
     <changeSet id="create table hed_orders" author="oress">
         <createTable tableName="hed_orders">
-            <column name="id" type="uuid">
+            <column name="id" type="bigint">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
+            <column name="correlation_id" type="uuid"/>
             <column name="user_instrument_id" type="bigint" />
             <column name="city" type="text" />
             <column name="deal" type="bigint" />
@@ -209,7 +218,7 @@
                 <constraints primaryKey="true" nullable="false"/>
             </column>
 
-            <column name="order_id" type="uuid"/>
+            <column name="order_id" type="bigint"/>
             <column name="remaining_quote_amount" type="decimal(20,8)"/>
             <column name="closed_at" type="timestamp"/>
         </createTable>
@@ -235,7 +244,7 @@
                 <constraints primaryKey="true" nullable="false"/>
             </column>
 
-            <column name="parent_order_id" type="uuid" />
+            <column name="parent_order_id" type="bigint" />
             <column name="consumed_position_id" type="bigint" />
             <column name="consumed_quote_amount" type="decimal(20,8)" />
             <column name="left_quote_amount" type="decimal(20,8)" />
@@ -351,5 +360,78 @@
                 referencedColumnNames="id"
                 onDelete="SET NULL"/>
     </changeSet>
+
+    <changeSet id="create seq_hed_reporting_calculations" author="oress">
+        <createSequence sequenceName="seq_hed_reporting_calculations"
+                        dataType="bigint"
+                        incrementBy="1"
+                        startValue="1"/>
+    </changeSet>
+
+    <changeSet id="create table hed_reporting_calculations" author="oress">
+        <createTable tableName="hed_reporting_calculations">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="order_id" type="bigint"/>
+            <column name="user_balance_action_id" type="bigint"/>
+            <column name="date" type="timestamp"/>
+            <column name="amount" type="decimal(20,8)"/>
+            <column name="fix" type="decimal(20,8)"/>
+            <column name="usdt" type="decimal(20,8)"/>
+            <column name="commission" type="decimal(20,8)"/>
+            <column name="in_position" type="decimal(20,8)"/>
+            <column name="rate" type="decimal(20,8)"/>
+            <column name="deposit" type="decimal(20,8)"/>
+            <column name="deposit_total" type="decimal(20,8)"/>
+            <column name="deposit_payment" type="decimal(20,8)"/>
+            <column name="balance" type="decimal(20,8)"/>
+            <column name="created_at" type="timestamp"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="create idx_hed_reporting_calculations_user_balance_action_id" author="oress">
+        <createIndex indexName="idx_hed_reporting_calculations_user_balance_action_id" tableName="hed_reporting_calculations">
+            <column name="user_balance_action_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="create idx_hed_reporting_calculations_order_id" author="oress">
+        <createIndex indexName="idx_hed_reporting_calculations_order_id" tableName="hed_reporting_calculations">
+            <column name="order_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="create idx_hed_reporting_calculations_date" author="oress">
+        <createIndex indexName="idx_hed_reporting_calculations_date" tableName="hed_reporting_calculations">
+            <column name="date"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="create idx_hed_reporting_calculations_created_at" author="oress">
+        <createIndex indexName="idx_hed_reporting_calculations_created_at" tableName="hed_reporting_calculations">
+            <column name="created_at"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="add fk_hed_reporting_calculations_order_id" author="oress">
+        <addForeignKeyConstraint constraintName="fk_hed_reporting_calculations_order_id"
+                                 baseTableName="hed_reporting_calculations"
+                                 baseColumnNames="order_id"
+                                 referencedTableName="hed_orders"
+                                 referencedColumnNames="id"
+                                 onDelete="SET NULL"/>
+    </changeSet>
+
+
+    <changeSet id="add fk_hed_reporting_calculations_user_balance_action_id" author="oress">
+        <addForeignKeyConstraint constraintName="fk_hed_reporting_calculations_user_balance_action_id"
+                                 baseTableName="hed_reporting_calculations"
+                                 baseColumnNames="user_balance_action_id"
+                                 referencedTableName="hed_user_balance_actions"
+                                 referencedColumnNames="id"
+                                 onDelete="SET NULL"/>
+    </changeSet>
+
 
 </databaseChangeLog>

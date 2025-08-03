@@ -9,10 +9,9 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
 @Repository
-public interface OrderRepo extends JpaRepository<Order, UUID> {
+public interface OrderRepo extends JpaRepository<Order, Long> {
     @Query("select o from Order o join o.userInstrument ui join ui.user u join ui.instrument i where i.label = :label and o.createdAt > :syncDt and u.telegramId = :telegramId order by o.createdAt")
     List<Order> findAllForSyncByInstrument(Instant syncDt, Long telegramId, String label);
 
@@ -22,9 +21,10 @@ public interface OrderRepo extends JpaRepository<Order, UUID> {
 */
 
     @Query("select o from Order o join fetch o.consumptions where o.id = :id")
-    Order findOrderWithConsumptions(UUID id);
+    Order findOrderWithConsumptions(Long id);
 
-    Page<Order> findAllByUserInstrumentId(Long userInstrumentId, Pageable pageable);
+    @Query("select o from Order o join o.userInstrument ui where ui.id = :userInstrumentId order by o.createdAt asc")
+    List<Order> findAllForReportingCalculation(Long userInstrumentId);
 
     Page<Order> findAllByUserInstrumentIdOrderByCreatedAtDesc(Long userInstrumentId, Pageable pageable);
     List<Order> findAllByUserInstrumentIdOrderByCreatedAtDesc(Long userInstrumentId);

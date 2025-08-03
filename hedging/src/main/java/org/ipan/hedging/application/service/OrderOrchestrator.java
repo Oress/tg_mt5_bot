@@ -8,12 +8,8 @@ import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.model.AppUserInstrument;
 import org.ipan.hedging.domain.model.Instrument;
 import org.ipan.hedging.domain.model.Order;
-import org.ipan.hedging.domain.model.repository.InstrumentRepo;
 import org.ipan.hedging.domain.model.repository.UserRepo;
-import org.ipan.hedging.domain.service.OrderService;
-import org.ipan.hedging.domain.service.VolumeCalculation;
-import org.ipan.hedging.domain.service.VolumeCalculationParams;
-import org.ipan.hedging.domain.service.VolumeCalculationService;
+import org.ipan.hedging.domain.service.*;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -29,6 +25,7 @@ public class OrderOrchestrator {
     private final OrderService orderService;
     private final Mt5Service mt5Service;
     private final VolumeCalculationService volumeCalculationService;
+    private final ReportingCalculationService reportingCalculationService;
 
     public PlaceOrderResponse placeOrder(PlaceOrderCommand command) {
         log.info("Placing order for user: {}, instrument: {}, amount: {}, buy: {}", command.getUserId(), command.getInstrumentLabel(), command.getUserAmount(), command.isBuy());
@@ -104,12 +101,13 @@ public class OrderOrchestrator {
                 }
                 // 3. update order status to COMPLETE and calculate balances of user and the house
                 order = orderService.completeOrder(order.getId(), orderDetails, actualVolumeCalculation);
+                reportingCalculationService.recalculateAllForUserInstrument(userInstrument.getId());
                 successful = true;
             } catch (Exception e) {
                 successful = false;
                 log.error("Error while placing order for user: {}, symbol: {}, userAmount: {}, volume: {}", command.getUserId(), command.getInstrumentLabel(), command.getUserAmount(), volumeDouble, e);
                 if (order != null) {
-                    order = orderService.refundOrder(order.getId(), orderDetails);
+                    order = orderService.rollbackOrder(order.getId(), orderDetails);
                 }
             }
         } else {

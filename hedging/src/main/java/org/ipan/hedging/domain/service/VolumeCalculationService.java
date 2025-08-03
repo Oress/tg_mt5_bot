@@ -3,6 +3,7 @@ package org.ipan.hedging.domain.service;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.ipan.hedging.domain.model.*;
+import org.ipan.hedging.domain.model.repository.LifoPositionRepository;
 import org.ipan.hedging.domain.model.repository.OrderRepo;
 import org.springframework.stereotype.Service;
 

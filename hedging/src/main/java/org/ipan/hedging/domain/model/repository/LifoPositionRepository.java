@@ -1,4 +1,4 @@
-package org.ipan.hedging.domain.service;
+package org.ipan.hedging.domain.model.repository;
 
 import org.ipan.hedging.domain.model.LifoPosition;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
-interface LifoPositionRepository extends JpaRepository<LifoPosition, Long> {
+public interface LifoPositionRepository extends JpaRepository<LifoPosition, Long> {
     // FIFO style older records are processed first.
     @Query("""
         select lp from LifoPosition lp

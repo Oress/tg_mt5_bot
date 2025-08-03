@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.ipan.hedging.application.service.Mt5ServiceImpl;
 import org.ipan.hedging.application.service.command.PlaceOrderCommand;
 import org.ipan.hedging.domain.model.*;
+import org.ipan.hedging.domain.model.repository.LifoPositionRepository;
 import org.ipan.hedging.domain.model.repository.OrderRepo;
 import org.ipan.hedging.domain.model.repository.UserRepo;
 import org.springframework.stereotype.Service;
@@ -34,7 +35,7 @@ public class OrderService {
         Order order = new Order();
         order.setUserInstrument(userInstrument);
         order.setMt5AccNumber(user.getMt5AccNumber());
-        order.setType(OrderType.HOUSE_CLIENT_TRANSFER);
+        order.setType(command.isBuy() ? OrderType.HOUSE_CLIENT_TRANSFER_LONG : OrderType.HOUSE_CLIENT_TRANSFER_SHORT);
         order.setStatus(OrderStatus.COMPLETE);
 
         order.setAsk(volumeCalculation.getPrice());
@@ -71,6 +72,7 @@ public class OrderService {
         AppUserInstrument userInstrument = user.findUserInstrument(command.getInstrumentLabel());
 
         Order order = new Order();
+        order.setCorrelationId(UUID.randomUUID());
         order.setUserInstrument(userInstrument);
         order.setMt5AccNumber(user.getMt5AccNumber());
         order.setExecutedVolume(BigDecimal.valueOf(command.getVolume()));
@@ -95,7 +97,7 @@ public class OrderService {
     }
 
     @Transactional
-    public Order completeOrder(UUID id, Mt5ServiceImpl.OrderDetails orderDetails, VolumeCalculation volumeCalculation) {
+    public Order completeOrder(Long id, Mt5ServiceImpl.OrderDetails orderDetails, VolumeCalculation volumeCalculation) {
         Order order = orderRepo.findById(id).get();
         order.setDeal(orderDetails.getDeal());
         order.setOrder(orderDetails.getOrder());
@@ -154,7 +156,7 @@ public class OrderService {
     }
 
     @Transactional
-    public Order refundOrder(UUID id, Mt5ServiceImpl.OrderDetails orderDetails) {
+    public Order rollbackOrder(Long id, Mt5ServiceImpl.OrderDetails orderDetails) {
         log.info("Refunding order with id: {} orderDetails: {}", id, orderDetails);
         Order order = orderRepo.findById(id).get();
         order.setStatus(OrderStatus.ERROR);

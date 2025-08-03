@@ -6,8 +6,10 @@ import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.Order;
 import org.ipan.hedging.domain.model.repository.AppUserInstrumentRepository;
 import org.ipan.hedging.domain.model.repository.OrderRepo;
+import org.ipan.hedging.domain.model.repository.ReportingCalculationRepository;
 import org.ipan.hedging.domain.model.repository.UserRepo;
 import org.ipan.hedging.domain.service.OrderService;
+import org.ipan.hedging.domain.service.ReportingCalculationService;
 import org.ipan.hedging.domain.service.UserService;
 import org.ipan.hedging.domain.service.VolumeCalculationService;
 import org.ipan.hedging.domain.service.commands.users.CreateUserCommand;
@@ -24,6 +26,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,7 +34,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest()
+@SpringBootTest(classes = {TestAsyncConfig.class})
 @Testcontainers
 @ActiveProfiles("test")
 //@ExtendWith(MockitoExtension.class)
@@ -48,6 +51,7 @@ class OrderOrchestratorTest {
             .withUsername("test")
             .withPassword("test");
 
+
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
@@ -61,6 +65,9 @@ class OrderOrchestratorTest {
     private final AppUserInstrumentRepository userInstrumentRepository;
     private final OrderRepo orderRepo;
     private final VolumeCalculationService volumeCalculationService;
+    private final ReportingCalculationService reportingCalculationService;
+    private final UserBalanceService userBalanceService;
+    private final ReportingCalculationRepository reportingCalculationRepository;
 
     private OrderOrchestrator orderOrchestrator;
     private Mt5Service mt5Service;
@@ -68,13 +75,20 @@ class OrderOrchestratorTest {
     @Autowired
     public OrderOrchestratorTest(UserService userService, UserRepo userRepo,
                                  OrderService orderService, AppUserInstrumentRepository appUserInstrumentRepository,
-                                 OrderRepo orderRepo, VolumeCalculationService volumeCalculationService) {
+                                 OrderRepo orderRepo,
+                                 VolumeCalculationService volumeCalculationService,
+                                 ReportingCalculationService reportingCalculationService,
+                                 ReportingCalculationRepository reportingCalculationRepository,
+                                 UserBalanceService userBalanceService) {
         this.userService = userService;
         this.userRepo = userRepo;
         this.orderService = orderService;
         this.userInstrumentRepository = appUserInstrumentRepository;
         this.orderRepo = orderRepo;
         this.volumeCalculationService = volumeCalculationService;
+        this.reportingCalculationService = reportingCalculationService;
+        this.reportingCalculationRepository = reportingCalculationRepository;
+        this.userBalanceService = userBalanceService;
     }
 
     @BeforeAll
@@ -94,7 +108,8 @@ class OrderOrchestratorTest {
                 userRepo,
                 orderService,
                 mt5Service,
-                volumeCalculationService
+                volumeCalculationService,
+                reportingCalculationService
         );
 
         // clean orders for clean state every test.
@@ -153,7 +168,7 @@ class OrderOrchestratorTest {
         assertThat(order1.getUserBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
 
         assertThat(order1.getUserEnteredQuoteAmount()).isNull();
-//        assertThat(order1.getQuoteAmountLeftToUnhedge()).isNull();
+        assertThat(order1.getLifoPosition()).isNull();
     }
 
     @Test
@@ -176,7 +191,7 @@ class OrderOrchestratorTest {
         assertThat(order1.getUserBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(735.29411765));
 
         assertThat(order1.getUserEnteredQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
-//        assertThat(order1.getQuoteAmountLeftToUnhedge()).isEqualByComparingTo(BigDecimal.valueOf(1000));
+        assertThat(order1.getLifoPosition().getRemainingQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
     }
 
     @Test
@@ -280,7 +295,7 @@ class OrderOrchestratorTest {
         assertThat(consumptions3.get(0).getConsumedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(7000));
 
         Order order1AfterUnhedge = orderRepo.findById(response1.getOrder().getId()).get();
-//        assertThat(order1AfterUnhedge.getQuoteAmountLeftToUnhedge()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(order1AfterUnhedge.getLifoPosition().getRemainingQuoteAmount()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
 
@@ -308,20 +323,20 @@ class OrderOrchestratorTest {
         assertThat(userInstrument3.getClientOwnedQuoteAmount()).isEqualByComparingTo(BigDecimal.ZERO);
 
         Order order3 = orderRepo.findOrderWithConsumptions(response3.getOrder().getId());
-//        List<OrderConsumption> consumptions = order3.getConsumptions();
-//        assertThat(consumptions).hasSize(2);
+        List<LifoPositionConsumption> consumptions = order3.getConsumptions();
+        assertThat(consumptions).hasSize(2);
 
-//        assertThat(consumptions.get(0).getConsumedOrder().getId()).isEqualByComparingTo(response1.getOrder().getId());
-//        assertThat(consumptions.get(0).getConsumedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
+        assertThat(consumptions.get(0).getConsumedPosition().getOrder().getId()).isEqualByComparingTo(response1.getOrder().getId());
+        assertThat(consumptions.get(0).getConsumedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
 
-//        assertThat(consumptions.get(1).getConsumedOrder().getId()).isEqualByComparingTo(response2.getOrder().getId());
-//        assertThat(consumptions.get(1).getConsumedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
+        assertThat(consumptions.get(1).getConsumedPosition().getOrder().getId()).isEqualByComparingTo(response2.getOrder().getId());
+        assertThat(consumptions.get(1).getConsumedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
 
         Order order1AfterUnhedge = orderRepo.findById(response1.getOrder().getId()).get();
         Order order2AfterUnhedge = orderRepo.findById(response2.getOrder().getId()).get();
 
-//        assertThat(order1AfterUnhedge.getQuoteAmountLeftToUnhedge()).isEqualByComparingTo(BigDecimal.ZERO);
-//        assertThat(order2AfterUnhedge.getQuoteAmountLeftToUnhedge()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(order1AfterUnhedge.getLifoPosition().getRemainingQuoteAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(order2AfterUnhedge.getLifoPosition().getRemainingQuoteAmount()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
     @Test
@@ -352,6 +367,53 @@ class OrderOrchestratorTest {
         PlaceOrderResponse response4 = placeUsdCadOrderResponse(2000, false, 1.36866);
         AppUserInstrument userInstrument4 = response4.getOrder().getUserInstrument();
         assertThat(userInstrument4.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Test
+    void testReportingCalculation() {
+        PlaceOrderResponse response1 = placeUsdCadOrderResponse(1000, true, 1.36567);
+        PlaceOrderResponse response2 = placeUsdCadOrderResponse(4000, true, 1.32678);
+        PlaceOrderResponse response3 = placeUsdCadOrderResponse(9000, true, 1.25764);
+        userBalanceService.createDepositAction(response3.getOrder().getUserInstrument().getId(), 80_000, Instant.now());
+
+        List<ReportingCalculation> all = reportingCalculationRepository.findAllOrdByDate();
+        assertThat(all).hasSize(4);
+
+        ReportingCalculation reportingCalculation1 = all.get(0);
+        assertThat(reportingCalculation1.getUsdt().setScale(0, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(-732));
+        assertThat(reportingCalculation1.getCommission().setScale(2, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(0.73));
+        assertThat(reportingCalculation1.getInPosition().setScale(0, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(-1000));
+        assertThat(reportingCalculation1.getRate().setScale(5, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(1.36567));
+        assertThat(reportingCalculation1.getDeposit().setScale(2, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(-0.73));
+        assertThat(reportingCalculation1.getDepositTotal().setScale(2, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(-0.73));
+        assertThat(reportingCalculation1.getBalance().setScale(2, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(-0.73));
+
+        ReportingCalculation reportingCalculation2 = all.get(1);
+        assertThat(reportingCalculation2.getUsdt().setScale(0, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(-3015));
+        assertThat(reportingCalculation2.getCommission().setScale(2, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(3.01));
+        assertThat(reportingCalculation2.getInPosition().setScale(0, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(-5000));
+        assertThat(reportingCalculation2.getRate().setScale(5, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(1.33456));
+        assertThat(reportingCalculation2.getDeposit().setScale(2, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(-3.01));
+        assertThat(reportingCalculation2.getDepositTotal().setScale(2, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(-3.75));
+        assertThat(reportingCalculation2.getBalance().setScale(2, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(-3.75));
+
+        ReportingCalculation reportingCalculation3 = all.get(2);
+        assertThat(reportingCalculation3.getUsdt().setScale(0, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(-7156));
+        assertThat(reportingCalculation3.getCommission().setScale(2, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(7.16));
+        assertThat(reportingCalculation3.getInPosition().setScale(0, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(-14_000));
+        assertThat(reportingCalculation3.getRate().setScale(5, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(1.28511));
+        assertThat(reportingCalculation3.getDeposit().setScale(2, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(-7.16));
+        assertThat(reportingCalculation3.getDepositTotal().setScale(2, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(-10.90).setScale(2));
+        assertThat(reportingCalculation3.getBalance().setScale(2, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(-10.90).setScale(2));
+
+        ReportingCalculation reportingCalculation4 = all.get(3);
+        assertThat(reportingCalculation4.getUsdt()).isNull();
+        assertThat(reportingCalculation4.getCommission()).isNull();
+        assertThat(reportingCalculation4.getInPosition().setScale(0, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(-14_000));
+        assertThat(reportingCalculation4.getRate().setScale(5, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(1.28511));
+        assertThat(reportingCalculation4.getDeposit()).isNull();
+        assertThat(reportingCalculation4.getDepositTotal().setScale(2, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(-10.90).setScale(2));
+        assertThat(reportingCalculation4.getBalance().setScale(2, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(79_989.10).setScale(2));
     }
 
     private PlaceOrderResponse placeEurUsdOrderResponse(Integer userAmount, boolean isBuy, Double price) {

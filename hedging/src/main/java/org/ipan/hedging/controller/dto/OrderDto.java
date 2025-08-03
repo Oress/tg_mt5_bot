@@ -17,7 +17,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class OrderDto {
-    private UUID id;
+    private Long id;
     private List<OrderConsumptionDto> consumptions = new ArrayList<>();
     private Long deal;
     private Long order;
