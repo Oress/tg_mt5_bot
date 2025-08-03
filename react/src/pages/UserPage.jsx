@@ -17,7 +17,7 @@ import {
   Grid,
   Row,
   Col,
-  theme, InputNumber, DatePicker, Radio, Collapse, Statistic
+  theme, InputNumber, DatePicker, Radio, Collapse, Statistic, Select, Checkbox, message
 } from 'antd';
 import {
   ArrowLeftOutlined,
@@ -28,6 +28,14 @@ import {
   EditOutlined,
   DeleteOutlined, DownloadOutlined, LinkOutlined
 } from "@ant-design/icons";
+
+const formatCurrency = (amount, currency = 'USD', locale = 'en-US') => {
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: currency
+  }).format(amount);
+};
+
 
 function LoadingUserPage() {
   const { token } = theme.useToken();
@@ -96,7 +104,7 @@ function UserPageHeader({ onRefresh, isRefreshing, user }) {
           wrap="wrap"
           gap="middle"
         >
-          <Typography.Title level={2} style={{ margin: 0 }}>
+          <Typography.Title level={4} style={{ margin: 0 }}>
             Детали пользователя {userIdentifier && `- ${userIdentifier}`}
           </Typography.Title>
           <Space>
@@ -129,7 +137,7 @@ function UserInfoSection({user}) {
           Информация о пользователе
         </Typography.Title>
         <Divider style={{ margin: 0 }} />
-        <Row gutter={[16, 16]}>
+        <Row gutter={[8, 8]}>
           <Col xs={24} sm={12} md={8}>
             <Card size="small">
               <Space direction="vertical" size="small">
@@ -170,9 +178,12 @@ function UserInfoSection({user}) {
               <Space direction="vertical" size="small">
                 <Statistic title="Google Sheet" value={user.googleSheetId}
                 formatter={(val) =>
-                    <Button type="link" href={val} size="large"
+                    val ? (
+                    <Button type="link" href={val} size="large" target="_blank"
                     icon={<LinkOutlined />}
-                    >Открыть</Button>
+                    >Открыть
+                    </Button>)
+                      : (<span>-</span>)
                 }
                 />
               </Space>
@@ -271,7 +282,11 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
       dataIndex: 'userBaseAmount',
       key: 'userBaseAmount',
       width: 160,
-      render: (amount) => `${amount} ${selectedInstrument.base}`,
+      render: (amount) => (
+        <Typography.Text strong>
+          {formatCurrency(amount, selectedInstrument.base)}
+        </Typography.Text>
+      )
     },
     {
       title: 'Лоты',
@@ -283,21 +298,33 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
       dataIndex: 'executedBaseAmount',
       key: 'executedBaseAmount',
       width: 160,
-      render: (amount) => `${amount} ${selectedInstrument.base}`,
+      render: (amount) => (
+        <Typography.Text strong>
+          {formatCurrency(amount, selectedInstrument.base)}
+        </Typography.Text>
+      )
     },
     {
       title: 'Клиент, До, Сумма в базовой валюте',
       dataIndex: 'clientBaseAmountFrom',
       key: 'clientBaseAmountFrom',
       width: 160,
-      render: (amount) => `${amount} ${selectedInstrument.base}`,
+      render: (amount) => (
+        <Typography.Text strong>
+          {formatCurrency(amount, selectedInstrument.base)}
+        </Typography.Text>
+      )
     },
     {
       title: 'Клиент, После, Сумма в базовой валюте',
       dataIndex: 'clientBaseAmountTo',
       key: 'clientBaseAmountTo',
       width: 160,
-      render: (amount) => `${amount} ${selectedInstrument.base}`,
+      render: (amount) => (
+        <Typography.Text strong>
+          {formatCurrency(amount, selectedInstrument.base)}
+        </Typography.Text>
+      )
     },
     {
       title: 'ID',
@@ -310,20 +337,20 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
   return (
     <div style={{ paddingTop: '16px' }}>
       {/* Ownership Info */}
-      <Row gutter={16} style={{ marginBottom: '24px' }}>
-        <Col span={24}>
+      <Row gutter={[8, 8]} style={{ marginBottom: '24px' }}>
+        <Col xs={24} sm={12} md={8}>
           <Card size="small">
-            <Flex direction="vertical" gap="small" align="center" justify="center">
-              <Typography.Text type="secondary">{selectedInstrument.base} Клиента</Typography.Text>
-              <Typography.Text
-                strong
-                style={{
-                  fontSize: '24px',
-                  color: '#1677ff'
-                }}
-              >
-                {selectedInstrument.clientOwnedBaseAmount}
-              </Typography.Text>
+            <Flex direction="vertical" gap="small">
+              <Statistic title={`${selectedInstrument.base}  Клиента`}
+                         value={selectedInstrument.clientOwnedBaseAmount} />
+            </Flex>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={8}>
+          <Card size="small">
+            <Flex direction="vertical" gap="small">
+              <Statistic title={`Баланс`}
+                         value={selectedInstrument.balance} />
             </Flex>
           </Card>
         </Col>
@@ -347,7 +374,7 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
             columns={columns}
             dataSource={orderHistory}
             rowKey="id"
-            scroll={{ x: true }}
+            scroll={{ x: 'max-content' }}
             pagination={false}
             size="small"
           />
@@ -378,6 +405,7 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
             type: "open"
           }
         });
+        console.log('positionsResponse.data', positionsResponse.data);
         setOpenPositions(positionsResponse.data);
 
         // Fetch order history for the selected instrument
@@ -397,52 +425,36 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
   return (
       <div style={{ paddingTop: '16px' }}>
         {/* Ownership Info */}
-        <Row gutter={16} style={{ marginBottom: '24px' }}>
+        <Row gutter={[8, 8]} style={{ marginBottom: '24px' }}>
           <Col xs={24} sm={8} md={8}>
             <Card size="small">
-              <Flex direction="vertical" gap="small" align="center" justify="center">
-                <Typography.Text type="secondary">{selectedInstrument.quote} Клиента</Typography.Text>
-                <Typography.Text
-                  strong
-                  style={{
-                    fontSize: '24px',
-                    color: '#722ed1'
-                  }}
-                >
-                  {selectedInstrument.clientOwnedQuoteAmount}
-                </Typography.Text>
+              <Flex direction="vertical" gap="small">
+                <Statistic title={`${selectedInstrument.quote}  Клиента`}
+                           value={selectedInstrument.clientOwnedQuoteAmount} />
               </Flex>
             </Card>
           </Col>
           <Col xs={24} sm={8} md={8}>
             <Card size="small">
-              <Flex direction="vertical" gap="small" align="center" justify="center">
-                <Typography.Text type="secondary">{selectedInstrument.base} Клиента</Typography.Text>
-                <Typography.Text
-                  strong
-                  style={{
-                    fontSize: '24px',
-                    color: '#1677ff'
-                  }}
-                >
-                  {selectedInstrument.clientOwnedBaseAmount}
-                </Typography.Text>
+              <Flex direction="vertical" gap="small">
+                <Statistic title={`${selectedInstrument.base}  Клиента`}
+                           value={selectedInstrument.clientOwnedBaseAmount} />
               </Flex>
             </Card>
           </Col>
           <Col xs={24} sm={8} md={8}>
             <Card size="small">
-              <Flex direction="vertical" gap="small" align="center" justify="center">
-                <Typography.Text type="secondary">{selectedInstrument.base} Димы</Typography.Text>
-                <Typography.Text
-                  strong
-                  style={{
-                    fontSize: '24px',
-                    color: '#52c41a'
-                  }}
-                >
-                  {selectedInstrument.houseOwnedBaseAmount}
-                </Typography.Text>
+              <Flex direction="vertical" gap="small">
+                <Statistic title={`${selectedInstrument.base} Сервиса`}
+                           value={selectedInstrument.houseOwnedBaseAmount} />
+              </Flex>
+            </Card>
+          </Col>
+          <Col xs={24} sm={8} md={8}>
+            <Card size="small">
+              <Flex direction="vertical" gap="small">
+                <Statistic title="Баланс"
+                           value={selectedInstrument.balance} />
               </Flex>
             </Card>
           </Col>
@@ -489,30 +501,45 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
                 {
                   title: 'Остаток для расхеджирования',
                   key: 'unhedge',
-                  width: 160,
+                  width: 200,
                   render: (_, order) => (
                     <Typography.Text strong style={{ color: '#52c41a' }}>
-                      {order.quoteAmountLeftToUnhedge} / {order.userEnteredQuoteAmount}
+                      {formatCurrency(order.remainingQuoteAmount, selectedInstrument.quote)} / {formatCurrency(order.userEnteredQuoteAmount, selectedInstrument.quote)}
                     </Typography.Text>
                   ),
                 },
                 {
                   title: 'Сумма в котируемой валюте',
-                  key: 'quoteAmount',
+                  key: 'userEnteredQuoteAmount',
+                  dataIndex: 'userEnteredQuoteAmount',
                   width: 160,
-                  render: (_, order) => `${order.userEnteredQuoteAmount} ${selectedInstrument.quote}`,
+                  render: (amount) => (
+                    <Typography.Text strong>
+                      {formatCurrency(amount, selectedInstrument.quote)}
+                    </Typography.Text>
+                  )
                 },
                 {
                   title: 'Сумма в базовой валюте',
-                  key: 'baseAmount',
+                  key: 'userBaseAmount',
+                  dataIndex: 'userBaseAmount',
                   width: 160,
-                  render: (_, order) => `${order.userBaseAmount} ${selectedInstrument.base}`,
+                  render: (amount) => (
+                    <Typography.Text strong>
+                      {formatCurrency(amount, selectedInstrument.base)}
+                    </Typography.Text>
+                  )
                 },
                 {
                   title: 'Сумма ордера в базовой валюте',
                   key: 'executedBaseAmount',
+                  dataIndex: 'executedBaseAmount',
                   width: 160,
-                  render: (_, order) => `${order.executedBaseAmount} ${selectedInstrument.base}`,
+                  render: (amount) => (
+                    <Typography.Text strong>
+                      {formatCurrency(amount, selectedInstrument.base)}
+                    </Typography.Text>
+                  )
                 },
                 {
                   title: 'ID',
@@ -523,8 +550,8 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
               ]}
               dataSource={openPositions}
               rowKey="id"
-              scroll={{ x: true }}
               pagination={false}
+              scroll={{ x: 'max-content' }}
               size="small"
             />
           ) : (
@@ -556,9 +583,6 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
                   key: 'type',
                   render: (type, order) => (
                     <Flex align="center" gap="small">
-                      {(type === 'MT5_SHORT') && (
-                        expandedRows[order.id] ? <DownOutlined /> : <RightOutlined />
-                      )}
                       <Typography.Text
                         style={{
                           fontWeight: 'bold',
@@ -597,14 +621,24 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
                 {
                   title: 'Сумма в базовой валюте',
                   key: 'userBaseAmount',
+                  dataIndex: 'userBaseAmount',
                   width: 160,
-                  render: (_, order) => `${order.userBaseAmount} ${selectedInstrument.base}`,
+                  render: (amount) => (
+                    <Typography.Text strong>
+                      {formatCurrency(amount, selectedInstrument.base)}
+                    </Typography.Text>
+                  )
                 },
                 {
                   title: 'Сумма в котируемой валюте',
-                  key: 'userQuoteAmount',
+                  key: 'userEnteredQuoteAmount',
+                  dataIndex: 'userEnteredQuoteAmount',
                   width: 160,
-                  render: (_, order) => `${order.userEnteredQuoteAmount} ${selectedInstrument.quote}`,
+                  render: (amount) => (
+                    <Typography.Text strong>
+                      {formatCurrency(amount, selectedInstrument.quote)}
+                    </Typography.Text>
+                  )
                 },
                 {
                   title: 'Лоты',
@@ -614,32 +648,57 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
                 {
                   title: 'Сумма ордера в базовой валюте',
                   key: 'executedBaseAmount',
+                  dataIndex: 'executedBaseAmount',
                   width: 160,
-                  render: (_, order) => `${order.executedBaseAmount} ${selectedInstrument.base}`,
+                  render: (amount) => (
+                    <Typography.Text strong>
+                      {formatCurrency(amount, selectedInstrument.base)}
+                    </Typography.Text>
+                  )
                 },
                 {
-                  title: 'Дима, До, Сумма в базовой валюте',
+                  title: 'Сервис, До, Сумма в базовой валюте',
                   key: 'houseBaseAmountFrom',
+                  dataIndex: 'houseBaseAmountFrom',
                   width: 160,
-                  render: (_, order) => `${order.houseBaseAmountFrom} ${selectedInstrument.base}`,
+                  render: (amount) => (
+                    <Typography.Text strong>
+                      {formatCurrency(amount, selectedInstrument.base)}
+                    </Typography.Text>
+                  )
                 },
                 {
-                  title: 'Дима, После, Сумма в базовой валюте',
+                  title: 'Сервис, После, Сумма в базовой валюте',
                   key: 'houseBaseAmountTo',
+                  dataIndex: 'houseBaseAmountTo',
                   width: 160,
-                  render: (_, order) => `${order.houseBaseAmountTo} ${selectedInstrument.base}`,
+                  render: (amount) => (
+                    <Typography.Text strong>
+                      {formatCurrency(amount, selectedInstrument.base)}
+                    </Typography.Text>
+                  )
                 },
                 {
                   title: 'Клиент, До, Сумма в базовой валюте',
                   key: 'clientBaseAmountFrom',
+                  dataIndex: 'clientBaseAmountFrom',
                   width: 160,
-                  render: (_, order) => `${order.clientBaseAmountFrom} ${selectedInstrument.base}`,
+                  render: (amount) => (
+                    <Typography.Text strong>
+                      {formatCurrency(amount, selectedInstrument.base)}
+                    </Typography.Text>
+                  )
                 },
                 {
                   title: 'Клиент, После, Сумма в базовой валюте',
                   key: 'clientBaseAmountTo',
+                  dataIndex: 'clientBaseAmountTo',
                   width: 160,
-                  render: (_, order) => `${order.clientBaseAmountTo} ${selectedInstrument.base}`,
+                  render: (amount) => (
+                    <Typography.Text strong>
+                      {formatCurrency(amount, selectedInstrument.base)}
+                    </Typography.Text>
+                  )
                 },
                 {
                   title: 'ID',
@@ -650,7 +709,7 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
               ]}
               dataSource={orderHistory}
               rowKey="id"
-              scroll={{ x: true }}
+              scroll={{ x: 'max-content' }}
               pagination={false}
               size="small"
               onRow={(record) => ({
@@ -664,8 +723,9 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
                 },
               })}
               expandable={{
+                rowExpandable: (record) => record.consumptions && record.consumptions.length > 0,
                 expandedRowRender: (record) => (
-                  record.type === 'MT5_SHORT' && record.consumptions ? (
+                  record.consumptions ? (
                     <div style={{ paddingLeft: '16px', paddingTop: '8px', paddingBottom: '8px' }}>
                       <Table
                         columns={[
@@ -680,37 +740,56 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
                             dataIndex: 'consumedQuoteAmount',
                             key: 'consumedQuoteAmount',
                             width: 200,
+                            render: (amount) => (
+                              <Typography.Text strong>
+                                {formatCurrency(amount, selectedInstrument.quote)}
+                              </Typography.Text>
+                            )
                           },
                           {
                             title: `Остаток ${selectedInstrument.quote} в сделке`,
                             dataIndex: 'leftQuoteAmount',
                             key: 'leftQuoteAmount',
                             width: 200,
-                          },
+                            render: (amount) => (
+                              <Typography.Text strong>
+                                {formatCurrency(amount, selectedInstrument.quote)}
+                              </Typography.Text>
+                            ),                          },
                           {
                             title: `Еквивалент в ${selectedInstrument.base}`,
                             dataIndex: 'baseEquivalent',
                             key: 'baseEquivalent',
                             width: 200,
+                            render: (amount) => (
+                              <Typography.Text strong>
+                                {formatCurrency(amount, selectedInstrument.base)}
+                              </Typography.Text>
+                            ),
+                          },
+                          {
+                            title: ``,
+                            key: 'empty',
                           },
                         ]}
                         dataSource={record.consumptions}
                         rowKey={(item, index) => index}
                         pagination={false}
+                        scroll={{ x: 'max-content' }}
                         size="small"
                       />
                     </div>
                   ) : null
-                ),
-                expandedRowKeys: Object.keys(expandedRows).filter(key => expandedRows[key]),
-                onExpand: (expanded, record) => {
+                )
+                // expandedRowKeys: Object.keys(expandedRows).filter(key => expandedRows[key]),
+/*                onExpand: (expanded, record) => {
                   if (record.type === 'MT5_SHORT') {
                     setExpandedRows(prev => ({
                       ...prev,
                       [record.id]: expanded
                     }));
                   }
-                },
+                }*/,
               }}
             />
           ) : (
@@ -806,13 +885,6 @@ function DepositsWithdrawalsSection({ userId, instrumentId, refreshTrigger, inst
     }
   };
 
-  const formatCurrency = (amount, currency = 'USD', locale = 'en-US') => {
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: currency
-    }).format(amount);
-  };
-
   const handleSubmit = async () => {
     // Reset errors
     setErrors({});
@@ -892,7 +964,7 @@ function DepositsWithdrawalsSection({ userId, instrumentId, refreshTrigger, inst
       width: 150,
       render: (_, transaction) => (
         <Typography.Text strong>
-          {formatCurrency(transaction.amount, instrumentInfo.quote)}
+          {formatCurrency(transaction.amount, 'USD')}
         </Typography.Text>
       ),
     },
@@ -928,18 +1000,18 @@ function DepositsWithdrawalsSection({ userId, instrumentId, refreshTrigger, inst
   return (
     <>
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-      <Flex justify="space-between" align="center">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
         <Typography.Title level={4} style={{ margin: 0 }}>
           Депозиты и выводы {instrumentInfo && `(${instrumentInfo.label})`}
         </Typography.Title>
         <Button
-          type="primary"
+          type="default"
           icon={<PlusOutlined />}
           onClick={() => handleOpenDialog()}
         >
           Добавить запись
         </Button>
-      </Flex>
+      </div>
       <Divider style={{ margin: 0 }} />
 
       {isLoading ? (
@@ -952,7 +1024,7 @@ function DepositsWithdrawalsSection({ userId, instrumentId, refreshTrigger, inst
           columns={columns}
           dataSource={transactions}
           rowKey="id"
-          scroll={{ x: true }}
+          scroll={{ x: 'max-content' }}
           pagination={false}
           size="small"
         />
@@ -1071,6 +1143,9 @@ function UserPage({ toggleTheme, themeMode }) {
   const [loading, setLoading] = useState(true);
   const [selectedInstrument, setSelectedInstrument] = useState(null);
   const [refreshCounter, setRefreshCounter] = useState(0);
+  const [isInstrumentModalOpen, setIsInstrumentModalOpen] = useState(false);
+  const [selectedInstrumentOption, setSelectedInstrumentOption] = useState(['EUR/USD']);
+  const [isUpdatingInstruments, setIsUpdatingInstruments] = useState(false);
 
   // API endpoints for data fetching
 
@@ -1081,10 +1156,9 @@ function UserPage({ toggleTheme, themeMode }) {
       const userResponse = await api.get(`/users/${userId}`);
       setUser(userResponse.data);
 
-      // Fetch instruments
-      // const instrumentsResponse = await api.get('/instruments');
-      // setInstruments(instrumentsResponse.data);
-      const instrumentsResp = userResponse.data.instruments || [];
+      // Fetch instruments separately using the new endpoint
+      const instrumentsResponse = await api.get(`/users/${userResponse.data.telegramId}/instruments`);
+      const instrumentsResp = instrumentsResponse.data.data || [];
       instrumentsResp.sort((a, b) => a.label.localeCompare(b.label));
       setInstruments(instrumentsResp);
 
@@ -1113,6 +1187,58 @@ function UserPage({ toggleTheme, themeMode }) {
     setActiveTab(instrumentName);
     const instrument = instruments.find(i => i.label === instrumentName);
     setSelectedInstrument(instrument);
+    
+    // Reload user instruments when tab changes
+    setRefreshCounter(prev => prev + 1);
+  };
+
+  const handleInstrumentChange = async (selectedInstruments) => {
+    try {
+      // Map checkbox selections to the correct DTO format
+      const instrumentsDto = {
+        eurUsd: selectedInstruments.includes('EUR/USD'),
+        cadUsd: selectedInstruments.includes('USD/CAD')
+      };
+
+      console.log('Updating instruments:', instrumentsDto);
+
+      // Make API call to update available instruments
+      await api.post(`/users/${user.telegramId}/instruments/update-available-instruments`, instrumentsDto);
+
+      console.log('Instruments updated successfully');
+
+      // Refresh user data after successful update
+      await fetchData();
+    } catch (error) {
+      console.error('Error updating instruments:', error);
+      // You might want to show a notification to the user here
+    }
+  };
+
+  const handleOpenInstrumentModal = () => {
+    // Set initial state based on user's current available instruments
+    const currentInstruments = instruments.map(instrument => instrument.label);
+    setSelectedInstrumentOption(currentInstruments);
+    setIsInstrumentModalOpen(true);
+  };
+
+  const handleCloseInstrumentModal = () => {
+    setIsInstrumentModalOpen(false);
+  };
+
+  const handleInstrumentSelection = async () => {
+    if (handleInstrumentChange) {
+      setIsUpdatingInstruments(true);
+      try {
+        await handleInstrumentChange(selectedInstrumentOption);
+        message.success('Инструменты успешно обновлены');
+        setIsInstrumentModalOpen(false);
+      } catch (error) {
+        message.error('Ошибка при обновлении инструментов');
+      } finally {
+        setIsUpdatingInstruments(false);
+      }
+    }
   };
 
   if (loading) {
@@ -1159,9 +1285,17 @@ function UserPage({ toggleTheme, themeMode }) {
         {/* Instruments Section */}
         <Card style={{ marginBottom: '24px' }}>
           <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-            <Typography.Title level={3} style={{ margin: 0 }}>
-              Доступные инструменты
-            </Typography.Title>
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
+              <Typography.Title level={3} style={{ margin: 0 }}>
+                Доступные инструменты
+              </Typography.Title>
+              <Button
+                onClick={handleOpenInstrumentModal}
+                icon={<EditOutlined />}
+              >
+                Изменить инструменты
+              </Button>
+            </div>
             <Divider style={{ margin: 0 }} />
 
             {/* Tabs */}
@@ -1174,6 +1308,40 @@ function UserPage({ toggleTheme, themeMode }) {
           </Space>
         </Card>
       </div>
+
+      {/* Instrument Selection Modal */}
+      <Modal
+        title="Изменить доступные инструменты"
+        open={isInstrumentModalOpen}
+        onCancel={isUpdatingInstruments ? undefined : handleCloseInstrumentModal}
+        closable={!isUpdatingInstruments}
+        maskClosable={!isUpdatingInstruments}
+        footer={[
+          <Button key="cancel" onClick={handleCloseInstrumentModal} disabled={isUpdatingInstruments}>
+            Отмена
+          </Button>,
+          <Button key="submit" type="primary" onClick={handleInstrumentSelection} loading={isUpdatingInstruments}>
+            Применить
+          </Button>
+        ]}
+        width={450}
+      >
+        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+          <Typography.Text>
+            Выберите доступные инструменты для пользователя:
+          </Typography.Text>
+          <Checkbox.Group
+            value={selectedInstrumentOption}
+            onChange={(checkedValues) => setSelectedInstrumentOption(checkedValues)}
+            style={{ width: '100%' }}
+          >
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Checkbox value="EUR/USD">EUR/USD</Checkbox>
+              <Checkbox value="USD/CAD">USD/CAD</Checkbox>
+            </Space>
+          </Checkbox.Group>
+        </Space>
+      </Modal>
     </div>
   );
 }
