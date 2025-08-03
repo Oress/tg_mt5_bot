@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 public class OrderService {
     private final UserRepo userRepo;
     private final OrderRepo orderRepo;
+    private final LifoPositionRepository lifoPositionRepository;
 
     @Transactional
     public Order redistributeBaseAmount(PlaceOrderCommand command, VolumeCalculation volumeCalculation) {
@@ -42,11 +43,11 @@ public class OrderService {
 
         if (InstrumentMode.LONG.equals(instrument.getMode())) {
             order.setUserEnteredQuoteAmount(BigDecimal.valueOf(command.getUserAmount()));
-            order.setQuoteAmountLeftToUnhedge(BigDecimal.valueOf(command.getUserAmount()));
-            order.setHouseBaseAmountFrom(volumeCalculation.getOldHouseOwnedBase());
-            order.setHouseBaseAmountTo(volumeCalculation.getNewHouseOwnedBase());
-            order.setClientBaseAmountFrom(volumeCalculation.getOldUserOwnedBase());
-            order.setClientBaseAmountTo(volumeCalculation.getNewUserOwnedBase());
+            order.createLifoPosition(command.getUserAmount());
+//            order.setHouseBaseAmountFrom(volumeCalculation.getOldHouseOwnedBase());
+//            order.setHouseBaseAmountTo(volumeCalculation.getNewHouseOwnedBase());
+//            order.setClientBaseAmountFrom(volumeCalculation.getOldUserOwnedBase());
+//            order.setClientBaseAmountTo(volumeCalculation.getNewUserOwnedBase());
             order.setUserBaseAmount(volumeCalculation.getExecutionUserOwnedBase());
         } else {
             log.error("Unsupported instrument mode: {}", instrument.getMode());
@@ -84,7 +85,7 @@ public class OrderService {
             order.setUserEnteredQuoteAmount(BigDecimal.valueOf(command.getUserAmount()));
 
             if (OrderType.MT5_LONG.equals(order.getType())) {
-                order.setQuoteAmountLeftToUnhedge(BigDecimal.valueOf(command.getUserAmount()));
+                order.createLifoPosition(command.getUserAmount());
             }
         }
 
@@ -106,10 +107,10 @@ public class OrderService {
         order.setMt5RespComment(orderDetails.getRetcode());
         order.setStatus(OrderStatus.COMPLETE);
 
-        order.setHouseBaseAmountFrom(volumeCalculation.getOldHouseOwnedBase());
-        order.setHouseBaseAmountTo(volumeCalculation.getNewHouseOwnedBase());
-        order.setClientBaseAmountFrom(volumeCalculation.getOldUserOwnedBase());
-        order.setClientBaseAmountTo(volumeCalculation.getNewUserOwnedBase());
+//        order.setHouseBaseAmountFrom(volumeCalculation.getOldHouseOwnedBase());
+//        order.setHouseBaseAmountTo(volumeCalculation.getNewHouseOwnedBase());
+//        order.setClientBaseAmountFrom(volumeCalculation.getOldUserOwnedBase());
+//        order.setClientBaseAmountTo(volumeCalculation.getNewUserOwnedBase());
         order.setUserBaseAmount(volumeCalculation.getExecutionUserOwnedBase());
         order.setExecutedBaseAmount(volumeCalculation.getExecutionBase());
 
@@ -126,22 +127,22 @@ public class OrderService {
                 // unhedge
                 userInstrument.subtractUserAndHousePartsLongMode(volumeCalculation);
 
-                List<UUID> orderIds = volumeCalculation.getOrdersForConsumption().stream().map(o -> o.getOrderId()).toList();
-                Map<UUID, PlannedOrderConsumption> orderIdToConsumption = volumeCalculation.getOrdersForConsumption()
+                List<Long> lifoPositionIds = volumeCalculation.getLifoPositionsForConsumption().stream().map(o -> o.getLifoPositionId()).toList();
+                Map<Long, PlannedLifoPositionConsumption> orderIdToConsumption = volumeCalculation.getLifoPositionsForConsumption()
                         .stream()
-                        .collect(Collectors.toMap(o -> o.getOrderId(), o -> o));
+                        .collect(Collectors.toMap(o -> o.getLifoPositionId(), o -> o));
 
-                List<Order> allById = orderRepo.findAllById(orderIds);
-                for (Order orderToConsume : allById) {
-                    PlannedOrderConsumption plannedOrderConsumption = orderIdToConsumption.get(orderToConsume.getId());
-                    orderToConsume.decreaseQuoteAmountLeftToUnhedge(plannedOrderConsumption.getQuoteConsumptionAmount());
+                List<LifoPosition> allById = lifoPositionRepository.findAllById(lifoPositionIds);
+                for (LifoPosition lifoPositionToConsume : allById) {
+                    PlannedLifoPositionConsumption plannedLifoPositionConsumption = orderIdToConsumption.get(lifoPositionToConsume.getId());
+                    lifoPositionToConsume.decreaseRemainingQuoteAmount(plannedLifoPositionConsumption.getQuoteConsumptionAmount());
 
-                    OrderConsumption orderConsumption = new OrderConsumption();
+                    LifoPositionConsumption orderConsumption = new LifoPositionConsumption();
                     orderConsumption.setParentOrder(order);
-                    orderConsumption.setConsumedOrder(orderToConsume);
-                    orderConsumption.setConsumedQuoteAmount(plannedOrderConsumption.getQuoteConsumptionAmount());
-                    orderConsumption.setLeftQuoteAmount(orderToConsume.getQuoteAmountLeftToUnhedge());
-                    orderConsumption.setBaseEquivalent(plannedOrderConsumption.getQuoteConsumptionAmount().divide(orderToConsume.getPrice(), RoundingMode.HALF_DOWN));
+                    orderConsumption.setConsumedPosition(lifoPositionToConsume);
+                    orderConsumption.setConsumedQuoteAmount(plannedLifoPositionConsumption.getQuoteConsumptionAmount());
+                    orderConsumption.setLeftQuoteAmount(lifoPositionToConsume.getRemainingQuoteAmount());
+                    orderConsumption.setBaseEquivalent(plannedLifoPositionConsumption.getQuoteConsumptionAmount().divide(lifoPositionToConsume.getOrder().getPrice(), RoundingMode.HALF_DOWN));
                     order.getConsumptions().add(orderConsumption);
                 }
             }

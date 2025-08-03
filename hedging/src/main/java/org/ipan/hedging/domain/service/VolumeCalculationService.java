@@ -16,6 +16,7 @@ import java.util.List;
 @Slf4j
 public class VolumeCalculationService {
     private static final BigDecimal PRECISION_THRESHOLD = new BigDecimal("1e-3"); // or whatever threshold makes sense for your domain
+    private final LifoPositionRepository lifoPositionRepository;
 
     private OrderRepo orderRepo;
 
@@ -78,7 +79,7 @@ public class VolumeCalculationService {
     private class LongVolumeCalculationStrategy implements CalculationStrategy {
         @Override
         public VolumeCalculation calculate(VolumeCalculationParams params) {
-            List<PlannedOrderConsumption> plannedOrderConsumptions = new ArrayList<>();
+            List<PlannedLifoPositionConsumption> plannedLifoPositionConsumptions = new ArrayList<>();
             BigDecimal tradeContractSize = BigDecimal.valueOf(params.getTradeContractSize());
             BigDecimal currentTotal = params.getUserInstrument().getTotalOwnedBaseAmount();
             BigDecimal newTotalBaseAmount = null;
@@ -115,16 +116,18 @@ public class VolumeCalculationService {
                 operationUserAmountBase = BigDecimal.ZERO;
                 price = params.getTick().getBid();
 
-                List<Order> allForUnhendging = orderRepo.findAllForUnhendging(params.getUserId(), params.getInstrument().getLabel());
+
+                List<LifoPosition> allForUnhedging = lifoPositionRepository.findAllForUnhendgingFifo(params.getUserId(), params.getInstrument().getLabel());
+//                List<Order> allForUnhedging = orderRepo.findAllForUnhendging(params.getUserId(), params.getInstrument().getLabel());
                 Integer amountLeft = params.getUserAmount();
 
                 for (int i = 0; amountLeft > 0; i++) {
-                    Order orderToConsume = allForUnhendging.get(i);
-                    BigDecimal quoteConsumptionAmount = orderToConsume.getQuoteAmountLeftToUnhedge().min(BigDecimal.valueOf(amountLeft));
+                    LifoPosition positionToConsume = allForUnhedging.get(i);
+                    BigDecimal quoteConsumptionAmount = positionToConsume.getRemainingQuoteAmount().min(BigDecimal.valueOf(amountLeft));
                     amountLeft -= quoteConsumptionAmount.intValue();
 
-                    operationUserAmountBase = operationUserAmountBase.add(quoteConsumptionAmount.divide(orderToConsume.getPrice(), 8, RoundingMode.HALF_DOWN));
-                    plannedOrderConsumptions.add(new PlannedOrderConsumption(orderToConsume.getId(), quoteConsumptionAmount));
+                    operationUserAmountBase = operationUserAmountBase.add(quoteConsumptionAmount.divide(positionToConsume.getOrder().getPrice(), 8, RoundingMode.HALF_DOWN));
+                    plannedLifoPositionConsumptions.add(new PlannedLifoPositionConsumption(positionToConsume.getId(), quoteConsumptionAmount));
                 }
 
                 // should be >= 0
@@ -136,7 +139,7 @@ public class VolumeCalculationService {
                     tempClientBaseAmount = BigDecimal.ZERO;
                 }
 
-                // e.g. 4000 or 1000
+                // round to the nearest 1000
                 newTotalBaseAmount = tempClientBaseAmount.setScale(-3, RoundingMode.HALF_UP);
             }
 
@@ -165,7 +168,7 @@ public class VolumeCalculationService {
                     .executionVolume(executionVolume)
                     .executionBase(executionBaseAmount)
                     .price(BigDecimal.valueOf(price))
-                    .ordersForConsumption(plannedOrderConsumptions)
+                    .lifoPositionsForConsumption(plannedLifoPositionConsumptions)
                     .build();
         }
     }

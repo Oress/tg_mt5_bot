@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api")
@@ -24,7 +25,7 @@ public class DashboardController {
     private final UserTelegramActivityRepository userTelegramActivityRepo;
     private final UserBalanceActionsRepository userBalanceActionsRepository;
     private final AppUserInstrumentRepository appUserInstrumentRepository;
-    private final GoogleSheetsService googleSheetsService;
+    private final Optional<GoogleSheetsService> googleSheetsService;
 
     @GetMapping("/users")
     @Transactional(readOnly = true)
@@ -50,7 +51,7 @@ public class DashboardController {
             @PathVariable Long positionId) {
         List<Order> list = null;
         if ("open".equals(type)) {
-            list = orderRepo.findOpenPositions(positionId);
+//            list = orderRepo.findOpenPositions(positionId);
         } else {
             list = orderRepo.findAllByUserInstrumentIdOrderByCreatedAtDesc(positionId);
         }
@@ -94,7 +95,7 @@ public class DashboardController {
 
         newItem = userBalanceActionsRepository.save(newItem);
 
-        googleSheetsService.syncUser(userInstrument.getUser().getTelegramId());
+        googleSheetsService.get().syncUser(userInstrument.getUser().getTelegramId());
         return mapToDto(newItem);
     }
 
@@ -167,23 +168,23 @@ public class DashboardController {
                 .userEnteredQuoteAmount(order.getUserEnteredQuoteAmount())
                 .executedVolume(order.getExecutedVolume())
                 .executedBaseAmount(order.getExecutedBaseAmount())
-                .quoteAmountLeftToUnhedge(order.getQuoteAmountLeftToUnhedge())
-                .houseBaseAmountFrom(order.getHouseBaseAmountFrom())
-                .houseBaseAmountTo(order.getHouseBaseAmountTo())
-                .clientBaseAmountFrom(order.getClientBaseAmountFrom())
-                .clientBaseAmountTo(order.getClientBaseAmountTo())
+//                .quoteAmountLeftToUnhedge(order.getQuoteAmountLeftToUnhedge())
+//                .houseBaseAmountFrom(order.getHouseBaseAmountFrom())
+//                .houseBaseAmountTo(order.getHouseBaseAmountTo())
+//                .clientBaseAmountFrom(order.getClientBaseAmountFrom())
+//                .clientBaseAmountTo(order.getClientBaseAmountTo())
                 .price(order.getPrice())
                 .createdAt(order.getCreatedAt())
                 .build();
     }
 
-    private OrderConsumptionDto mapToDto(OrderConsumption orderConsumption) {
+    private OrderConsumptionDto mapToDto(LifoPositionConsumption lifoPositionConsumption) {
         return OrderConsumptionDto.builder()
-                .id(orderConsumption.getId())
-                .consumedOrder(mapToDto(orderConsumption.getConsumedOrder()))
-                .consumedQuoteAmount(orderConsumption.getConsumedQuoteAmount())
-                .leftQuoteAmount(orderConsumption.getLeftQuoteAmount())
-                .baseEquivalent(orderConsumption.getBaseEquivalent())
+                .id(lifoPositionConsumption.getId())
+                .consumedOrder(mapToDto(lifoPositionConsumption.getConsumedPosition().getOrder()))
+                .consumedQuoteAmount(lifoPositionConsumption.getConsumedQuoteAmount())
+                .leftQuoteAmount(lifoPositionConsumption.getLeftQuoteAmount())
+                .baseEquivalent(lifoPositionConsumption.getBaseEquivalent())
                 .build();
     }
 

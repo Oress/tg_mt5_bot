@@ -28,8 +28,11 @@ public class Order {
     @JoinColumn(name = "user_instrument_id")
     private AppUserInstrument userInstrument;
 
+    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL)
+    private LifoPosition lifoPosition;
+
     @OneToMany(mappedBy = "parentOrder", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<OrderConsumption> consumptions = new ArrayList<>();
+    private List<LifoPositionConsumption> consumptions = new ArrayList<>();
 
     private Long deal;
 
@@ -66,20 +69,17 @@ public class Order {
     @Column(name = "executed_base_amount")
     private BigDecimal executedBaseAmount;
 
-    @Column(name = "quote_amount_left_to_unhedge")
-    private BigDecimal quoteAmountLeftToUnhedge;
-
-    @Column(name = "house_base_amount_from")
-    private BigDecimal houseBaseAmountFrom = BigDecimal.ZERO;
-
-    @Column(name = "house_base_amount_to")
-    private BigDecimal houseBaseAmountTo = BigDecimal.ZERO;
-
-    @Column(name = "client_base_amount_from")
-    private BigDecimal clientBaseAmountFrom = BigDecimal.ZERO;
-
-    @Column(name = "client_base_amount_to")
-    private BigDecimal clientBaseAmountTo = BigDecimal.ZERO;
+//    @Column(name = "house_base_amount_from")
+//    private BigDecimal houseBaseAmountFrom = BigDecimal.ZERO;
+//
+//    @Column(name = "house_base_amount_to")
+//    private BigDecimal houseBaseAmountTo = BigDecimal.ZERO;
+//
+//    @Column(name = "client_base_amount_from")
+//    private BigDecimal clientBaseAmountFrom = BigDecimal.ZERO;
+//
+//    @Column(name = "client_base_amount_to")
+//    private BigDecimal clientBaseAmountTo = BigDecimal.ZERO;
 
     private BigDecimal price;
     private BigDecimal bid;
@@ -88,6 +88,16 @@ public class Order {
     @CreationTimestamp
     @Column(name = "created_at")
     private Instant createdAt;
+
+    public LifoPosition createLifoPosition(Integer userAmount) {
+        LifoPosition lifoPosition = new LifoPosition();
+        lifoPosition.setOrder(this);
+        lifoPosition.setRemainingQuoteAmount(BigDecimal.valueOf(userAmount));
+
+        this.setLifoPosition(lifoPosition);
+
+        return lifoPosition;
+    }
 
     public BigDecimal getUserAmountForGoogleSheet() {
         BigDecimal result = getUserEnteredAmount();
@@ -128,6 +138,7 @@ public class Order {
 
     }
 
+/*
     public void decreaseQuoteAmountLeftToUnhedge(BigDecimal quoteConsumptionAmount) {
         if (quoteAmountLeftToUnhedge != null) {
             quoteAmountLeftToUnhedge = quoteAmountLeftToUnhedge.subtract(quoteConsumptionAmount);
@@ -139,4 +150,5 @@ public class Order {
             log.warn("Attempt to decrease null quote amount left to unhedge for order: {}", this);
         }
     }
+*/
 }

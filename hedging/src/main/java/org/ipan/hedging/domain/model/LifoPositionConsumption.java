@@ -10,12 +10,12 @@ import java.math.BigDecimal;
 @Entity
 @Getter
 @Setter
-@Table(name = "hed_order_consumption")
+@Table(name = "hed_lifo_position_consumptions")
 @Slf4j
-public class OrderConsumption {
+public class LifoPositionConsumption {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_hed_order_consumption")
-    @SequenceGenerator(name = "seq_hed_order_consumption", sequenceName = "seq_hed_order_consumption", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_hed_lifo_position_consumptions")
+    @SequenceGenerator(name = "seq_hed_lifo_position_consumptions", sequenceName = "seq_hed_lifo_position_consumptions", allocationSize = 1)
     private Long id;
 
     @ManyToOne
@@ -23,8 +23,8 @@ public class OrderConsumption {
     private Order parentOrder;
 
     @ManyToOne
-    @JoinColumn(name = "consumed_order_id")
-    private Order consumedOrder;
+    @JoinColumn(name = "consumed_position_id")
+    private LifoPosition consumedPosition;
 
     @Column(name = "consumed_quote_amount")
     private BigDecimal consumedQuoteAmount;

@@ -189,21 +189,54 @@
         </createIndex>
     </changeSet>
 
-    <changeSet id="create seq_hed_order_consumption" author="oress">
-        <createSequence sequenceName="seq_hed_order_consumption"
+    <changeSet id="create seq_hed_lifo_position_consumptions" author="oress">
+        <createSequence sequenceName="seq_hed_lifo_position_consumptions"
                         dataType="bigint"
                         incrementBy="1"
                         startValue="1"/>
     </changeSet>
 
-    <changeSet id="create hed_order_consumption" author="oress">
-        <createTable tableName="hed_order_consumption">
+    <changeSet id="create seq_hed_lifo_positions" author="oress">
+        <createSequence sequenceName="seq_hed_lifo_positions"
+                        dataType="int"
+                        incrementBy="1"
+                        startValue="1"/>
+    </changeSet>
+
+    <changeSet id="create table hed_lifo_positions" author="oress">
+        <createTable tableName="hed_lifo_positions">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+
+            <column name="order_id" type="uuid"/>
+            <column name="remaining_quote_amount" type="decimal(20,8)"/>
+            <column name="closed_at" type="timestamp"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="create idx_hed_lifo_positions_order_id" author="oress">
+        <createIndex indexName="idx_hed_lifo_positions_order_id" tableName="hed_lifo_positions">
+            <column name="order_id" />
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="create fk_hed_lifo_positions_order_id" author="oress">
+        <addForeignKeyConstraint constraintName="fk_hed_lifo_positions_order_id"
+                                 baseTableName="hed_lifo_positions"
+                                 baseColumnNames="order_id"
+                                 referencedTableName="hed_orders"
+                                 referencedColumnNames="id" />
+    </changeSet>
+
+    <changeSet id="create hed_lifo_position_consumptions" author="oress">
+        <createTable tableName="hed_lifo_position_consumptions">
             <column name="id" type="bigint">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
 
             <column name="parent_order_id" type="uuid" />
-            <column name="consumed_order_id" type="uuid" />
+            <column name="consumed_position_id" type="bigint" />
             <column name="consumed_quote_amount" type="decimal(20,8)" />
             <column name="left_quote_amount" type="decimal(20,8)" />
             <column name="base_equivalent" type="decimal(20,8)" />
@@ -213,7 +246,7 @@
     <changeSet id="add fk_order_consumption_parent_order" author="oress">
         <addForeignKeyConstraint
                 constraintName="fk_order_consumption_parent_order"
-                baseTableName="hed_order_consumption"
+                baseTableName="hed_lifo_position_consumptions"
                 baseColumnNames="parent_order_id"
                 referencedTableName="hed_orders"
                 referencedColumnNames="id"
@@ -223,27 +256,27 @@
     <changeSet id="add fk_order_consumption_consumed_order" author="oress">
         <addForeignKeyConstraint
                 constraintName="fk_order_consumption_consumed_order"
-                baseTableName="hed_order_consumption"
-                baseColumnNames="consumed_order_id"
-                referencedTableName="hed_orders"
+                baseTableName="hed_lifo_position_consumptions"
+                baseColumnNames="consumed_position_id"
+                referencedTableName="hed_lifo_positions"
                 referencedColumnNames="id"
                 onDelete="CASCADE"/>
     </changeSet>
 
-    <changeSet id="add idx_order_consumption_parent_order" author="oress">
-        <createIndex indexName="idx_order_consumption_parent_order" tableName="hed_order_consumption">
+    <changeSet id="add idx_hed_lifo_position_consumptions_parent_order" author="oress">
+        <createIndex indexName="idx_hed_lifo_position_consumptions_parent_order" tableName="hed_lifo_position_consumptions">
             <column name="parent_order_id"/>
         </createIndex>
     </changeSet>
 
-    <changeSet id="add idx_order_consumption_consumed_order" author="oress">
-        <createIndex indexName="idx_order_consumption_consumed_order" tableName="hed_order_consumption">
-            <column name="consumed_order_id"/>
+    <changeSet id="add idx_hed_lifo_position_consumptions_consumed_order" author="oress">
+        <createIndex indexName="idx_hed_lifo_position_consumptions_consumed_order" tableName="hed_lifo_position_consumptions">
+            <column name="consumed_position_id"/>
         </createIndex>
     </changeSet>
 
-    <changeSet id="add idx_order_consumption_amount" author="oress">
-        <createIndex indexName="idx_order_consumption_amount" tableName="hed_order_consumption">
+    <changeSet id="add idx_hed_lifo_position_consumptions_amount" author="oress">
+        <createIndex indexName="idx_hed_lifo_position_consumptions_amount" tableName="hed_lifo_position_consumptions">
             <column name="consumed_quote_amount"/>
         </createIndex>
     </changeSet>

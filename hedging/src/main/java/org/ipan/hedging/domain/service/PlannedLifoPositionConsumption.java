@@ -5,12 +5,11 @@ import lombok.Data;
 import lombok.Value;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 @Data
 @Builder
 @Value
-public class PlannedOrderConsumption {
-    UUID orderId;
+public class PlannedLifoPositionConsumption {
+    Long lifoPositionId;
     BigDecimal quoteConsumptionAmount;
 }
