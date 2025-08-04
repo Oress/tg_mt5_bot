@@ -296,6 +296,7 @@ class OrderOrchestratorTest {
         assertThat(consumptions3).hasSize(1);
         assertThat(consumptions3.get(0).getConsumedPosition().getId()).isEqualByComparingTo(response1.getOrder().getLifoPosition().getId());
         assertThat(consumptions3.get(0).getConsumedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(7000));
+        assertThat(consumptions3.get(0).getConsumedPosition().getClosedAt()).isNotNull();
 
         Order order1AfterUnhedge = orderRepo.findById(response1.getOrder().getId()).get();
         assertThat(order1AfterUnhedge.getLifoPosition().getRemainingQuoteAmount()).isEqualByComparingTo(BigDecimal.ZERO);

@@ -1,14 +1,18 @@
 package org.ipan.hedging.controller;
 
 import lombok.AllArgsConstructor;
-import org.ipan.hedging.application.service.GoogleSheetsService;
+import org.ipan.hedging.Config;
+import org.ipan.hedging.application.service.Mt5Service;
+import org.ipan.hedging.application.service.Mt5ServiceImpl;
 import org.ipan.hedging.application.service.UserBalanceService;
 import org.ipan.hedging.controller.dto.*;
 import org.ipan.hedging.domain.AppConstants;
 import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.repository.*;
-import org.ipan.hedging.domain.service.ReportingCalculationService;
+import org.ipan.hedging.domain.service.UnrealizedPnl;
+import org.ipan.hedging.domain.service.UnrealizedPnlCalculator;
 import org.ipan.hedging.domain.service.UserService;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Limit;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,7 +27,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api")
-@AllArgsConstructor
 @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
 public class DashboardController {
     private final UserRepo userRepo;
@@ -31,11 +34,34 @@ public class DashboardController {
     private final UserTelegramActivityRepository userTelegramActivityRepo;
     private final UserBalanceActionsRepository userBalanceActionsRepository;
     private final AppUserInstrumentRepository appUserInstrumentRepository;
-    private final Optional<GoogleSheetsService> googleSheetsService;
     private final UserService userService;
-    private final ReportingCalculationService reportingCalculationService;
+    private final Mt5Service mt5Service;
     private final ReportingCalculationRepository reportingCalculationRepository;
     private final UserBalanceService userBalanceService;
+    private final UnrealizedPnlCalculator unrealizedPnlCalculator;
+
+    public DashboardController(UserRepo userRepo,
+                               OrderRepo orderRepo,
+                               UserTelegramActivityRepository userTelegramActivityRepo,
+                               UserBalanceActionsRepository userBalanceActionsRepository,
+                               AppUserInstrumentRepository appUserInstrumentRepository,
+                               UserService userService,
+                               @Qualifier(Config.AUX_MT5)
+                               Mt5Service mt5Service,
+                               ReportingCalculationRepository reportingCalculationRepository,
+                               UserBalanceService userBalanceService,
+                               UnrealizedPnlCalculator unrealizedPnlCalculator) {
+        this.userRepo = userRepo;
+        this.orderRepo = orderRepo;
+        this.userTelegramActivityRepo = userTelegramActivityRepo;
+        this.userBalanceActionsRepository = userBalanceActionsRepository;
+        this.appUserInstrumentRepository = appUserInstrumentRepository;
+        this.userService = userService;
+        this.mt5Service = mt5Service;
+        this.reportingCalculationRepository = reportingCalculationRepository;
+        this.userBalanceService = userBalanceService;
+        this.unrealizedPnlCalculator = unrealizedPnlCalculator;
+    }
 
     @GetMapping("/users")
     @Transactional(readOnly = true)
@@ -73,6 +99,21 @@ public class DashboardController {
         BigDecimal balanceForTheUserInstrument = reportingCalculationRepository.getBalanceForTheUserInstrument(userInstrument.getId(), Limit.of(1));
         UserInstrumentDto userInstrumentDto = mapToDto(userInstrument, balanceForTheUserInstrument);
         return ApiResponse.success(userInstrumentDto);
+    }
+
+    @GetMapping("/users/{telegramId}/instruments/{userInstrumentId}/unrealized")
+    @Transactional(readOnly = true)
+    public ApiResponse<UnrealizedProfit> getUnrealizedProfit(@PathVariable Long telegramId, @PathVariable Long userInstrumentId) {
+        AppUserInstrument userInstrument = appUserInstrumentRepository.findById(userInstrumentId).get();
+        AppUser user = userInstrument.getUser();
+        Mt5ServiceImpl.InfoTick infoTick = mt5Service.getInfoTick(user, user.getSymbolByLabelAndAccType(userInstrument.getInstrument().getLabel()));
+        BigDecimal rate = BigDecimal.valueOf(infoTick.getBid());
+        UnrealizedPnl calculate = unrealizedPnlCalculator.calculate(userInstrumentId, rate);
+        return ApiResponse.success(
+                new UnrealizedProfit(infoTick.getBid(),
+                calculate.getResult().doubleValue(),
+                userInstrument.getInstrument().getLabel())
+        );
     }
 
     @GetMapping("/users/{telegramId}/orders/{userInstrumentId}")

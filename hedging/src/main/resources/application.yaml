@@ -34,6 +34,7 @@ app:
     emails: ${APP_GGL_SHARE_EMAILS}
   python-http-proxy:
     url: ${APP_PYTHON_PROXY_URL:http://127.0.0.1:8000}
+    url1: ${APP_PYTHON_PROXY_URL_1:http://127.0.0.1:9000}
   encryption:
     keyBase64: ${APP_ENCRYPTION_KEY_BASE64:de3AP3DtOeBDXXijf3PmLhrJ1kobB1XLP5poYc3qrkc=}
   mapdb:

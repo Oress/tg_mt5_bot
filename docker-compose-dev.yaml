@@ -7,12 +7,29 @@ services:
       - 3000:3000
       - 8001:8001
 
+  mt5_1:
+    extends:
+      file: docker-compose-base.yaml
+      service: mt5service
+    volumes:
+      - ./config1:/config
+    ports:
+      - 4000:3000
+      - 9001:8001
+
   ptyhonhttpproxy:
     extends:
       file: docker-compose-base.yaml
       service: pythonproxyservice
     ports:
       - 8000:8000
+
+  ptyhonhttpproxy_1:
+    extends:
+      file: docker-compose-base.yaml
+      service: pythonproxyservice
+    ports:
+      - 9000:8000
 
   postgres:
     extends:

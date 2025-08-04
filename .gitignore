@@ -5,4 +5,5 @@ envs/
 .devcontainer/
 envs/.env
 config/
+config1/
 keys/

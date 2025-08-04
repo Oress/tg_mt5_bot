@@ -1,0 +1,52 @@
+package org.ipan.hedging.domain.service;
+
+import lombok.AllArgsConstructor;
+import org.ipan.hedging.domain.AppConstants;
+import org.ipan.hedging.domain.model.AppUserInstrument;
+import org.ipan.hedging.domain.model.LifoPosition;
+import org.ipan.hedging.domain.model.repository.AppUserInstrumentRepository;
+import org.ipan.hedging.domain.model.repository.LifoPositionRepository;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
+
+@Service
+@AllArgsConstructor
+public class UnrealizedPnlCalculator {
+    private final LifoPositionRepository lifoPositionRepository;
+    private final AppUserInstrumentRepository userInstrumentRepository;
+
+    public UnrealizedPnl calculate(Long userInstrumentId, BigDecimal currentUsdCadRate) {
+        AppUserInstrument userInstrument = userInstrumentRepository.findById(userInstrumentId).get();
+
+        if (AppConstants.USD_CAD.equals(userInstrument.getInstrument().getLabel())) {
+            return calculateCad(userInstrumentId, currentUsdCadRate);
+        } else if (AppConstants.EUR_USD.equals(userInstrument.getInstrument().getLabel())) {
+            // TODO: implement EUR/USD unrealized PnL calculation
+            return calculateCad(userInstrumentId, currentUsdCadRate);
+        } else {
+            throw new IllegalStateException("Unsupported instrument: " + userInstrument.getInstrument().getLabel());
+        }
+    }
+
+    private UnrealizedPnl calculateCad(Long userInstrumentId, BigDecimal currentUsdCadRate) {
+        List<LifoPosition> openPositions = lifoPositionRepository.findAllForUnhendgingFifo(userInstrumentId);
+
+        BigDecimal result = BigDecimal.ZERO;
+
+        for (LifoPosition openPosition : openPositions) {
+            BigDecimal usdCadRate = openPosition.getOrder().getPrice();
+            BigDecimal cadAmount = openPosition.getRemainingQuoteAmount();
+
+            BigDecimal unrealizedPnlPerPosition = cadAmount.multiply(
+                    BigDecimal.ONE.divide(currentUsdCadRate, 8, RoundingMode.HALF_DOWN)
+                            .subtract(BigDecimal.ONE.divide(usdCadRate, 8, RoundingMode.HALF_DOWN)));
+
+            result = result.add(unrealizedPnlPerPosition);
+        }
+
+        return new UnrealizedPnl(result);
+    }
+}

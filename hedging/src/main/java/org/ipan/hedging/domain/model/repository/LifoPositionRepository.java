@@ -12,10 +12,8 @@ public interface LifoPositionRepository extends JpaRepository<LifoPosition, Long
         select lp from LifoPosition lp
                 join fetch lp.order o
                 join o.userInstrument ui
-                join ui.user u
-                join ui.instrument i
-        where lp.closedAt is null and i.label = :symbol and u.telegramId = :userId
+        where lp.closedAt is null and ui.id = :userInstrumentId
         order by o.createdAt
         """)
-    List<LifoPosition> findAllForUnhendgingFifo(Long userId, String symbol);
+    List<LifoPosition> findAllForUnhendgingFifo(Long userInstrumentId);
 }

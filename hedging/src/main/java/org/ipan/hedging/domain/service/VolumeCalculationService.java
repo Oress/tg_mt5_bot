@@ -118,7 +118,7 @@ public class VolumeCalculationService {
                 price = params.getTick().getBid();
 
 
-                List<LifoPosition> allForUnhedging = lifoPositionRepository.findAllForUnhendgingFifo(params.getUserId(), params.getInstrument().getLabel());
+                List<LifoPosition> allForUnhedging = lifoPositionRepository.findAllForUnhendgingFifo(params.getUserInstrument().getId());
 //                List<Order> allForUnhedging = orderRepo.findAllForUnhendging(params.getUserId(), params.getInstrument().getLabel());
                 Integer amountLeft = params.getUserAmount();
 
