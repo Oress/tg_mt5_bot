@@ -43,6 +43,7 @@ public class SecConfig {
                 .logout(logout -> logout.logoutUrl("/api/auth/logout").clearAuthentication(true).invalidateHttpSession(true))
                 .authorizeHttpRequests((requests) ->
                                 requests
+                                        .requestMatchers("/login").permitAll()
                                         .requestMatchers("/error").permitAll()
                                         .requestMatchers("/api/auth/login").permitAll()
                                         .requestMatchers("/", "/index.html").permitAll()
