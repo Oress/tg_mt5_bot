@@ -42,4 +42,16 @@ public class LifoPosition {
             log.warn("Attempt to decrease null quote amount left to unhedge for order: {}", this);
         }
     }
+
+    public boolean isConsumed() {
+        if (remainingQuoteAmount == null) {
+            log.warn("Checking consumption status for order {} with null remaining quote amount", this);
+            return false;
+        }
+        boolean consumed = remainingQuoteAmount.compareTo(BigDecimal.ZERO) == 0;
+        if (consumed && closedAt == null) {
+            closedAt = Instant.now();
+        }
+        return consumed;
+    }
 }

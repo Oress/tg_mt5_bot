@@ -2,9 +2,14 @@ package org.ipan.hedging.controller;
 
 import lombok.AllArgsConstructor;
 import org.ipan.hedging.application.service.GoogleSheetsService;
+import org.ipan.hedging.application.service.UserBalanceService;
 import org.ipan.hedging.controller.dto.*;
+import org.ipan.hedging.domain.AppConstants;
 import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.repository.*;
+import org.ipan.hedging.domain.service.ReportingCalculationService;
+import org.ipan.hedging.domain.service.UserService;
+import org.springframework.data.domain.Limit;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,6 +32,10 @@ public class DashboardController {
     private final UserBalanceActionsRepository userBalanceActionsRepository;
     private final AppUserInstrumentRepository appUserInstrumentRepository;
     private final Optional<GoogleSheetsService> googleSheetsService;
+    private final UserService userService;
+    private final ReportingCalculationService reportingCalculationService;
+    private final ReportingCalculationRepository reportingCalculationRepository;
+    private final UserBalanceService userBalanceService;
 
     @GetMapping("/users")
     @Transactional(readOnly = true)
@@ -43,17 +53,39 @@ public class DashboardController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/users/{telegramId}/orders/{positionId}")
+    @GetMapping("/users/{telegramId}/instruments")
+    @Transactional(readOnly = true)
+    public ApiResponse<List<UserInstrumentDto>> getUserInstruments(@PathVariable Long telegramId) {
+        List<UserInstrumentDto> result = new ArrayList<>();
+        AppUser byId = userRepo.findById(telegramId).get();
+        for (AppUserInstrument availableInstrument : byId.getAvailableInstruments()) {
+            BigDecimal balanceForTheUserInstrument = reportingCalculationRepository.getBalanceForTheUserInstrument(availableInstrument.getId(), Limit.of(1));
+            UserInstrumentDto userInstrumentDto = mapToDto(availableInstrument, balanceForTheUserInstrument);
+            result.add(userInstrumentDto);
+        }
+        return ApiResponse.success(result);
+    }
+
+    @GetMapping("/users/{telegramId}/instruments/{userInstrumentId}")
+    @Transactional(readOnly = true)
+    public ApiResponse<UserInstrumentDto> getUserInstruments(@PathVariable Long telegramId, @PathVariable Long userInstrumentId) {
+        AppUserInstrument userInstrument = appUserInstrumentRepository.findById(userInstrumentId).get();
+        BigDecimal balanceForTheUserInstrument = reportingCalculationRepository.getBalanceForTheUserInstrument(userInstrument.getId(), Limit.of(1));
+        UserInstrumentDto userInstrumentDto = mapToDto(userInstrument, balanceForTheUserInstrument);
+        return ApiResponse.success(userInstrumentDto);
+    }
+
+    @GetMapping("/users/{telegramId}/orders/{userInstrumentId}")
     @Transactional(readOnly = true)
     public List<OrderDto> userPositions(
             @RequestParam(required = false) String type,
             @PathVariable Long telegramId,
-            @PathVariable Long positionId) {
+            @PathVariable Long userInstrumentId) {
         List<Order> list = null;
         if ("open".equals(type)) {
-//            list = orderRepo.findOpenPositions(positionId);
+            list = orderRepo.findOpenPositions(userInstrumentId);
         } else {
-            list = orderRepo.findAllByUserInstrumentIdOrderByCreatedAtDesc(positionId);
+            list = orderRepo.findAllByUserInstrumentIdOrderByCreatedAtDesc(userInstrumentId);
         }
 
         return list.stream()
@@ -82,21 +114,26 @@ public class DashboardController {
     @PostMapping("/users/{telegramId}/instruments/{userInstrumentId}/balance-actions")
     public UserBalanceActionsDto createUserBalanceActions(@PathVariable Long userInstrumentId,
                                                           @RequestBody UserBalanceActionsDto payload) {
-        AppUserInstrument userInstrument = appUserInstrumentRepository.getReferenceById(userInstrumentId);
-
         validateUserBalanceAction(payload);
 
-        UserBalanceAction newItem = new UserBalanceAction();
-        newItem.setType(BalanceActionType.valueOf(payload.getType()));
-//        newItem.setDate(payload.getDate());
-        newItem.setDate(Instant.now());
-        newItem.setAmount(payload.getAmount());
-        newItem.setUserInstrument(userInstrument);
-
-        newItem = userBalanceActionsRepository.save(newItem);
-
-        googleSheetsService.get().syncUser(userInstrument.getUser().getTelegramId());
+        UserBalanceAction newItem;
+        if (payload.getType().equals(BalanceActionType.DEPOSIT.name())) {
+            newItem = userBalanceService.createDepositAction(userInstrumentId, payload.getAmount(), Instant.now());
+        } else if (payload.getType().equals(BalanceActionType.WITHDRAWAL.name())) {
+            newItem = userBalanceService.createWithdrawAction(userInstrumentId, payload.getAmount(), Instant.now());
+        } else {
+            throw new IllegalArgumentException("Unsupported balance action type: " + payload.getType());
+        }
         return mapToDto(newItem);
+    }
+
+    @PostMapping("/users/{telegramId}/instruments/update-available-instruments")
+    public ApiResponse<?> updateAvailableInstruments(@RequestBody UpdateAvailableInstrumentsDto userInstruments,
+                                                     @PathVariable Long telegramId) {
+        userService.toggleInstrument(telegramId, AppConstants.EUR_USD, userInstruments.getEurUsd());
+        userService.toggleInstrument(telegramId, AppConstants.USD_CAD, userInstruments.getCadUsd());
+
+        return ApiResponse.success("Available instruments updated successfully");
     }
 
     private void validateUserBalanceAction(UserBalanceActionsDto payload) {
@@ -168,11 +205,11 @@ public class DashboardController {
                 .userEnteredQuoteAmount(order.getUserEnteredQuoteAmount())
                 .executedVolume(order.getExecutedVolume())
                 .executedBaseAmount(order.getExecutedBaseAmount())
-//                .quoteAmountLeftToUnhedge(order.getQuoteAmountLeftToUnhedge())
-//                .houseBaseAmountFrom(order.getHouseBaseAmountFrom())
-//                .houseBaseAmountTo(order.getHouseBaseAmountTo())
-//                .clientBaseAmountFrom(order.getClientBaseAmountFrom())
-//                .clientBaseAmountTo(order.getClientBaseAmountTo())
+                .remainingQuoteAmount(order.getLifoPosition() != null ? order.getLifoPosition().getRemainingQuoteAmount() : BigDecimal.ZERO)
+                .houseBaseAmountFrom(order.getHouseBaseAmountFrom())
+                .houseBaseAmountTo(order.getHouseBaseAmountTo())
+                .clientBaseAmountFrom(order.getClientBaseAmountFrom())
+                .clientBaseAmountTo(order.getClientBaseAmountTo())
                 .price(order.getPrice())
                 .createdAt(order.getCreatedAt())
                 .build();
@@ -197,17 +234,18 @@ public class DashboardController {
                 .accountType(user.getAccountType() != null ? user.getAccountType().name() : "")
                 .mt5Account(user.getMt5AccNumber())
                 .googleSheetId(user.getGoogleSheetId() != null ? "https://docs.google.com/spreadsheets/d/" + user.getGoogleSheetId() : null)
-                .instruments(user.getAvailableInstruments().stream().filter(AppUserInstrument::getActive).map(this::mapToDto).toList())
+//                .instruments(user.getAvailableInstruments().stream().filter(AppUserInstrument::getActive).map(this::mapToDto).toList())
                 .build();
     }
 
-    private UserInstrumentDto mapToDto(AppUserInstrument userInstrument) {
+    private UserInstrumentDto mapToDto(AppUserInstrument userInstrument, BigDecimal balance) {
         return UserInstrumentDto.builder()
                 .id(userInstrument.getId())
                 .label(userInstrument.getInstrument().getLabel())
                 .mode(userInstrument.getInstrument().getMode().name())
                 .base(userInstrument.getInstrument().getBase())
                 .quote(userInstrument.getInstrument().getQuote())
+                .balance(balance)
                 .clientOwnedBaseAmount(userInstrument.getClientOwnedBaseAmount())
                 .houseOwnedBaseAmount(userInstrument.getHouseOwnedBaseAmount())
                 .clientOwnedQuoteAmount(userInstrument.getClientOwnedQuoteAmount())

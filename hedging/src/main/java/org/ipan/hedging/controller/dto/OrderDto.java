@@ -31,7 +31,7 @@ public class OrderDto {
     private BigDecimal userEnteredQuoteAmount;
     private BigDecimal executedVolume;
     private BigDecimal executedBaseAmount;
-    private BigDecimal quoteAmountLeftToUnhedge;
+    private BigDecimal remainingQuoteAmount;
     private BigDecimal houseBaseAmountFrom;
     private BigDecimal houseBaseAmountTo;
     private BigDecimal clientBaseAmountFrom;

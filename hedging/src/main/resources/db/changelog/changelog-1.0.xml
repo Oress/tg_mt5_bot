@@ -375,6 +375,7 @@
             </column>
             <column name="order_id" type="bigint"/>
             <column name="user_balance_action_id" type="bigint"/>
+            <column name="user_instrument_id" type="bigint"/>
             <column name="date" type="timestamp"/>
             <column name="amount" type="decimal(20,8)"/>
             <column name="fix" type="decimal(20,8)"/>
@@ -393,6 +394,12 @@
     <changeSet id="create idx_hed_reporting_calculations_user_balance_action_id" author="oress">
         <createIndex indexName="idx_hed_reporting_calculations_user_balance_action_id" tableName="hed_reporting_calculations">
             <column name="user_balance_action_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="create idx_hed_reporting_calculations_user_instrument_id" author="oress">
+        <createIndex indexName="idx_hed_reporting_calculations_user_instrument_id" tableName="hed_reporting_calculations">
+            <column name="user_instrument_id"/>
         </createIndex>
     </changeSet>
 
@@ -423,7 +430,6 @@
                                  onDelete="SET NULL"/>
     </changeSet>
 
-
     <changeSet id="add fk_hed_reporting_calculations_user_balance_action_id" author="oress">
         <addForeignKeyConstraint constraintName="fk_hed_reporting_calculations_user_balance_action_id"
                                  baseTableName="hed_reporting_calculations"
@@ -433,5 +439,13 @@
                                  onDelete="SET NULL"/>
     </changeSet>
 
+    <changeSet id="add fk_hed_reporting_calculations_user_instrument_id" author="oress">
+        <addForeignKeyConstraint constraintName="fk_hed_reporting_calculations_user_instrument_id"
+                                 baseTableName="hed_reporting_calculations"
+                                 baseColumnNames="user_instrument_id"
+                                 referencedTableName="hed_user_instruments"
+                                 referencedColumnNames="id"
+                                 onDelete="SET NULL"/>
+    </changeSet>
 
 </databaseChangeLog>

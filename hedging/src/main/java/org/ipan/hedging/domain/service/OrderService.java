@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -45,10 +46,10 @@ public class OrderService {
         if (InstrumentMode.LONG.equals(instrument.getMode())) {
             order.setUserEnteredQuoteAmount(BigDecimal.valueOf(command.getUserAmount()));
             order.createLifoPosition(command.getUserAmount());
-//            order.setHouseBaseAmountFrom(volumeCalculation.getOldHouseOwnedBase());
-//            order.setHouseBaseAmountTo(volumeCalculation.getNewHouseOwnedBase());
-//            order.setClientBaseAmountFrom(volumeCalculation.getOldUserOwnedBase());
-//            order.setClientBaseAmountTo(volumeCalculation.getNewUserOwnedBase());
+            order.setHouseBaseAmountFrom(volumeCalculation.getOldHouseOwnedBase());
+            order.setHouseBaseAmountTo(volumeCalculation.getNewHouseOwnedBase());
+            order.setClientBaseAmountFrom(volumeCalculation.getOldUserOwnedBase());
+            order.setClientBaseAmountTo(volumeCalculation.getNewUserOwnedBase());
             order.setUserBaseAmount(volumeCalculation.getExecutionUserOwnedBase());
         } else {
             log.error("Unsupported instrument mode: {}", instrument.getMode());
@@ -109,10 +110,10 @@ public class OrderService {
         order.setMt5RespComment(orderDetails.getRetcode());
         order.setStatus(OrderStatus.COMPLETE);
 
-//        order.setHouseBaseAmountFrom(volumeCalculation.getOldHouseOwnedBase());
-//        order.setHouseBaseAmountTo(volumeCalculation.getNewHouseOwnedBase());
-//        order.setClientBaseAmountFrom(volumeCalculation.getOldUserOwnedBase());
-//        order.setClientBaseAmountTo(volumeCalculation.getNewUserOwnedBase());
+        order.setHouseBaseAmountFrom(volumeCalculation.getOldHouseOwnedBase());
+        order.setHouseBaseAmountTo(volumeCalculation.getNewHouseOwnedBase());
+        order.setClientBaseAmountFrom(volumeCalculation.getOldUserOwnedBase());
+        order.setClientBaseAmountTo(volumeCalculation.getNewUserOwnedBase());
         order.setUserBaseAmount(volumeCalculation.getExecutionUserOwnedBase());
         order.setExecutedBaseAmount(volumeCalculation.getExecutionBase());
 
@@ -144,6 +145,11 @@ public class OrderService {
                     orderConsumption.setConsumedPosition(lifoPositionToConsume);
                     orderConsumption.setConsumedQuoteAmount(plannedLifoPositionConsumption.getQuoteConsumptionAmount());
                     orderConsumption.setLeftQuoteAmount(lifoPositionToConsume.getRemainingQuoteAmount());
+                    if (lifoPositionToConsume.isConsumed()) {
+                        log.info("Lifo position {} is consumed, closing it", lifoPositionToConsume.getId());
+                        lifoPositionToConsume.setClosedAt(Instant.now());
+                    }
+
                     orderConsumption.setBaseEquivalent(plannedLifoPositionConsumption.getQuoteConsumptionAmount().divide(lifoPositionToConsume.getOrder().getPrice(), RoundingMode.HALF_DOWN));
                     order.getConsumptions().add(orderConsumption);
                 }

@@ -94,6 +94,7 @@ public class ReportingCalculationService {
             ReportingCalculation record = new ReportingCalculation();
 
             record.setUserBalanceAction(balanceAction);
+            record.setUserInstrument(balanceAction.getUserInstrument());
             record.setDepositPayment(balanceAction.getAmountForGoogleSheet());
             record.setDate(balanceAction.getDate());
 
@@ -116,6 +117,7 @@ public class ReportingCalculationService {
         public ReportingCalculation calculate(Order order, ReportingCalculation prevRecord) {
             ReportingCalculation record = new ReportingCalculation();
             record.setOrder(order);
+            record.setUserInstrument(order.getUserInstrument());
 
             // raw values
             record.setDate(order.getCreatedAt());
@@ -124,7 +126,7 @@ public class ReportingCalculationService {
 
             // calculated values
             record.setUsdt(record.getAmount().multiply(order.getPrice()));
-            record.setCommission(COMMISSION_01_PERCENT.multiply(record.getUsdt()));
+            record.setCommission(COMMISSION_01_PERCENT.multiply(record.getUsdt()).negate());
 
             // in position
             if (prevRecord == null) {
@@ -186,6 +188,7 @@ public class ReportingCalculationService {
         public ReportingCalculation calculate(Order order, ReportingCalculation prevRecord) {
             ReportingCalculation record = new ReportingCalculation();
             record.setOrder(order);
+            record.setUserInstrument(order.getUserInstrument());
 
             // raw values
             record.setDate(order.getCreatedAt());

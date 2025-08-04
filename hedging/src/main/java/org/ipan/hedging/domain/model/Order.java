@@ -71,17 +71,17 @@ public class Order {
     @Column(name = "executed_base_amount")
     private BigDecimal executedBaseAmount;
 
-//    @Column(name = "house_base_amount_from")
-//    private BigDecimal houseBaseAmountFrom = BigDecimal.ZERO;
+    @Column(name = "house_base_amount_from")
+    private BigDecimal houseBaseAmountFrom = BigDecimal.ZERO;
+
+    @Column(name = "house_base_amount_to")
+    private BigDecimal houseBaseAmountTo = BigDecimal.ZERO;
+
+    @Column(name = "client_base_amount_from")
+    private BigDecimal clientBaseAmountFrom = BigDecimal.ZERO;
 //
-//    @Column(name = "house_base_amount_to")
-//    private BigDecimal houseBaseAmountTo = BigDecimal.ZERO;
-//
-//    @Column(name = "client_base_amount_from")
-//    private BigDecimal clientBaseAmountFrom = BigDecimal.ZERO;
-//
-//    @Column(name = "client_base_amount_to")
-//    private BigDecimal clientBaseAmountTo = BigDecimal.ZERO;
+    @Column(name = "client_base_amount_to")
+    private BigDecimal clientBaseAmountTo = BigDecimal.ZERO;
 
     private BigDecimal price;
     private BigDecimal bid;

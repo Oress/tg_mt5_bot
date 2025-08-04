@@ -4,10 +4,7 @@ import org.ipan.hedging.application.service.command.PlaceOrderCommand;
 import org.ipan.hedging.application.service.command.PlaceOrderResponse;
 import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.Order;
-import org.ipan.hedging.domain.model.repository.AppUserInstrumentRepository;
-import org.ipan.hedging.domain.model.repository.OrderRepo;
-import org.ipan.hedging.domain.model.repository.ReportingCalculationRepository;
-import org.ipan.hedging.domain.model.repository.UserRepo;
+import org.ipan.hedging.domain.model.repository.*;
 import org.ipan.hedging.domain.service.OrderService;
 import org.ipan.hedging.domain.service.ReportingCalculationService;
 import org.ipan.hedging.domain.service.UserService;
@@ -68,6 +65,8 @@ class OrderOrchestratorTest {
     private final ReportingCalculationService reportingCalculationService;
     private final UserBalanceService userBalanceService;
     private final ReportingCalculationRepository reportingCalculationRepository;
+    private final UserBalanceActionRepo userBalanceActionRepo;
+
 
     private OrderOrchestrator orderOrchestrator;
     private Mt5Service mt5Service;
@@ -79,6 +78,7 @@ class OrderOrchestratorTest {
                                  VolumeCalculationService volumeCalculationService,
                                  ReportingCalculationService reportingCalculationService,
                                  ReportingCalculationRepository reportingCalculationRepository,
+                                 UserBalanceActionRepo userBalanceActionRepo,
                                  UserBalanceService userBalanceService) {
         this.userService = userService;
         this.userRepo = userRepo;
@@ -88,6 +88,7 @@ class OrderOrchestratorTest {
         this.volumeCalculationService = volumeCalculationService;
         this.reportingCalculationService = reportingCalculationService;
         this.reportingCalculationRepository = reportingCalculationRepository;
+        this.userBalanceActionRepo = userBalanceActionRepo;
         this.userBalanceService = userBalanceService;
     }
 
@@ -113,6 +114,8 @@ class OrderOrchestratorTest {
         );
 
         // clean orders for clean state every test.
+        reportingCalculationRepository.deleteAll();
+        userBalanceActionRepo.deleteAll();
         orderRepo.deleteAll();
         userInstrumentRepository.deleteAll();
 
@@ -163,8 +166,8 @@ class OrderOrchestratorTest {
 
         assertThat(order1.getMt5AccNumber()).isNotNull();
 
-//        assertThat(order1.getClientBaseAmountFrom()).isEqualByComparingTo(BigDecimal.ZERO);
-//        assertThat(order1.getClientBaseAmountTo()).isEqualByComparingTo(BigDecimal.valueOf(1000));
+        assertThat(order1.getClientBaseAmountFrom()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(order1.getClientBaseAmountTo()).isEqualByComparingTo(BigDecimal.valueOf(1000));
         assertThat(order1.getUserBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
 
         assertThat(order1.getUserEnteredQuoteAmount()).isNull();
@@ -186,8 +189,8 @@ class OrderOrchestratorTest {
 
         assertThat(order1.getMt5AccNumber()).isNotNull();
 
-//        assertThat(order1.getClientBaseAmountFrom()).isEqualByComparingTo(BigDecimal.ZERO);
-//        assertThat(order1.getClientBaseAmountTo()).isEqualByComparingTo(BigDecimal.valueOf(735.29411765));
+        assertThat(order1.getClientBaseAmountFrom()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(order1.getClientBaseAmountTo()).isEqualByComparingTo(BigDecimal.valueOf(735.29411765));
         assertThat(order1.getUserBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(735.29411765));
 
         assertThat(order1.getUserEnteredQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
@@ -374,7 +377,7 @@ class OrderOrchestratorTest {
         PlaceOrderResponse response1 = placeUsdCadOrderResponse(1000, true, 1.36567);
         PlaceOrderResponse response2 = placeUsdCadOrderResponse(4000, true, 1.32678);
         PlaceOrderResponse response3 = placeUsdCadOrderResponse(9000, true, 1.25764);
-        userBalanceService.createDepositAction(response3.getOrder().getUserInstrument().getId(), 80_000, Instant.now());
+        userBalanceService.createDepositAction(response3.getOrder().getUserInstrument().getId(), BigDecimal.valueOf(80_000), Instant.now());
 
         List<ReportingCalculation> all = reportingCalculationRepository.findAllOrdByDate();
         assertThat(all).hasSize(4);

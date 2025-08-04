@@ -26,6 +26,10 @@ public class ReportingCalculation {
     @JoinColumn(name = "user_balance_action_id")
     private UserBalanceAction userBalanceAction;
 
+    @ManyToOne
+    @JoinColumn(name = "user_instrument_id")
+    private AppUserInstrument userInstrument;
+
     private Instant date;
 
     private BigDecimal amount;
