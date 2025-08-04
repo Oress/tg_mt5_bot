@@ -1,33 +1,27 @@
-import {useState, useEffect} from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import {useEffect, useState} from 'react';
+import {useNavigate, useParams} from 'react-router-dom';
 import api from '../api';
 import {
-  Card,
   Button,
+  Card,
+  Checkbox,
+  Col,
+  Divider,
+  Flex,
+  InputNumber,
+  message,
+  Modal,
+  Radio,
+  Row,
+  Space,
+  Spin,
+  Statistic,
   Table,
   Tabs,
-  Typography,
-  Flex,
-  Space,
-  Input,
-  Segmented,
-  Modal,
-  Spin,
-  Divider,
-  Grid,
-  Row,
-  Col,
-  theme, InputNumber, DatePicker, Radio, Collapse, Statistic, Select, Checkbox, message
+  theme,
+  Typography
 } from 'antd';
-import {
-  ArrowLeftOutlined,
-  DownOutlined,
-  RightOutlined,
-  ExportOutlined,
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined, DownloadOutlined, LinkOutlined
-} from "@ant-design/icons";
+import {ArrowLeftOutlined, EditOutlined, LinkOutlined, PlusOutlined} from "@ant-design/icons";
 
 const formatCurrency = (amount, currency = 'USD', locale = 'en-US') => {
   return new Intl.NumberFormat(locale, {
@@ -350,7 +344,7 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
           <Card size="small">
             <Flex direction="vertical" gap="small">
               <Statistic title={`Баланс`}
-                         value={selectedInstrument.balance} />
+                         value={selectedInstrument.balance !== null ? selectedInstrument.balance : "Нет данных" } />
             </Flex>
           </Card>
         </Col>
@@ -369,6 +363,8 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
         <Typography.Title level={4} style={{ marginBottom: '16px' }}>
           История ордеров
         </Typography.Title>
+        <Divider style={{ margin: 0 }} />
+
         {orderHistory.length > 0 ? (
           <Table
             columns={columns}
@@ -390,7 +386,7 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
   )
 }
 
-function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
+function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unrealizedPnL, loadingUnrealizedPnL}) {
   const [openPositions, setOpenPositions] = useState([]);
   const [orderHistory, setOrderHistory] = useState([]);
   const [expandedRows, setExpandedRows] = useState({});
@@ -405,7 +401,6 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
             type: "open"
           }
         });
-        console.log('positionsResponse.data', positionsResponse.data);
         setOpenPositions(positionsResponse.data);
 
         // Fetch order history for the selected instrument
@@ -454,7 +449,29 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
             <Card size="small">
               <Flex direction="vertical" gap="small">
                 <Statistic title="Баланс"
-                           value={selectedInstrument.balance} />
+                           value={selectedInstrument.balance !== null ? selectedInstrument.balance : "Нет данных"} />
+              </Flex>
+            </Card>
+          </Col>
+          <Col xs={24} sm={8} md={8}>
+            <Card size="small">
+              <Flex direction="vertical" gap="small">
+                <Statistic 
+                  title="Текущий курс"
+                  value={loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? unrealizedPnL.rate : "Нет данных")}
+                  loading={loadingUnrealizedPnL}
+                />
+              </Flex>
+            </Card>
+          </Col>
+          <Col xs={24} sm={8} md={8}>
+            <Card size="small">
+              <Flex direction="vertical" gap="small">
+                <Statistic
+                  title="Нериализованный PnL клиента"
+                  value={loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? unrealizedPnL.profit : "Нет данных")}
+                  loading={loadingUnrealizedPnL}
+                />
               </Flex>
             </Card>
           </Col>
@@ -474,6 +491,8 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
           <Typography.Title level={4} style={{ marginBottom: '16px' }}>
             Текущие открытые позиции
           </Typography.Title>
+          <Divider style={{ margin: 0 }} />
+
           {openPositions.length > 0 ? (
             <Table
               columns={[
@@ -501,7 +520,7 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
                 {
                   title: 'Остаток для расхеджирования',
                   key: 'unhedge',
-                  width: 200,
+                  width: 300,
                   render: (_, order) => (
                     <Typography.Text strong style={{ color: '#52c41a' }}>
                       {formatCurrency(order.remainingQuoteAmount, selectedInstrument.quote)} / {formatCurrency(order.userEnteredQuoteAmount, selectedInstrument.quote)}
@@ -568,6 +587,8 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
           <Typography.Title level={4} style={{ marginBottom: '16px' }}>
             История заказов
           </Typography.Title>
+          <Divider style={{ margin: 0 }} />
+
           {orderHistory.length > 0 ? (
             <Table
               columns={[
@@ -1146,8 +1167,25 @@ function UserPage({ toggleTheme, themeMode }) {
   const [isInstrumentModalOpen, setIsInstrumentModalOpen] = useState(false);
   const [selectedInstrumentOption, setSelectedInstrumentOption] = useState(['EUR/USD']);
   const [isUpdatingInstruments, setIsUpdatingInstruments] = useState(false);
+  const [unrealizedPnL, setUnrealizedPnL] = useState(null);
+  const [loadingUnrealizedPnL, setLoadingUnrealizedPnL] = useState(false);
 
   // API endpoints for data fetching
+
+  const fetchUnrealizedPnL = async (telegramId, instrumentId) => {
+    if (!telegramId || !instrumentId) return;
+    
+    setLoadingUnrealizedPnL(true);
+    try {
+      const response = await api.get(`/users/${telegramId}/instruments/${instrumentId}/unrealized`);
+      setUnrealizedPnL(response.data.data);
+    } catch (error) {
+      console.error('Error fetching unrealized PnL:', error);
+      setUnrealizedPnL(null);
+    } finally {
+      setLoadingUnrealizedPnL(false);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -1167,6 +1205,8 @@ function UserPage({ toggleTheme, themeMode }) {
         const firstInstrument = instrumentsResp[0];
         setActiveTab(firstInstrument.label);
         setSelectedInstrument(firstInstrument);
+        // Fetch unrealized PnL for the first instrument
+        await fetchUnrealizedPnL(userResponse.data.telegramId, firstInstrument.id);
       }
 
       // Increment refresh counter to trigger child component refreshes
@@ -1183,10 +1223,15 @@ function UserPage({ toggleTheme, themeMode }) {
     fetchData();
   }, [userId]);
 
-  const handleTabChange = (instrumentName) => {
+  const handleTabChange = async (instrumentName) => {
     setActiveTab(instrumentName);
     const instrument = instruments.find(i => i.label === instrumentName);
     setSelectedInstrument(instrument);
+    
+    // Fetch unrealized PnL for the selected instrument
+    if (user && instrument) {
+      await fetchUnrealizedPnL(user.telegramId, instrument.id);
+    }
     
     // Reload user instruments when tab changes
     setRefreshCounter(prev => prev + 1);
@@ -1255,7 +1300,7 @@ function UserPage({ toggleTheme, themeMode }) {
       detailsComponent = <RegularHedgeDetails selectedInstrument={selectedInstrument} userId={userId} refreshTrigger={refreshCounter} />;
       break;
     case 'LONG':
-      detailsComponent = <InverseHedgeDetails selectedInstrument={selectedInstrument} userId={userId} refreshTrigger={refreshCounter} />;
+      detailsComponent = <InverseHedgeDetails selectedInstrument={selectedInstrument} userId={userId} refreshTrigger={refreshCounter} unrealizedPnL={unrealizedPnL} loadingUnrealizedPnL={loadingUnrealizedPnL} />;
       break;
     default:
       detailsComponent = (
