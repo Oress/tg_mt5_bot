@@ -30,6 +30,8 @@ public class VolumeCalculation {
     BigDecimal executionHouseOwnedBase;
 
     List<PlannedLifoPositionConsumption> lifoPositionsForConsumption;
+    List<PlannedHousePositionConsumption> housePositionsForConsumption;
+    CreateHousePosition createHousePosition;
 
     public static class VolumeCalculationBuilder {
         public VolumeCalculation build() {
@@ -37,7 +39,7 @@ public class VolumeCalculation {
             validateNonNegative(executionBase, "executionUserOwnedBase");
             return new VolumeCalculation(originalAmount, price, oldUserOwnedBase, newUserOwnedBase,
                     oldHouseOwnedBase, newHouseOwnedBase, executionVolume, executionBase,
-                    executionUserOwnedBase, executionHouseOwnedBase, lifoPositionsForConsumption);
+                    executionUserOwnedBase, executionHouseOwnedBase, lifoPositionsForConsumption, housePositionsForConsumption, createHousePosition);
         }
 
         private void validateNonNegative(BigDecimal value, String fieldName) {
@@ -46,5 +48,4 @@ public class VolumeCalculation {
             }
         }
     }
-
 }

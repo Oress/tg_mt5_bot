@@ -448,4 +448,83 @@
                                  onDelete="SET NULL"/>
     </changeSet>
 
+    <changeSet id="create seq_hed_house_owned_positions" author="system">
+        <createSequence sequenceName="seq_hed_house_owned_positions"
+                        startValue="1"
+                        incrementBy="1"/>
+    </changeSet>
+
+    <changeSet id="create hed_house_owned_positions" author="system">
+        <createTable tableName="hed_house_owned_positions">
+            <column name="id" type="BIGINT">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="order_id" type="BIGINT" />
+            <column name="type" type="text" />
+            <column name="remaining_amount" type="DECIMAL(20,8)" />
+            <column name="closed_at" type="TIMESTAMP" />
+        </createTable>
+    </changeSet>
+
+    <changeSet id="create seq_hed_house_owned_position_consumptions" author="system">
+        <createSequence sequenceName="seq_hed_house_owned_position_consumptions"
+                        startValue="1"
+                        incrementBy="1"/>
+    </changeSet>
+
+    <changeSet id="create-hed-house-owned-position-consumptions-table" author="system">
+        <createTable tableName="hed_house_owned_position_consumptions">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="parent_order_id" type="bigint" />
+            <column name="consumed_position_id" type="bigint" />
+            <column name="consumed_amount" type="decimal(20,8)" />
+            <column name="left_amount" type="decimal(20,8)" />
+            <column name="pnl" type="decimal(20,8)" />
+        </createTable>
+    </changeSet>
+
+    <changeSet id="add fk_house_owned_positions_order" author="system">
+        <addForeignKeyConstraint baseTableName="hed_house_owned_positions"
+                                 baseColumnNames="order_id"
+                                 constraintName="fk_house_owned_positions_order"
+                                 referencedTableName="hed_orders"
+                                 referencedColumnNames="id"/>
+    </changeSet>
+
+    <changeSet id="add fk_house_position_consumptions_parent_order" author="system">
+        <addForeignKeyConstraint baseTableName="hed_house_owned_position_consumptions"
+                                 baseColumnNames="parent_order_id"
+                                 constraintName="fk_house_position_consumptions_parent_order"
+                                 referencedTableName="hed_orders"
+                                 referencedColumnNames="id"/>
+    </changeSet>
+
+    <changeSet id="add fk_house_position_consumptions_consumed_position" author="system">
+        <addForeignKeyConstraint baseTableName="hed_house_owned_position_consumptions"
+                                 baseColumnNames="consumed_position_id"
+                                 constraintName="fk_house_position_consumptions_consumed_position"
+                                 referencedTableName="hed_house_owned_positions"
+                                 referencedColumnNames="id"/>
+    </changeSet>
+
+    <changeSet id="add-indexes-house-owned-positions" author="system">
+        <createIndex tableName="hed_house_owned_positions" indexName="idx_house_owned_positions_order_id">
+            <column name="order_id"/>
+        </createIndex>
+        <createIndex tableName="hed_house_owned_positions" indexName="idx_house_owned_positions_closed_at">
+            <column name="closed_at"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="add-indexes-house-position-consumptions" author="system">
+        <createIndex tableName="hed_house_owned_position_consumptions" indexName="idx_house_position_consumptions_parent_order_id">
+            <column name="parent_order_id"/>
+        </createIndex>
+        <createIndex tableName="hed_house_owned_position_consumptions" indexName="idx_house_position_consumptions_consumed_position_id">
+            <column name="consumed_position_id"/>
+        </createIndex>
+    </changeSet>
+
 </databaseChangeLog>

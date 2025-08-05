@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +40,7 @@ public class DashboardController {
     private final ReportingCalculationRepository reportingCalculationRepository;
     private final UserBalanceService userBalanceService;
     private final UnrealizedPnlCalculator unrealizedPnlCalculator;
+    private final HousePositionConsumptionRepository housePositionConsumptionRepository;
 
     public DashboardController(UserRepo userRepo,
                                OrderRepo orderRepo,
@@ -50,7 +52,7 @@ public class DashboardController {
                                Mt5Service mt5Service,
                                ReportingCalculationRepository reportingCalculationRepository,
                                UserBalanceService userBalanceService,
-                               UnrealizedPnlCalculator unrealizedPnlCalculator) {
+                               UnrealizedPnlCalculator unrealizedPnlCalculator, HousePositionConsumptionRepository housePositionConsumptionRepository) {
         this.userRepo = userRepo;
         this.orderRepo = orderRepo;
         this.userTelegramActivityRepo = userTelegramActivityRepo;
@@ -61,6 +63,7 @@ public class DashboardController {
         this.reportingCalculationRepository = reportingCalculationRepository;
         this.userBalanceService = userBalanceService;
         this.unrealizedPnlCalculator = unrealizedPnlCalculator;
+        this.housePositionConsumptionRepository = housePositionConsumptionRepository;
     }
 
     @GetMapping("/users")
@@ -106,14 +109,26 @@ public class DashboardController {
     public ApiResponse<UnrealizedProfit> getUnrealizedProfit(@PathVariable Long telegramId, @PathVariable Long userInstrumentId) {
         AppUserInstrument userInstrument = appUserInstrumentRepository.findById(userInstrumentId).get();
         AppUser user = userInstrument.getUser();
-        Mt5ServiceImpl.InfoTick infoTick = mt5Service.getInfoTick(user, user.getSymbolByLabelAndAccType(userInstrument.getInstrument().getLabel()));
-        BigDecimal rate = BigDecimal.valueOf(infoTick.getBid());
-        UnrealizedPnl calculate = unrealizedPnlCalculator.calculate(userInstrumentId, rate);
-        return ApiResponse.success(
-                new UnrealizedProfit(infoTick.getBid(),
-                calculate.getResult().doubleValue(),
-                userInstrument.getInstrument().getLabel())
-        );
+
+        if (user.hasAccount()) {
+            Mt5ServiceImpl.InfoTick infoTick = mt5Service.getInfoTick(user, user.getSymbolByLabelAndAccType(userInstrument.getInstrument().getLabel()));
+            BigDecimal rate = BigDecimal.valueOf(infoTick.getBid()).setScale(5, RoundingMode.HALF_DOWN);
+            UnrealizedPnl calculate = unrealizedPnlCalculator.calculate(userInstrumentId, rate);
+            return ApiResponse.success(
+                    new UnrealizedProfit(rate,
+                            calculate.getResult().doubleValue(),
+                            userInstrument.getInstrument().getLabel())
+            );
+        } else {
+            return ApiResponse.error("User has no account");
+        }
+    }
+
+    @GetMapping("/users/{telegramId}/instruments/{userInstrumentId}/house-pnl")
+    @Transactional(readOnly = true)
+    public ApiResponse<UnrealizedProfit> getHousePnl(@PathVariable Long telegramId, @PathVariable Long userInstrumentId) {
+        BigDecimal totalPnl = housePositionConsumptionRepository.getPnlForUserInstrument(userInstrumentId);
+        return ApiResponse.success(new UnrealizedProfit(null, totalPnl != null ? totalPnl.doubleValue() : 0,""));
     }
 
     @GetMapping("/users/{telegramId}/orders/{userInstrumentId}")

@@ -33,8 +33,14 @@ public class Order {
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL)
     private LifoPosition lifoPosition;
 
+    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL)
+    private HouseOwnedPosition houseOwnedPosition;
+
     @OneToMany(mappedBy = "parentOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LifoPositionConsumption> consumptions = new ArrayList<>();
+
+    @OneToMany(mappedBy = "parentOrder", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<HousePositionConsumption> housePositionConsumptions = new ArrayList<>();
 
     private Long deal;
 
@@ -90,6 +96,26 @@ public class Order {
     @CreationTimestamp
     @Column(name = "created_at")
     private Instant createdAt;
+
+    // TODO: 0 should not be an option here
+    public HouseOwnedPosition createHouseOwnedPosition(BigDecimal actualHouseAmount) {
+        HouseOwnedPosition houseOwnedPosition = new HouseOwnedPosition();
+        houseOwnedPosition.setOrder(this);
+
+        // TODO: does it depend on the mode?
+        if (actualHouseAmount.compareTo(BigDecimal.ZERO) < 0) {
+            houseOwnedPosition.setType(HouseOwnedPositionType.SHORT);
+            houseOwnedPosition.setRemainingAmount(actualHouseAmount.negate());
+        } else {
+            houseOwnedPosition.setType(HouseOwnedPositionType.LONG);
+            houseOwnedPosition.setRemainingAmount(actualHouseAmount);
+        }
+
+        this.setHouseOwnedPosition(houseOwnedPosition);
+
+        return houseOwnedPosition;
+    }
+
 
     public LifoPosition createLifoPosition(Integer userAmount) {
         LifoPosition lifoPosition = new LifoPosition();

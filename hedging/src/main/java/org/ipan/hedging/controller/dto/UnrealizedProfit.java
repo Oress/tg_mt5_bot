@@ -5,14 +5,14 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.Instant;
+import java.math.BigDecimal;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class UnrealizedProfit {
-    private Double rate;
+    private BigDecimal rate;
     private Double profit;
     private String instrument;
 }

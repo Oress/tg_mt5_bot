@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -18,6 +19,7 @@ import java.util.List;
 public class VolumeCalculationService {
     private static final BigDecimal PRECISION_THRESHOLD = new BigDecimal("1e-3"); // or whatever threshold makes sense for your domain
     private final LifoPositionRepository lifoPositionRepository;
+    private final HouseOwnedPositionRepository houseOwnedPositionRepository;
 
     private OrderRepo orderRepo;
 
@@ -68,6 +70,7 @@ public class VolumeCalculationService {
                     .executionVolume(executionVolume)
                     .executionBase(executionBaseAmount)
                     .price(BigDecimal.valueOf(params.getIsBuy() ? params.getTick().getAsk() : params.getTick().getBid()))
+                    .housePositionsForConsumption(Collections.emptyList())
                     .build();
         }
     }
@@ -81,6 +84,8 @@ public class VolumeCalculationService {
         @Override
         public VolumeCalculation calculate(VolumeCalculationParams params) {
             List<PlannedLifoPositionConsumption> plannedLifoPositionConsumptions = new ArrayList<>();
+            List<PlannedHousePositionConsumption> plannedHousePositionConsumptions = new ArrayList<>();
+            CreateHousePosition createHousePosition = null;
             BigDecimal tradeContractSize = BigDecimal.valueOf(params.getTradeContractSize());
             BigDecimal currentTotal = params.getUserInstrument().getTotalOwnedBaseAmount();
             BigDecimal newTotalBaseAmount = null;
@@ -156,21 +161,68 @@ public class VolumeCalculationService {
                 newUserOwnedBase = newTotalBaseAmount;
                 log.info("HEDGE IN: new total base amount: {}, current total: {}, operation user amount base: {}, total volume: {}", newTotalBaseAmount, currentTotal, operationUserAmountBase, executionVolume);
             }*/
+            BigDecimal oldHouseOwnedBase = params.getUserInstrument().getHouseOwnedBaseAmount();
+            BigDecimal newHouseOwnedBase = newTotalBaseAmount.subtract(tempClientBaseAmount);
+
+            // close all positions
+            // 300 -> 0
+            // -300 -> 0
+            if (newHouseOwnedBase.compareTo(BigDecimal.ZERO) == 0) {
+                closeAllHousePositions(params, plannedHousePositionConsumptions);
+            }
+            // opposite amount -> close all positions and open a new one
+            // 300 -> -320
+            // -300 -> 320
+            else if (newHouseOwnedBase.multiply(oldHouseOwnedBase).compareTo(BigDecimal.ZERO) < 0) {
+                closeAllHousePositions(params, plannedHousePositionConsumptions);
+                createHousePosition = new CreateHousePosition(newHouseOwnedBase);
+            }
+            // increase in absolute value -> create position
+            // 300 -> 320
+            // -300 -> -320
+            else if (newHouseOwnedBase.abs().compareTo(oldHouseOwnedBase.abs()) > 0) {
+                createHousePosition = new CreateHousePosition(newHouseOwnedBase.subtract(oldHouseOwnedBase));
+            }
+            // decrease in absolute value -> close some positions
+            // 320 -> 300
+            // -320 -> -300
+            else if (newHouseOwnedBase.abs().compareTo(oldHouseOwnedBase.abs()) < 0) {
+                BigDecimal amountLeft = oldHouseOwnedBase;
+                List<HouseOwnedPosition> allForClosing = houseOwnedPositionRepository.findAllForClosingFifo(params.getUserInstrument().getId());
+                for (int i = 0; amountLeft.compareTo(BigDecimal.ZERO) > 0; i++) {
+                    HouseOwnedPosition positionToConsume = allForClosing.get(i);
+                    BigDecimal consumptionAmount = positionToConsume.getRemainingAmount().min(amountLeft);
+                    amountLeft = amountLeft.subtract(consumptionAmount);
+                    plannedLifoPositionConsumptions.add(new PlannedLifoPositionConsumption(positionToConsume.getId(), consumptionAmount));
+                }
+            } else  {
+                // ????
+                log.error("Unexpected case for newHouseOwnedBase: {}, oldHouseOwnedBase: {}", newHouseOwnedBase, oldHouseOwnedBase);
+            }
 
             // TODO: check the scale of the newUserOwnedBase and newTotalBaseAmount.subtract(tempClientBaseAmount), round to 2?
             //  Can there be some small amounts like 0.00001?
             return VolumeCalculation.builder()
                     .oldUserOwnedBase(params.getUserInstrument().getClientOwnedBaseAmount())
-                    .oldHouseOwnedBase(params.getUserInstrument().getHouseOwnedBaseAmount())
+                    .oldHouseOwnedBase(oldHouseOwnedBase)
                     .newUserOwnedBase(newUserOwnedBase)
-                    .newHouseOwnedBase(newTotalBaseAmount.subtract(tempClientBaseAmount))
+                    .newHouseOwnedBase(newHouseOwnedBase)
                     .originalAmount(params.getUserAmount())
                     .executionUserOwnedBase(operationUserAmountBase)
                     .executionVolume(executionVolume)
                     .executionBase(executionBaseAmount)
                     .price(BigDecimal.valueOf(price))
                     .lifoPositionsForConsumption(plannedLifoPositionConsumptions)
+                    .housePositionsForConsumption(plannedHousePositionConsumptions)
+                    .createHousePosition(createHousePosition)
                     .build();
+        }
+
+        private void closeAllHousePositions(VolumeCalculationParams params, List<PlannedHousePositionConsumption> plannedHousePositionConsumptions) {
+            List<HouseOwnedPosition> allForClosing = houseOwnedPositionRepository.findAllForClosingFifo(params.getUserInstrument().getId());
+            for (HouseOwnedPosition houseOwnedPosition : allForClosing) {
+                plannedHousePositionConsumptions.add(new PlannedHousePositionConsumption(houseOwnedPosition.getId(), houseOwnedPosition.getRemainingAmount()));
+            }
         }
     }
 }

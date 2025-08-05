@@ -31,6 +31,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+// TODO: EUR USD move to the common logic
+// TODO: reporting calculation
+// TODO: unrealized PnL calculation
+// TODO: House PnL calculation !!!!
+// TODO: INTERNAL TRANSFERS!!!!!
 @SpringBootTest(classes = {TestAsyncConfig.class})
 @Testcontainers
 @ActiveProfiles("test")
@@ -134,6 +139,11 @@ class OrderOrchestratorTest {
             userService.toggleInstrument(USER_ID, USDCAD);
             userService.toggleInstrument(USER_ID, EURUSD);
         }
+    }
+
+    @Test
+    public void placeOrder_usdcad_internalTransfersSellAndBuy() {
+        Assertions.fail("Not implemented");
     }
 
     @Test

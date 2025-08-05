@@ -26,6 +26,7 @@ public class OrderService {
     private final UserRepo userRepo;
     private final OrderRepo orderRepo;
     private final LifoPositionRepository lifoPositionRepository;
+    private final HouseOwnedPositionRepository houseOwnedPositionRepository;
 
     @Transactional
     public Order redistributeBaseAmount(PlaceOrderCommand command, VolumeCalculation volumeCalculation) {
@@ -34,6 +35,7 @@ public class OrderService {
         Instrument instrument = userInstrument.getInstrument();
 
         Order order = new Order();
+        order.setCorrelationId(UUID.randomUUID());
         order.setUserInstrument(userInstrument);
         order.setMt5AccNumber(user.getMt5AccNumber());
         order.setType(command.isBuy() ? OrderType.HOUSE_CLIENT_TRANSFER_LONG : OrderType.HOUSE_CLIENT_TRANSFER_SHORT);
@@ -43,26 +45,55 @@ public class OrderService {
         order.setBid(volumeCalculation.getPrice());
         order.setPrice(volumeCalculation.getPrice());
 
+        order.setUserEnteredQuoteAmount(BigDecimal.valueOf(command.getUserAmount()));
+        order.setHouseBaseAmountFrom(volumeCalculation.getOldHouseOwnedBase());
+        order.setHouseBaseAmountTo(volumeCalculation.getNewHouseOwnedBase());
+        order.setClientBaseAmountFrom(volumeCalculation.getOldUserOwnedBase());
+        order.setClientBaseAmountTo(volumeCalculation.getNewUserOwnedBase());
+        order.setUserBaseAmount(volumeCalculation.getExecutionUserOwnedBase());
+
         if (InstrumentMode.LONG.equals(instrument.getMode())) {
-            order.setUserEnteredQuoteAmount(BigDecimal.valueOf(command.getUserAmount()));
-            order.createLifoPosition(command.getUserAmount());
-            order.setHouseBaseAmountFrom(volumeCalculation.getOldHouseOwnedBase());
-            order.setHouseBaseAmountTo(volumeCalculation.getNewHouseOwnedBase());
-            order.setClientBaseAmountFrom(volumeCalculation.getOldUserOwnedBase());
-            order.setClientBaseAmountTo(volumeCalculation.getNewUserOwnedBase());
-            order.setUserBaseAmount(volumeCalculation.getExecutionUserOwnedBase());
+            if (command.isBuy()) {
+                order.createLifoPosition(command.getUserAmount());
+                // hedge
+                userInstrument.addUserAndHousePartsLongMode(volumeCalculation);
+            } else {
+                // unhedge
+                userInstrument.subtractUserAndHousePartsLongMode(volumeCalculation);
+
+                List<Long> lifoPositionIds = volumeCalculation.getLifoPositionsForConsumption().stream().map(o -> o.getLifoPositionId()).toList();
+                Map<Long, PlannedLifoPositionConsumption> orderIdToConsumption = volumeCalculation.getLifoPositionsForConsumption()
+                        .stream()
+                        .collect(Collectors.toMap(o -> o.getLifoPositionId(), o -> o));
+
+                List<LifoPosition> allById = lifoPositionRepository.findAllById(lifoPositionIds);
+                for (LifoPosition lifoPositionToConsume : allById) {
+                    PlannedLifoPositionConsumption plannedLifoPositionConsumption = orderIdToConsumption.get(lifoPositionToConsume.getId());
+                    lifoPositionToConsume.decreaseRemainingQuoteAmount(plannedLifoPositionConsumption.getQuoteConsumptionAmount());
+
+                    LifoPositionConsumption orderConsumption = new LifoPositionConsumption();
+                    orderConsumption.setParentOrder(order);
+                    orderConsumption.setConsumedPosition(lifoPositionToConsume);
+                    orderConsumption.setConsumedQuoteAmount(plannedLifoPositionConsumption.getQuoteConsumptionAmount());
+                    orderConsumption.setLeftQuoteAmount(lifoPositionToConsume.getRemainingQuoteAmount());
+                    if (lifoPositionToConsume.isConsumed()) {
+                        log.info("Lifo position {} is consumed, closing it", lifoPositionToConsume.getId());
+                        lifoPositionToConsume.setClosedAt(Instant.now());
+                    }
+
+                    orderConsumption.setBaseEquivalent(plannedLifoPositionConsumption.getQuoteConsumptionAmount().divide(lifoPositionToConsume.getOrder().getPrice(), RoundingMode.HALF_DOWN));
+                    order.getConsumptions().add(orderConsumption);
+                }
+            }
+
         } else {
             log.error("Unsupported instrument mode: {}", instrument.getMode());
             throw new RuntimeException();
         }
 
-        orderRepo.save(order);
+        calculateHousePositions(order, volumeCalculation);
 
-        if (InstrumentMode.LONG.equals(instrument.getMode())) {
-            userInstrument.addUserAndHousePartsLongMode(volumeCalculation);
-        } else {
-            log.error("Unsupported instrument mode: {}", instrument.getMode());
-        }
+        orderRepo.save(order);
 
         return order;
     }
@@ -158,7 +189,58 @@ public class OrderService {
             log.error("Unsupported instrument mode: {}", instrument.getMode());
         }
 
+        calculateHousePositions(order, volumeCalculation);
+
         return order;
+    }
+
+    private void calculateHousePositions(Order order, VolumeCalculation volumeCalculation) {
+        CreateHousePosition createHousePosition = volumeCalculation.getCreateHousePosition();
+        if (createHousePosition != null) {
+            order.createHouseOwnedPosition(createHousePosition.getAmount());
+        }
+
+        List<PlannedHousePositionConsumption> housePositionsForConsumption = volumeCalculation.getHousePositionsForConsumption();
+        List<Long> housePositionIds = housePositionsForConsumption.stream().map(o -> o.getHousePositionId()).toList();
+        Map<Long, PlannedHousePositionConsumption> orderIdToConsumption = housePositionsForConsumption
+                .stream()
+                .collect(Collectors.toMap(o -> o.getHousePositionId(), o -> o));
+
+        List<HouseOwnedPosition> allById = houseOwnedPositionRepository.findAllById(housePositionIds);
+        for (HouseOwnedPosition houseOwnedPosition : allById) {
+            PlannedHousePositionConsumption plannedHousePositionConsumption = orderIdToConsumption.get(houseOwnedPosition.getId());
+            houseOwnedPosition.decreaseRemainingAmount(plannedHousePositionConsumption.getConsumptionAmount());
+
+            BigDecimal pnl = null;
+            if (HouseOwnedPositionType.LONG.equals(houseOwnedPosition.getType())) {
+                // PnL = position_usd * ((exit_rate / entry_rate) - 1)
+                pnl = plannedHousePositionConsumption.getConsumptionAmount().multiply(
+                        volumeCalculation.getPrice().divide(houseOwnedPosition.getOrder().getPrice(), 8, RoundingMode.HALF_DOWN)
+                                .subtract(BigDecimal.ONE)
+                );
+            } else if (HouseOwnedPositionType.SHORT.equals(houseOwnedPosition.getType())) {
+                // PnL = position_usd * ((entry_rate / exit_rate) - 1)
+                pnl = plannedHousePositionConsumption.getConsumptionAmount().multiply(
+                        houseOwnedPosition.getOrder().getPrice().divide(volumeCalculation.getPrice(), 8, RoundingMode.HALF_DOWN)
+                                .subtract(BigDecimal.ONE)
+                );
+            } else {
+                log.error("Unsupported house position type: {}", houseOwnedPosition.getType());
+            }
+
+            HousePositionConsumption housePositionConsumption = new HousePositionConsumption();
+            housePositionConsumption.setParentOrder(order);
+            housePositionConsumption.setConsumedPosition(houseOwnedPosition);
+            housePositionConsumption.setConsumedAmount(plannedHousePositionConsumption.getConsumptionAmount());
+            housePositionConsumption.setPnl(pnl);
+            housePositionConsumption.setLeftAmount(houseOwnedPosition.getRemainingAmount());
+            if (houseOwnedPosition.isConsumed()) {
+                log.info("Lifo position {} is consumed, closing it", houseOwnedPosition.getId());
+                houseOwnedPosition.setClosedAt(Instant.now());
+            }
+
+            order.getHousePositionConsumptions().add(housePositionConsumption);
+        }
     }
 
     @Transactional
@@ -170,6 +252,7 @@ public class OrderService {
             order.setMt5RespCode(orderDetails.getRetcode());
             order.setMt5RespComment(orderDetails.getRetcode());
         }
+        // TODO: cancel lifo and house positions
         return order;
     }
 
