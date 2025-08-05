@@ -30,6 +30,17 @@ const formatCurrency = (amount, currency = 'USD', locale = 'en-US') => {
   }).format(amount);
 };
 
+const getColorByOrderType = (orderType) => {
+  switch (orderType) {
+    case 'MT5_LONG':
+    case 'HOUSE_CLIENT_TRANSFER_LONG':
+      return '#52c41a';
+    case 'MT5_SHORT':
+    case 'HOUSE_CLIENT_TRANSFER_SHORT':
+      return '#ff4d4f';
+  }
+};
+
 
 function LoadingUserPage() {
   const { token } = theme.useToken();
@@ -173,7 +184,7 @@ function UserInfoSection({user}) {
                 <Statistic title="Google Sheet" value={user.googleSheetId}
                 formatter={(val) =>
                     val ? (
-                    <Button type="link" href={val} size="large" target="_blank"
+                    <Button type="link" href={val} size="small" target="_blank"
                     icon={<LinkOutlined />}
                     >Открыть
                     </Button>)
@@ -193,8 +204,12 @@ function formatOrderType(type) {
   switch (type) {
     case 'MT5_LONG':
       return 'Покупка';
+    case 'HOUSE_CLIENT_TRANSFER_LONG':
+      return 'Покупка (Внутренний перевод)';
     case 'MT5_SHORT':
       return 'Продажа';
+    case 'HOUSE_CLIENT_TRANSFER_SHORT':
+      return 'Продажа (Внутренний перевод)';
     default:
       return type;
   }
@@ -241,7 +256,7 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
           style={{
             fontWeight: 'bold',
             textTransform: 'uppercase',
-            color: type === 'MT5_LONG' ? '#52c41a' : '#ff4d4f'
+            color: getColorByOrderType(type)
           }}
         >
           {formatOrderType(type)}
@@ -343,8 +358,8 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
         <Col xs={24} sm={12} md={8}>
           <Card size="small">
             <Flex direction="vertical" gap="small">
-              <Statistic title={`Баланс`}
-                         value={selectedInstrument.balance !== null ? selectedInstrument.balance : "Нет данных" } />
+              <Statistic title={`Баланс USD`}
+                         value={selectedInstrument.balance !== null ? formatCurrency(selectedInstrument.balance) : "Нет данных" } />
             </Flex>
           </Card>
         </Col>
@@ -386,7 +401,7 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
   )
 }
 
-function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unrealizedPnL, loadingUnrealizedPnL}) {
+function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unrealizedPnL, loadingUnrealizedPnL, servicePnL, loadingServicePnL}) {
   const [openPositions, setOpenPositions] = useState([]);
   const [orderHistory, setOrderHistory] = useState([]);
   const [expandedRows, setExpandedRows] = useState({});
@@ -425,7 +440,7 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
             <Card size="small">
               <Flex direction="vertical" gap="small">
                 <Statistic title={`${selectedInstrument.quote}  Клиента`}
-                           value={selectedInstrument.clientOwnedQuoteAmount} />
+                           value={formatCurrency(selectedInstrument.clientOwnedQuoteAmount, selectedInstrument.quote)} />
               </Flex>
             </Card>
           </Col>
@@ -433,7 +448,7 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
             <Card size="small">
               <Flex direction="vertical" gap="small">
                 <Statistic title={`${selectedInstrument.base}  Клиента`}
-                           value={selectedInstrument.clientOwnedBaseAmount} />
+                           value={formatCurrency(selectedInstrument.clientOwnedBaseAmount, selectedInstrument.base)} />
               </Flex>
             </Card>
           </Col>
@@ -441,15 +456,15 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
             <Card size="small">
               <Flex direction="vertical" gap="small">
                 <Statistic title={`${selectedInstrument.base} Сервиса`}
-                           value={selectedInstrument.houseOwnedBaseAmount} />
+                           value={formatCurrency(selectedInstrument.houseOwnedBaseAmount, selectedInstrument.base)} />
               </Flex>
             </Card>
           </Col>
           <Col xs={24} sm={8} md={8}>
             <Card size="small">
               <Flex direction="vertical" gap="small">
-                <Statistic title="Баланс"
-                           value={selectedInstrument.balance !== null ? selectedInstrument.balance : "Нет данных"} />
+                <Statistic title="Баланс USD"
+                           value={selectedInstrument.balance !== null ? formatCurrency(selectedInstrument.balance) : "Нет данных"} />
               </Flex>
             </Card>
           </Col>
@@ -468,9 +483,20 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
             <Card size="small">
               <Flex direction="vertical" gap="small">
                 <Statistic
-                  title="Нериализованный PnL клиента"
-                  value={loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? unrealizedPnL.profit : "Нет данных")}
+                  title="Нериализованный PnL Клиента"
+                  value={loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profit) : "Нет данных")}
                   loading={loadingUnrealizedPnL}
+                />
+              </Flex>
+            </Card>
+          </Col>
+          <Col xs={24} sm={8} md={8}>
+            <Card size="small">
+              <Flex direction="vertical" gap="small">
+                <Statistic
+                  title="PnL Сервиса"
+                  value={loadingServicePnL ? "Загрузка..." : (servicePnL !== null ? formatCurrency(servicePnL.profit) : "Нет данных")}
+                  loading={loadingServicePnL}
                 />
               </Flex>
             </Card>
@@ -608,7 +634,7 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
                         style={{
                           fontWeight: 'bold',
                           textTransform: 'uppercase',
-                          color: type === 'MT5_LONG' ? '#52c41a' : '#ff4d4f'
+                          color: getColorByOrderType(type)
                         }}
                       >
                         {formatOrderType(type)}
@@ -787,6 +813,12 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
                                 {formatCurrency(amount, selectedInstrument.base)}
                               </Typography.Text>
                             ),
+                          },
+                          {
+                            title: 'ID',
+                            key: 'id',
+                            width: 100,
+                            render: (_, consumedOrder) => consumedOrder.consumedOrder.id,
                           },
                           {
                             title: ``,
@@ -1155,7 +1187,7 @@ function DepositsWithdrawalsSection({ userId, instrumentId, refreshTrigger, inst
   );
 }
 
-function UserPage({ toggleTheme, themeMode }) {
+function UserPage({}) {
   const { token } = theme.useToken();
   const { userId } = useParams();
   const [activeTab, setActiveTab] = useState('');
@@ -1169,6 +1201,8 @@ function UserPage({ toggleTheme, themeMode }) {
   const [isUpdatingInstruments, setIsUpdatingInstruments] = useState(false);
   const [unrealizedPnL, setUnrealizedPnL] = useState(null);
   const [loadingUnrealizedPnL, setLoadingUnrealizedPnL] = useState(false);
+  const [servicePnL, setServicePnL] = useState(null);
+  const [loadingServicePnL, setLoadingServicePnL] = useState(false);
 
   // API endpoints for data fetching
 
@@ -1184,6 +1218,21 @@ function UserPage({ toggleTheme, themeMode }) {
       setUnrealizedPnL(null);
     } finally {
       setLoadingUnrealizedPnL(false);
+    }
+  };
+
+  const fetchServicePnL = async (telegramId, instrumentId) => {
+    if (!telegramId || !instrumentId) return;
+    
+    setLoadingServicePnL(true);
+    try {
+      const response = await api.get(`/users/${telegramId}/instruments/${instrumentId}/house-pnl`);
+      setServicePnL(response.data.data);
+    } catch (error) {
+      console.error('Error fetching service PnL:', error);
+      setServicePnL(null);
+    } finally {
+      setLoadingServicePnL(false);
     }
   };
 
@@ -1205,8 +1254,9 @@ function UserPage({ toggleTheme, themeMode }) {
         const firstInstrument = instrumentsResp[0];
         setActiveTab(firstInstrument.label);
         setSelectedInstrument(firstInstrument);
-        // Fetch unrealized PnL for the first instrument
+        // Fetch unrealized PnL and service PnL for the first instrument
         await fetchUnrealizedPnL(userResponse.data.telegramId, firstInstrument.id);
+        await fetchServicePnL(userResponse.data.telegramId, firstInstrument.id);
       }
 
       // Increment refresh counter to trigger child component refreshes
@@ -1228,9 +1278,10 @@ function UserPage({ toggleTheme, themeMode }) {
     const instrument = instruments.find(i => i.label === instrumentName);
     setSelectedInstrument(instrument);
     
-    // Fetch unrealized PnL for the selected instrument
+    // Fetch unrealized PnL and service PnL for the selected instrument
     if (user && instrument) {
       await fetchUnrealizedPnL(user.telegramId, instrument.id);
+      await fetchServicePnL(user.telegramId, instrument.id);
     }
     
     // Reload user instruments when tab changes
@@ -1300,7 +1351,7 @@ function UserPage({ toggleTheme, themeMode }) {
       detailsComponent = <RegularHedgeDetails selectedInstrument={selectedInstrument} userId={userId} refreshTrigger={refreshCounter} />;
       break;
     case 'LONG':
-      detailsComponent = <InverseHedgeDetails selectedInstrument={selectedInstrument} userId={userId} refreshTrigger={refreshCounter} unrealizedPnL={unrealizedPnL} loadingUnrealizedPnL={loadingUnrealizedPnL} />;
+      detailsComponent = <InverseHedgeDetails selectedInstrument={selectedInstrument} userId={userId} refreshTrigger={refreshCounter} unrealizedPnL={unrealizedPnL} loadingUnrealizedPnL={loadingUnrealizedPnL} servicePnL={servicePnL} loadingServicePnL={loadingServicePnL} />;
       break;
     default:
       detailsComponent = (
