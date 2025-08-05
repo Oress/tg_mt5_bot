@@ -87,7 +87,7 @@ public class DashboardController {
     public ApiResponse<List<UserInstrumentDto>> getUserInstruments(@PathVariable Long telegramId) {
         List<UserInstrumentDto> result = new ArrayList<>();
         AppUser byId = userRepo.findById(telegramId).get();
-        for (AppUserInstrument availableInstrument : byId.getAvailableInstruments()) {
+        for (AppUserInstrument availableInstrument : byId.getAvailableInstruments().stream().filter(i -> i.getActive()).toList()) {
             BigDecimal balanceForTheUserInstrument = reportingCalculationRepository.getBalanceForTheUserInstrument(availableInstrument.getId(), Limit.of(1));
             UserInstrumentDto userInstrumentDto = mapToDto(availableInstrument, balanceForTheUserInstrument);
             result.add(userInstrumentDto);
