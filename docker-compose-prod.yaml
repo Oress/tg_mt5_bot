@@ -9,6 +9,15 @@ services:
     ports:
       - 3000:3000
 
+  mt5_1:
+    extends:
+      file: docker-compose-base.yaml
+      service: mt5service
+    volumes:
+      - ./config1:/config
+    ports:
+      - 4000:3000
+
   postgres:
     restart: unless-stopped
     extends:
@@ -17,6 +26,11 @@ services:
 
   ptyhonhttpproxy:
     restart: unless-stopped
+    extends:
+      file: docker-compose-base.yaml
+      service: pythonproxyservice
+
+  ptyhonhttpproxy_1:
     extends:
       file: docker-compose-base.yaml
       service: pythonproxyservice
