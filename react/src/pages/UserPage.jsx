@@ -10,14 +10,14 @@ import {
   Flex,
   InputNumber,
   message,
-  Modal,
+  Modal, Popconfirm,
   Radio,
   Row,
   Space,
   Spin,
   Statistic,
   Table,
-  Tabs,
+  Tabs, Tag,
   theme,
   Typography
 } from 'antd';
@@ -215,7 +215,7 @@ function formatOrderType(type) {
   }
 }
 
-function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
+function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, user}) {
   const [orderHistory, setOrderHistory] = useState([]);
 
   const fetchData = async () => {
@@ -229,6 +229,22 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
         // Fetch order history for the selected instrument
         const historyResponse = await api.get(`/users/${userId}/orders/${selectedInstrument.id}`);
         setOrderHistory(historyResponse.data);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      // You might want to set an error state here to display to the user
+    }
+  };
+
+  const liquidatePosition = async () => {
+    try {
+      if (selectedInstrument) {
+        // Fetch order history for the selected instrument
+        const liquidateResponse = await api.post(`/users/${userId}/instruments/${selectedInstrument.id}/liquidate`);
+        console.log(liquidateResponse.data);
+        if (liquidateResponse.data) {
+          // TODO: send full refresh signal
+        }
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -344,7 +360,22 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
   ];
 
   return (
-    <div style={{ paddingTop: '16px' }}>
+    <div>
+      <div className="pb-4">
+        <Popconfirm
+          title="Ликвидация позиций"
+          description={`Вы уверены что хотите ликвидировать позиции  ${selectedInstrument.label} для пользователя ${user.username || user.firstName}?`}
+          onConfirm={liquidatePosition}
+          okText="Да"
+          cancelText="Нет"
+        >
+          <Button type="primary" danger>
+            Ликвидировать позиции
+          </Button>
+        </Popconfirm>
+      </div>
+
+
       {/* Ownership Info */}
       <Row gutter={[8, 8]} style={{ marginBottom: '24px' }}>
         <Col xs={24} sm={12} md={8}>
@@ -401,10 +432,26 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger}) {
   )
 }
 
-function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unrealizedPnL, loadingUnrealizedPnL, servicePnL, loadingServicePnL}) {
+function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unrealizedPnL, loadingUnrealizedPnL, servicePnL, loadingServicePnL, user}) {
   const [openPositions, setOpenPositions] = useState([]);
   const [orderHistory, setOrderHistory] = useState([]);
   const [expandedRows, setExpandedRows] = useState({});
+
+  const liquidatePosition = async () => {
+    try {
+      if (selectedInstrument) {
+        // Fetch order history for the selected instrument
+        const liquidateResponse = await api.post(`/users/${userId}/instruments/${selectedInstrument.id}/liquidate`);
+        console.log(liquidateResponse.data);
+        if (liquidateResponse.data) {
+          // TODO: send full refresh signal
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      // You might want to set an error state here to display to the user
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -433,7 +480,21 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
   }, [selectedInstrument, userId, refreshTrigger]);
 
   return (
-      <div style={{ paddingTop: '16px' }}>
+      <div>
+        <div className="pb-4">
+          <Popconfirm
+            title="Ликвидация позиций"
+            description={`Вы уверены что хотите ликвидировать позиции ${selectedInstrument.label} для пользователя ${user.username || user.firstName}?`}
+            onConfirm={liquidatePosition}
+            okText="Да"
+            cancelText="Нет"
+          >
+            <Button type="primary" danger>
+              Ликвидировать позиции
+            </Button>
+          </Popconfirm>
+        </div>
+
         {/* Ownership Info */}
         <Row gutter={[8, 8]} style={{ marginBottom: '24px' }}>
           <Col xs={24} sm={8} md={8}>
@@ -639,6 +700,7 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
                       >
                         {formatOrderType(type)}
                       </Typography.Text>
+                      {(order.systemType === 'LIQUIDATION') && <Tag>Ликвидация</Tag>}
                     </Flex>
                   ),
                 },
@@ -1348,10 +1410,10 @@ function UserPage({}) {
   let detailsComponent;
   switch (selectedInstrument?.mode) {
     case 'SHORT':
-      detailsComponent = <RegularHedgeDetails selectedInstrument={selectedInstrument} userId={userId} refreshTrigger={refreshCounter} />;
+      detailsComponent = <RegularHedgeDetails user={user} selectedInstrument={selectedInstrument} userId={userId} refreshTrigger={refreshCounter} />;
       break;
     case 'LONG':
-      detailsComponent = <InverseHedgeDetails selectedInstrument={selectedInstrument} userId={userId} refreshTrigger={refreshCounter} unrealizedPnL={unrealizedPnL} loadingUnrealizedPnL={loadingUnrealizedPnL} servicePnL={servicePnL} loadingServicePnL={loadingServicePnL} />;
+      detailsComponent = <InverseHedgeDetails user={user} selectedInstrument={selectedInstrument} userId={userId} refreshTrigger={refreshCounter} unrealizedPnL={unrealizedPnL} loadingUnrealizedPnL={loadingUnrealizedPnL} servicePnL={servicePnL} loadingServicePnL={loadingServicePnL} />;
       break;
     default:
       detailsComponent = (
