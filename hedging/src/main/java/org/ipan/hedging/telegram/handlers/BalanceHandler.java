@@ -16,8 +16,6 @@ import org.ipan.hedging.telegram.views.BalanceViews;
 import org.springframework.context.annotation.Profile;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
-import java.util.List;
-
 @TransitionHandler
 @AllArgsConstructor
 @Slf4j
@@ -26,7 +24,6 @@ public class BalanceHandler {
     private final UserRepo userRepo;
     private final TelegramState telegramState;
     private final BalanceViews balanceViews;
-    private final Mt5ServiceImpl mt5Service;
 
     @MatchStates({
             @MatchState(state = States.MAIN_MENU, callbackData = InlineMenuCallbacks.MENU_SHOW_BALANCE),
@@ -40,16 +37,8 @@ public class BalanceHandler {
             balanceViews.noAccount(userState, user);
             return;
         }
-        List<Mt5ServiceImpl.TradePos> tradePos = mt5Service.positionsGetAll(user);
 
-        if (tradePos == null || tradePos.isEmpty()) {
-            log.info("user has NO open positions: {}", user.getTelegramId());
-            balanceViews.noOpenPositions(userState);
-        } else {
-            log.info("user has open positions: {}", user.getTelegramId());
-            balanceViews.showBalance(userState, user);
-        }
-
+        balanceViews.showBalance(userState, user);
         telegramState.updateUserState(userState.getTelegramId(), userState.withState(States.BALANCE_REVIEW));
     }
 }
