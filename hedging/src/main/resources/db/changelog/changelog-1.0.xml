@@ -527,4 +527,10 @@
         </createIndex>
     </changeSet>
 
+    <changeSet id="add system_type to hed_orders" author="oress">
+        <addColumn tableName="hed_orders">
+            <column name="system_type" type="text" />
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

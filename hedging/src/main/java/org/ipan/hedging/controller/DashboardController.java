@@ -4,11 +4,13 @@ import lombok.AllArgsConstructor;
 import org.ipan.hedging.Config;
 import org.ipan.hedging.application.service.Mt5Service;
 import org.ipan.hedging.application.service.Mt5ServiceImpl;
+import org.ipan.hedging.application.service.OrderOrchestrator;
 import org.ipan.hedging.application.service.UserBalanceService;
 import org.ipan.hedging.controller.dto.*;
 import org.ipan.hedging.domain.AppConstants;
 import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.repository.*;
+import org.ipan.hedging.domain.service.OrderService;
 import org.ipan.hedging.domain.service.UnrealizedPnl;
 import org.ipan.hedging.domain.service.UnrealizedPnlCalculator;
 import org.ipan.hedging.domain.service.UserService;
@@ -41,6 +43,7 @@ public class DashboardController {
     private final UserBalanceService userBalanceService;
     private final UnrealizedPnlCalculator unrealizedPnlCalculator;
     private final HousePositionConsumptionRepository housePositionConsumptionRepository;
+    private final OrderOrchestrator orderOrchestrator;
 
     public DashboardController(UserRepo userRepo,
                                OrderRepo orderRepo,
@@ -52,7 +55,7 @@ public class DashboardController {
                                Mt5Service mt5Service,
                                ReportingCalculationRepository reportingCalculationRepository,
                                UserBalanceService userBalanceService,
-                               UnrealizedPnlCalculator unrealizedPnlCalculator, HousePositionConsumptionRepository housePositionConsumptionRepository) {
+                               UnrealizedPnlCalculator unrealizedPnlCalculator, HousePositionConsumptionRepository housePositionConsumptionRepository, OrderService orderService, OrderOrchestrator orderOrchestrator) {
         this.userRepo = userRepo;
         this.orderRepo = orderRepo;
         this.userTelegramActivityRepo = userTelegramActivityRepo;
@@ -64,6 +67,7 @@ public class DashboardController {
         this.userBalanceService = userBalanceService;
         this.unrealizedPnlCalculator = unrealizedPnlCalculator;
         this.housePositionConsumptionRepository = housePositionConsumptionRepository;
+        this.orderOrchestrator = orderOrchestrator;
     }
 
     @GetMapping("/users")
@@ -183,6 +187,12 @@ public class DashboardController {
         return mapToDto(newItem);
     }
 
+    @PostMapping("/users/{telegramId}/instruments/{userInstrumentId}/liquidate")
+    public ApiResponse<?> liquidatePosition(@PathVariable Long userInstrumentId) {
+        orderOrchestrator.liquidate(userInstrumentId);
+        return ApiResponse.success();
+    }
+
     @PostMapping("/users/{telegramId}/instruments/update-available-instruments")
     public ApiResponse<?> updateAvailableInstruments(@RequestBody UpdateAvailableInstrumentsDto userInstruments,
                                                      @PathVariable Long telegramId) {
@@ -255,6 +265,7 @@ public class DashboardController {
                 .deal(order.getDeal())
                 .order(order.getOrder())
                 .type(order.getType().name())
+                .systemType(order.getSystemType() != null ? order.getSystemType().name() : null)
                 .status(order.getStatus().name())
                 .mt5AccNumber(order.getMt5AccNumber())
                 .userBaseAmount(order.getUserBaseAmount())

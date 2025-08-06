@@ -50,6 +50,10 @@ public class Order {
     @Enumerated(EnumType.STRING)
     private OrderType type;
 
+    @Column(name = "system_type")
+    @Enumerated(EnumType.STRING)
+    private OrderSystemType systemType;
+
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
 

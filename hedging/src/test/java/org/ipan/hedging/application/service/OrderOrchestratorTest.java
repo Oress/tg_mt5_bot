@@ -78,7 +78,8 @@ class OrderOrchestratorTest {
 
     @Autowired
     public OrderOrchestratorTest(UserService userService, UserRepo userRepo,
-                                 OrderService orderService, AppUserInstrumentRepository appUserInstrumentRepository,
+                                 OrderService orderService,
+                                 AppUserInstrumentRepository appUserInstrumentRepository,
                                  OrderRepo orderRepo,
                                  VolumeCalculationService volumeCalculationService,
                                  ReportingCalculationService reportingCalculationService,
@@ -115,7 +116,8 @@ class OrderOrchestratorTest {
                 orderService,
                 mt5Service,
                 volumeCalculationService,
-                reportingCalculationService
+                reportingCalculationService,
+                userInstrumentRepository
         );
 
         // clean orders for clean state every test.

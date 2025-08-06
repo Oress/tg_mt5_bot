@@ -22,6 +22,7 @@ public class OrderDto {
     private Long deal;
     private Long order;
     private String type; // OrderType
+    private String systemType;
     private String status; // OrderStatus
     private Integer mt5AccNumber;
     private BigDecimal price;

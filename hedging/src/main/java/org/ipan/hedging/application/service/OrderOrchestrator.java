@@ -4,10 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.ipan.hedging.application.service.command.PlaceOrderCommand;
 import org.ipan.hedging.application.service.command.PlaceOrderResponse;
-import org.ipan.hedging.domain.model.AppUser;
-import org.ipan.hedging.domain.model.AppUserInstrument;
-import org.ipan.hedging.domain.model.Instrument;
-import org.ipan.hedging.domain.model.Order;
+import org.ipan.hedging.domain.model.*;
+import org.ipan.hedging.domain.model.repository.AppUserInstrumentRepository;
 import org.ipan.hedging.domain.model.repository.UserRepo;
 import org.ipan.hedging.domain.service.*;
 import org.springframework.stereotype.Service;
@@ -26,6 +24,7 @@ public class OrderOrchestrator {
     private final Mt5Service mt5Service;
     private final VolumeCalculationService volumeCalculationService;
     private final ReportingCalculationService reportingCalculationService;
+    private final AppUserInstrumentRepository appUserInstrumentRepository;
 
     public PlaceOrderResponse placeOrder(PlaceOrderCommand command) {
         log.info("Placing order for user: {}, instrument: {}, amount: {}, buy: {}", command.getUserId(), command.getInstrumentLabel(), command.getUserAmount(), command.isBuy());
@@ -33,6 +32,18 @@ public class OrderOrchestrator {
         AppUserInstrument userInstrument = user.findUserInstrument(command.getInstrumentLabel());
         Instrument instrument = userInstrument.getInstrument();
         String symbol = user.getSymbolByLabelAndAccType(command.getInstrumentLabel());
+
+        if (symbol == null) {
+            // TODO: custom exception
+            log.error("Symbol not found for user: {}, instrument: {}", user.getTelegramId(), command.getInstrumentLabel());
+            throw new RuntimeException("Symbol not found for user: " + user.getTelegramId() + ", instrument: " + command.getInstrumentLabel());
+        }
+
+        if (command.getUserAmount() <= 0) {
+            // TODO: custom exception
+            log.error("Invalid user amount: {} for user: {}, instrument: {}", command.getUserAmount(), user.getTelegramId(), command.getInstrumentLabel());
+            throw new IllegalArgumentException("User amount must be greater than zero");
+        }
 
         boolean successful = false;
         Mt5ServiceImpl.SymbolInfo symbolInfo = mt5Service.symbolInfo(user, symbol);
@@ -120,6 +131,35 @@ public class OrderOrchestrator {
         }
 
         return new PlaceOrderResponse(successful, order);
+    }
+
+    public PlaceOrderResponse liquidate(Long userInstrumentId) {
+        AppUserInstrument userInstrument = appUserInstrumentRepository.findById(userInstrumentId).get();
+        AppUser user = userInstrument.getUser();
+        Instrument instrument = userInstrument.getInstrument();
+        log.warn("LIQUIDATE for user: {}, instrument: {}", user.getTelegramId(), instrument.getLabel());
+
+        var builder = PlaceOrderCommand.builder()
+                .userId(user.getTelegramId())
+                .instrumentLabel(instrument.getLabel())
+                .isLiquidation(true);
+
+        PlaceOrderCommand command;
+        // e.g. USD/CAD
+        if (InstrumentMode.LONG.equals(instrument.getMode())) {
+            command = builder
+                    .userAmount(userInstrument.getClientOwnedQuoteAmount().intValue())
+                    .isBuy(false)
+                    .build();
+        } else {
+            // e.g. EUR/USD
+            // TODO: verify
+            command = builder
+                    .userAmount(userInstrument.getClientOwnedBaseAmount().intValue())
+                    .isBuy(true)
+                    .build();
+        }
+        return placeOrder(command);
     }
 }
 

@@ -15,5 +15,6 @@ public class PlaceOrderCommand {
     String instrumentLabel;
     Double volume;
     Integer userAmount;
+    boolean isLiquidation;
     Long ticket;
 }

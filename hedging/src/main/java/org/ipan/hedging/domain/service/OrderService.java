@@ -109,9 +109,12 @@ public class OrderService {
         order.setMt5AccNumber(user.getMt5AccNumber());
         order.setExecutedVolume(BigDecimal.valueOf(command.getVolume()));
         order.setStatus(OrderStatus.PENDING);
-//        order.setBaseAmount(amount);
 
         order.setType(command.isBuy() ? OrderType.MT5_LONG : OrderType.MT5_SHORT);
+
+        if (command.isLiquidation()) {
+            order.setSystemType(OrderSystemType.LIQUIDATION);
+        }
 
         if (InstrumentMode.SHORT.equals(userInstrument.getInstrument().getMode())) {
             order.setExecutedBaseAmount(BigDecimal.valueOf(command.getUserAmount()));
@@ -235,7 +238,7 @@ public class OrderService {
             housePositionConsumption.setPnl(pnl);
             housePositionConsumption.setLeftAmount(houseOwnedPosition.getRemainingAmount());
             if (houseOwnedPosition.isConsumed()) {
-                log.info("Lifo position {} is consumed, closing it", houseOwnedPosition.getId());
+                log.info("HOUSE position {} is consumed, closing it", houseOwnedPosition.getId());
                 houseOwnedPosition.setClosedAt(Instant.now());
             }
 
