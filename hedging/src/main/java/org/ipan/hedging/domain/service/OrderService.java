@@ -52,38 +52,14 @@ public class OrderService {
         order.setClientBaseAmountTo(volumeCalculation.getNewUserOwnedBase());
         order.setUserBaseAmount(volumeCalculation.getExecutionUserOwnedBase());
 
+        // TODO: this is for now. Later I will implement hedge logic for amounts < min lot size.
         if (InstrumentMode.LONG.equals(instrument.getMode())) {
             if (command.isBuy()) {
-                order.createLifoPosition(command.getUserAmount());
                 // hedge
                 userInstrument.addUserAndHousePartsLongMode(volumeCalculation);
             } else {
                 // unhedge
                 userInstrument.subtractUserAndHousePartsLongMode(volumeCalculation);
-
-                List<Long> lifoPositionIds = volumeCalculation.getLifoPositionsForConsumption().stream().map(o -> o.getLifoPositionId()).toList();
-                Map<Long, PlannedLifoPositionConsumption> orderIdToConsumption = volumeCalculation.getLifoPositionsForConsumption()
-                        .stream()
-                        .collect(Collectors.toMap(o -> o.getLifoPositionId(), o -> o));
-
-                List<LifoPosition> allById = lifoPositionRepository.findAllById(lifoPositionIds);
-                for (LifoPosition lifoPositionToConsume : allById) {
-                    PlannedLifoPositionConsumption plannedLifoPositionConsumption = orderIdToConsumption.get(lifoPositionToConsume.getId());
-                    lifoPositionToConsume.decreaseRemainingQuoteAmount(plannedLifoPositionConsumption.getQuoteConsumptionAmount());
-
-                    LifoPositionConsumption orderConsumption = new LifoPositionConsumption();
-                    orderConsumption.setParentOrder(order);
-                    orderConsumption.setConsumedPosition(lifoPositionToConsume);
-                    orderConsumption.setConsumedQuoteAmount(plannedLifoPositionConsumption.getQuoteConsumptionAmount());
-                    orderConsumption.setLeftQuoteAmount(lifoPositionToConsume.getRemainingQuoteAmount());
-                    if (lifoPositionToConsume.isConsumed()) {
-                        log.info("Lifo position {} is consumed, closing it", lifoPositionToConsume.getId());
-                        lifoPositionToConsume.setClosedAt(Instant.now());
-                    }
-
-                    orderConsumption.setBaseEquivalent(plannedLifoPositionConsumption.getQuoteConsumptionAmount().divide(lifoPositionToConsume.getOrder().getPrice(), RoundingMode.HALF_DOWN));
-                    order.getConsumptions().add(orderConsumption);
-                }
             }
 
         } else {
@@ -91,6 +67,11 @@ public class OrderService {
             throw new RuntimeException();
         }
 
+        if(!order.isHedgeOut()) {
+            order.createLifoPosition(order.getUserEnteredAmount().intValue());
+        }
+
+        calculateLifoConsumptions(volumeCalculation, order);
         calculateHousePositions(order, volumeCalculation);
 
         orderRepo.save(order);
@@ -155,7 +136,13 @@ public class OrderService {
         Instrument instrument = userInstrument.getInstrument();
 
         if (InstrumentMode.SHORT.equals(instrument.getMode())) {
-            userInstrument.addVolumeShortMode(volumeCalculation);
+            if (OrderType.MT5_LONG.equals(order.getType())) {
+                // unhedge
+                userInstrument.subtractUserAndHousePartsShortMode(volumeCalculation);
+            } else if (OrderType.MT5_SHORT.equals(order.getType())) {
+                // hedge
+                userInstrument.addVolumeShortMode(volumeCalculation);
+            }
         } else if (InstrumentMode.LONG.equals(instrument.getMode())) {
             if (OrderType.MT5_LONG.equals(order.getType())) {
                 // hedge
@@ -163,38 +150,45 @@ public class OrderService {
             } else if (OrderType.MT5_SHORT.equals(order.getType())) {
                 // unhedge
                 userInstrument.subtractUserAndHousePartsLongMode(volumeCalculation);
-
-                List<Long> lifoPositionIds = volumeCalculation.getLifoPositionsForConsumption().stream().map(o -> o.getLifoPositionId()).toList();
-                Map<Long, PlannedLifoPositionConsumption> orderIdToConsumption = volumeCalculation.getLifoPositionsForConsumption()
-                        .stream()
-                        .collect(Collectors.toMap(o -> o.getLifoPositionId(), o -> o));
-
-                List<LifoPosition> allById = lifoPositionRepository.findAllById(lifoPositionIds);
-                for (LifoPosition lifoPositionToConsume : allById) {
-                    PlannedLifoPositionConsumption plannedLifoPositionConsumption = orderIdToConsumption.get(lifoPositionToConsume.getId());
-                    lifoPositionToConsume.decreaseRemainingQuoteAmount(plannedLifoPositionConsumption.getQuoteConsumptionAmount());
-
-                    LifoPositionConsumption orderConsumption = new LifoPositionConsumption();
-                    orderConsumption.setParentOrder(order);
-                    orderConsumption.setConsumedPosition(lifoPositionToConsume);
-                    orderConsumption.setConsumedQuoteAmount(plannedLifoPositionConsumption.getQuoteConsumptionAmount());
-                    orderConsumption.setLeftQuoteAmount(lifoPositionToConsume.getRemainingQuoteAmount());
-                    if (lifoPositionToConsume.isConsumed()) {
-                        log.info("Lifo position {} is consumed, closing it", lifoPositionToConsume.getId());
-                        lifoPositionToConsume.setClosedAt(Instant.now());
-                    }
-
-                    orderConsumption.setBaseEquivalent(plannedLifoPositionConsumption.getQuoteConsumptionAmount().divide(lifoPositionToConsume.getOrder().getPrice(), RoundingMode.HALF_DOWN));
-                    order.getConsumptions().add(orderConsumption);
-                }
             }
         } else {
             log.error("Unsupported instrument mode: {}", instrument.getMode());
         }
 
+        if(!order.isHedgeOut()) {
+            order.createLifoPosition(order.getUserEnteredAmount().intValue());
+        }
+
+        calculateLifoConsumptions(volumeCalculation, order);
         calculateHousePositions(order, volumeCalculation);
 
         return order;
+    }
+
+    private void calculateLifoConsumptions(VolumeCalculation volumeCalculation, Order order) {
+        List<Long> lifoPositionIds = volumeCalculation.getLifoPositionsForConsumption().stream().map(o -> o.getLifoPositionId()).toList();
+        Map<Long, PlannedLifoPositionConsumption> orderIdToConsumption = volumeCalculation.getLifoPositionsForConsumption()
+                .stream()
+                .collect(Collectors.toMap(o -> o.getLifoPositionId(), o -> o));
+
+        List<LifoPosition> allById = lifoPositionRepository.findAllById(lifoPositionIds);
+        for (LifoPosition lifoPositionToConsume : allById) {
+            PlannedLifoPositionConsumption plannedLifoPositionConsumption = orderIdToConsumption.get(lifoPositionToConsume.getId());
+            lifoPositionToConsume.decreaseRemainingQuoteAmount(plannedLifoPositionConsumption.getQuoteConsumptionAmount());
+
+            LifoPositionConsumption orderConsumption = new LifoPositionConsumption();
+            orderConsumption.setParentOrder(order);
+            orderConsumption.setConsumedPosition(lifoPositionToConsume);
+            orderConsumption.setConsumedAmount(plannedLifoPositionConsumption.getQuoteConsumptionAmount());
+            orderConsumption.setLeftAmount(lifoPositionToConsume.getRemainingAmount());
+            if (lifoPositionToConsume.isConsumed()) {
+                log.info("Lifo position {} is consumed, closing it", lifoPositionToConsume.getId());
+                lifoPositionToConsume.setClosedAt(Instant.now());
+            }
+
+//            orderConsumption.setBaseEquivalent(plannedLifoPositionConsumption.getQuoteConsumptionAmount().divide(lifoPositionToConsume.getOrder().getPrice(), RoundingMode.HALF_DOWN));
+            order.getConsumptions().add(orderConsumption);
+        }
     }
 
     private void calculateHousePositions(Order order, VolumeCalculation volumeCalculation) {

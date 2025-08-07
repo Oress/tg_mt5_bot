@@ -144,6 +144,38 @@ class OrderOrchestratorTest {
     }
 
     @Test
+    public void placeOrder_usdcad_failedScenario1() {
+        PlaceOrderResponse response1 = placeEurUsdOrderResponse(5000, false, 1.16725);
+        Order order1 = response1.getOrder();
+        AppUserInstrument userInstrument1 = order1.getUserInstrument();
+        assertThat(userInstrument1.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(5000));
+        assertThat(userInstrument1.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(0));
+        assertThat(userInstrument1.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(5000));
+        assertThat(order1.getType()).isEqualByComparingTo(OrderType.MT5_SHORT);
+        assertThat(order1.getStatus()).isEqualByComparingTo(OrderStatus.COMPLETE);
+
+        PlaceOrderResponse response2 = placeEurUsdOrderResponse(1000, true, 1.16725);
+        Order order2 = response2.getOrder();
+        AppUserInstrument userInstrument2 = order2.getUserInstrument();
+        assertThat(userInstrument2.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(4000));
+        assertThat(userInstrument2.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(0));
+        assertThat(userInstrument2.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(4000));
+        assertThat(order2.getType()).isEqualByComparingTo(OrderType.MT5_LONG);
+
+        PlaceOrderResponse response3 = placeEurUsdOrderResponse(5000, false, 1.16725);
+        Order order3 = response3.getOrder();
+        AppUserInstrument userInstrument3 = order3.getUserInstrument();
+        assertThat(userInstrument3.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(9000));
+        assertThat(userInstrument3.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(9000));
+
+        PlaceOrderResponse response4 = placeEurUsdOrderResponse(9000, true, 1.16725);
+        Order order4 = response4.getOrder();
+        AppUserInstrument userInstrument4 = order4.getUserInstrument();
+        assertThat(userInstrument4.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(0));
+        assertThat(userInstrument4.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(0));
+    }
+
+    @Test
     public void placeOrder_usdcad_internalTransfersSellAndBuy() {
         Assertions.fail("Not implemented");
     }
@@ -183,7 +215,7 @@ class OrderOrchestratorTest {
         assertThat(order1.getUserBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
 
         assertThat(order1.getUserEnteredQuoteAmount()).isNull();
-        assertThat(order1.getLifoPosition()).isNull();
+        assertThat(order1.getLifoPosition()).isNotNull();
     }
 
     @Test
@@ -206,7 +238,7 @@ class OrderOrchestratorTest {
         assertThat(order1.getUserBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(735.29411765));
 
         assertThat(order1.getUserEnteredQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
-        assertThat(order1.getLifoPosition().getRemainingQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
+        assertThat(order1.getLifoPosition().getRemainingAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
     }
 
     @Test
@@ -294,7 +326,7 @@ class OrderOrchestratorTest {
         List<LifoPositionConsumption> consumptions = order2.getConsumptions();
         assertThat(consumptions).hasSize(1);
         assertThat(consumptions.get(0).getConsumedPosition().getId()).isEqualByComparingTo(response1.getOrder().getLifoPosition().getId());
-        assertThat(consumptions.get(0).getConsumedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(3000));
+        assertThat(consumptions.get(0).getConsumedAmount()).isEqualByComparingTo(BigDecimal.valueOf(3000));
 
         PlaceOrderResponse response3 = placeUsdCadOrderResponse(7000, false, 2.1);
         AppUserInstrument userInstrument3 = response3.getOrder().getUserInstrument();
@@ -307,11 +339,11 @@ class OrderOrchestratorTest {
         List<LifoPositionConsumption> consumptions3 = order3.getConsumptions();
         assertThat(consumptions3).hasSize(1);
         assertThat(consumptions3.get(0).getConsumedPosition().getId()).isEqualByComparingTo(response1.getOrder().getLifoPosition().getId());
-        assertThat(consumptions3.get(0).getConsumedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(7000));
+        assertThat(consumptions3.get(0).getConsumedAmount()).isEqualByComparingTo(BigDecimal.valueOf(7000));
         assertThat(consumptions3.get(0).getConsumedPosition().getClosedAt()).isNotNull();
 
         Order order1AfterUnhedge = orderRepo.findById(response1.getOrder().getId()).get();
-        assertThat(order1AfterUnhedge.getLifoPosition().getRemainingQuoteAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(order1AfterUnhedge.getLifoPosition().getRemainingAmount()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
 
@@ -343,16 +375,16 @@ class OrderOrchestratorTest {
         assertThat(consumptions).hasSize(2);
 
         assertThat(consumptions.get(0).getConsumedPosition().getOrder().getId()).isEqualByComparingTo(response1.getOrder().getId());
-        assertThat(consumptions.get(0).getConsumedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
+        assertThat(consumptions.get(0).getConsumedAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
 
         assertThat(consumptions.get(1).getConsumedPosition().getOrder().getId()).isEqualByComparingTo(response2.getOrder().getId());
-        assertThat(consumptions.get(1).getConsumedQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
+        assertThat(consumptions.get(1).getConsumedAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
 
         Order order1AfterUnhedge = orderRepo.findById(response1.getOrder().getId()).get();
         Order order2AfterUnhedge = orderRepo.findById(response2.getOrder().getId()).get();
 
-        assertThat(order1AfterUnhedge.getLifoPosition().getRemainingQuoteAmount()).isEqualByComparingTo(BigDecimal.ZERO);
-        assertThat(order2AfterUnhedge.getLifoPosition().getRemainingQuoteAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(order1AfterUnhedge.getLifoPosition().getRemainingAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(order2AfterUnhedge.getLifoPosition().getRemainingAmount()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
     @Test

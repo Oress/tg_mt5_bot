@@ -26,11 +26,11 @@ public class LifoPositionConsumption {
     @JoinColumn(name = "consumed_position_id")
     private LifoPosition consumedPosition;
 
-    @Column(name = "consumed_quote_amount")
-    private BigDecimal consumedQuoteAmount;
+    @Column(name = "consumed_amount")
+    private BigDecimal consumedAmount;
 
-    @Column(name = "left_quote_amount")
-    private BigDecimal leftQuoteAmount;
+    @Column(name = "left_amount")
+    private BigDecimal leftAmount;
 
     @Column(name = "base_equivalent")
     private BigDecimal baseEquivalent;

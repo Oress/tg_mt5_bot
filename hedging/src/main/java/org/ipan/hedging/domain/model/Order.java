@@ -124,7 +124,7 @@ public class Order {
     public LifoPosition createLifoPosition(Integer userAmount) {
         LifoPosition lifoPosition = new LifoPosition();
         lifoPosition.setOrder(this);
-        lifoPosition.setRemainingQuoteAmount(BigDecimal.valueOf(userAmount));
+        lifoPosition.setRemainingAmount(BigDecimal.valueOf(userAmount));
 
         this.setLifoPosition(lifoPosition);
 

@@ -25,17 +25,17 @@ public class LifoPosition {
     @JoinColumn(name = "order_id")
     private Order order;
 
-    @Column(name = "remaining_quote_amount")
-    private BigDecimal remainingQuoteAmount;
+    @Column(name = "remaining_amount")
+    private BigDecimal remainingAmount;
 
     @Column(name = "closed_at")
     private Instant closedAt;
 
     public void decreaseRemainingQuoteAmount(BigDecimal quoteConsumptionAmount) {
-        if (remainingQuoteAmount != null) {
-            remainingQuoteAmount = remainingQuoteAmount.subtract(quoteConsumptionAmount);
-            if (remainingQuoteAmount.compareTo(BigDecimal.ZERO) < 0) {
-                log.error("Quote amount left to unhedge for order {} is negative: {}", this, remainingQuoteAmount);
+        if (remainingAmount != null) {
+            remainingAmount = remainingAmount.subtract(quoteConsumptionAmount);
+            if (remainingAmount.compareTo(BigDecimal.ZERO) < 0) {
+                log.error("Quote amount left to unhedge for order {} is negative: {}", this, remainingAmount);
                 throw new IllegalStateException("Quote amount left to unhedge for order is negative: " + this);
             }
         } else {
@@ -44,11 +44,11 @@ public class LifoPosition {
     }
 
     public boolean isConsumed() {
-        if (remainingQuoteAmount == null) {
+        if (remainingAmount == null) {
             log.warn("Checking consumption status for order {} with null remaining quote amount", this);
             return false;
         }
-        boolean consumed = remainingQuoteAmount.compareTo(BigDecimal.ZERO) == 0;
+        boolean consumed = remainingAmount.compareTo(BigDecimal.ZERO) == 0;
         if (consumed && closedAt == null) {
             closedAt = Instant.now();
         }

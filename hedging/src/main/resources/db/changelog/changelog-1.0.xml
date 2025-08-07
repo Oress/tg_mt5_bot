@@ -219,7 +219,7 @@
             </column>
 
             <column name="order_id" type="bigint"/>
-            <column name="remaining_quote_amount" type="decimal(20,8)"/>
+            <column name="remaining_amount" type="decimal(20,8)"/>
             <column name="closed_at" type="timestamp"/>
         </createTable>
     </changeSet>
@@ -246,8 +246,8 @@
 
             <column name="parent_order_id" type="bigint" />
             <column name="consumed_position_id" type="bigint" />
-            <column name="consumed_quote_amount" type="decimal(20,8)" />
-            <column name="left_quote_amount" type="decimal(20,8)" />
+            <column name="consumed_amount" type="decimal(20,8)" />
+            <column name="left_amount" type="decimal(20,8)" />
             <column name="base_equivalent" type="decimal(20,8)" />
         </createTable>
     </changeSet>
@@ -286,7 +286,7 @@
 
     <changeSet id="add idx_hed_lifo_position_consumptions_amount" author="oress">
         <createIndex indexName="idx_hed_lifo_position_consumptions_amount" tableName="hed_lifo_position_consumptions">
-            <column name="consumed_quote_amount"/>
+            <column name="consumed_amount"/>
         </createIndex>
     </changeSet>
 

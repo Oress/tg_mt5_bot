@@ -86,6 +86,13 @@ public class AppUserInstrument {
     }
 
 
+
+    public void subtractUserAndHousePartsShortMode(VolumeCalculation volumeCalculation) {
+        this.clientOwnedBaseAmount = volumeCalculation.getNewUserOwnedBase();
+//        this.houseOwnedBaseAmount = volumeCalculation.getNewHouseOwnedBase();
+    }
+
+
     public void addUserAndHousePartsLongMode(VolumeCalculation volumeCalculation) {
         this.clientOwnedBaseAmount = volumeCalculation.getNewUserOwnedBase();
         this.houseOwnedBaseAmount = volumeCalculation.getNewHouseOwnedBase();

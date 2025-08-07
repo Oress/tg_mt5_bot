@@ -1,6 +1,5 @@
 package org.ipan.hedging.controller;
 
-import lombok.AllArgsConstructor;
 import org.ipan.hedging.Config;
 import org.ipan.hedging.application.service.*;
 import org.ipan.hedging.controller.dto.*;
@@ -12,6 +11,7 @@ import org.ipan.hedging.domain.service.UnrealizedPnl;
 import org.ipan.hedging.domain.service.UnrealizedPnlCalculator;
 import org.ipan.hedging.domain.service.UserService;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Limit;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,10 +23,10 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api")
+@Profile("!test")
 @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
 public class DashboardController {
     private final UserRepo userRepo;
@@ -114,13 +114,16 @@ public class DashboardController {
         AppUser user = userInstrument.getUser();
 
         if (user.hasAccount()) {
-            Mt5ServiceImpl.InfoTick infoTick = mt5Service.getInfoTick(user, user.getSymbolByLabelAndAccType(userInstrument.getInstrument().getLabel()));
-            BigDecimal rate = BigDecimal.valueOf(infoTick.getBid()).setScale(5, RoundingMode.HALF_DOWN);
+            Instrument instrument = userInstrument.getInstrument();
+            Mt5ServiceImpl.InfoTick infoTick = mt5Service.getInfoTick(user, user.getSymbolByLabelAndAccType(instrument.getLabel()));
+            BigDecimal rate = InstrumentMode.LONG.equals(instrument.getMode())
+                    ? BigDecimal.valueOf(infoTick.getBid()).setScale(5, RoundingMode.HALF_DOWN)
+                    : BigDecimal.valueOf(infoTick.getAsk()).setScale(5, RoundingMode.HALF_DOWN);
             UnrealizedPnl calculate = unrealizedPnlCalculator.calculate(userInstrumentId, rate);
             return ApiResponse.success(
                     new UnrealizedProfit(rate,
                             calculate.getResult().doubleValue(),
-                            userInstrument.getInstrument().getLabel())
+                            instrument.getLabel())
             );
         } else {
             return ApiResponse.error("User has no account");
@@ -284,7 +287,7 @@ public class DashboardController {
                 .userEnteredQuoteAmount(order.getUserEnteredQuoteAmount())
                 .executedVolume(order.getExecutedVolume())
                 .executedBaseAmount(order.getExecutedBaseAmount())
-                .remainingQuoteAmount(order.getLifoPosition() != null ? order.getLifoPosition().getRemainingQuoteAmount() : BigDecimal.ZERO)
+                .remainingQuoteAmount(order.getLifoPosition() != null ? order.getLifoPosition().getRemainingAmount() : BigDecimal.ZERO)
                 .houseBaseAmountFrom(order.getHouseBaseAmountFrom())
                 .houseBaseAmountTo(order.getHouseBaseAmountTo())
                 .clientBaseAmountFrom(order.getClientBaseAmountFrom())
@@ -298,8 +301,8 @@ public class DashboardController {
         return OrderConsumptionDto.builder()
                 .id(lifoPositionConsumption.getId())
                 .consumedOrder(mapToDto(lifoPositionConsumption.getConsumedPosition().getOrder()))
-                .consumedQuoteAmount(lifoPositionConsumption.getConsumedQuoteAmount())
-                .leftQuoteAmount(lifoPositionConsumption.getLeftQuoteAmount())
+                .consumedQuoteAmount(lifoPositionConsumption.getConsumedAmount())
+                .leftQuoteAmount(lifoPositionConsumption.getLeftAmount())
                 .baseEquivalent(lifoPositionConsumption.getBaseEquivalent())
                 .build();
     }

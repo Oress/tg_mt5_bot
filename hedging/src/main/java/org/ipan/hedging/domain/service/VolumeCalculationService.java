@@ -50,14 +50,46 @@ public class VolumeCalculationService {
                     .divide(BigDecimal.valueOf(params.getTradeContractSize()), 8, RoundingMode.HALF_DOWN);
 
             BigDecimal newUserOwnedBase = null;
-            if (params.getIsBuy()) {
+
+            List<PlannedLifoPositionConsumption> plannedLifoPositionConsumptions = new ArrayList<>();
+            BigDecimal operationUserAmountBase = null;
+            BigDecimal tempClientBaseAmount = null;
+
+            // HEDGE IN
+            if (!params.getIsBuy()) {
+                newUserOwnedBase = params.getUserInstrument().getClientOwnedBaseAmount().add(executionBaseAmount);
+            } else {
+                // HEDGE OUT
                 if (params.getUserInstrument().getClientOwnedBaseAmount().compareTo(executionBaseAmount) < 0) {
                     log.error("Insufficient client owned base amount: {} for execution base amount: {}", params.getUserInstrument().getClientOwnedBaseAmount(), executionBaseAmount);
                     throw new IllegalArgumentException("Insufficient client owned base amount for the operation");
                 }
-                newUserOwnedBase = params.getUserInstrument().getClientOwnedBaseAmount().subtract(executionBaseAmount);
-            } else {
-                newUserOwnedBase = params.getUserInstrument().getClientOwnedBaseAmount().add(executionBaseAmount);
+                operationUserAmountBase = BigDecimal.ZERO;
+
+                // HEDGE OUT
+                // find all open orders with non-closed positions (left to unhedge > 0)
+                // create 'consumption' records, i.e. which orders are used to unhedge and how much is used from each order.
+                List<LifoPosition> allForUnhedging = lifoPositionRepository.findAllForUnhendgingFifo(params.getUserInstrument().getId());
+                Integer amountLeft = params.getUserAmount();
+                for (int i = 0; amountLeft > 0; i++) {
+                    LifoPosition positionToConsume = allForUnhedging.get(i);
+                    BigDecimal consumptionAmount = positionToConsume.getRemainingAmount().min(BigDecimal.valueOf(amountLeft));
+                    amountLeft -= consumptionAmount.intValue();
+
+                    operationUserAmountBase = operationUserAmountBase.add(consumptionAmount);
+                    plannedLifoPositionConsumptions.add(new PlannedLifoPositionConsumption(positionToConsume.getId(), consumptionAmount));
+                }
+
+                // should be >= 0
+                tempClientBaseAmount = BigDecimal.ZERO.max(params.getUserInstrument().getClientOwnedBaseAmount().subtract(operationUserAmountBase));
+
+                // due to the loss of precision, tempClientBaseAmount may be something like 1e-8
+                if (tempClientBaseAmount.compareTo(PRECISION_THRESHOLD) < 0) {
+                    tempClientBaseAmount = BigDecimal.ZERO;
+                }
+
+                // round to the nearest 1000
+                newUserOwnedBase = tempClientBaseAmount.setScale(-3, RoundingMode.HALF_UP);
             }
 
             return VolumeCalculation.builder()
@@ -71,6 +103,7 @@ public class VolumeCalculationService {
                     .executionBase(executionBaseAmount)
                     .price(BigDecimal.valueOf(params.getIsBuy() ? params.getTick().getAsk() : params.getTick().getBid()))
                     .housePositionsForConsumption(Collections.emptyList())
+                    .lifoPositionsForConsumption(plannedLifoPositionConsumptions)
                     .build();
         }
     }
@@ -109,7 +142,7 @@ public class VolumeCalculationService {
             } else {
                 BigDecimal userAmountBd = BigDecimal.valueOf(params.getUserAmount());
                 if (params.getUserInstrument().getClientOwnedQuoteAmount().compareTo(userAmountBd) < 0) {
-                    log.error("Insufficient client owned base amount: {} for execution base amount: {}", params.getUserInstrument().getClientOwnedBaseAmount(), userAmountBd);
+                    log.error("Insufficient client owned QUOTE amount: {} for execution base amount: {}", params.getUserInstrument().getClientOwnedBaseAmount(), userAmountBd);
                     throw new IllegalArgumentException("Insufficient client owned base amount for the operation");
                 }
 
@@ -124,12 +157,10 @@ public class VolumeCalculationService {
 
 
                 List<LifoPosition> allForUnhedging = lifoPositionRepository.findAllForUnhendgingFifo(params.getUserInstrument().getId());
-//                List<Order> allForUnhedging = orderRepo.findAllForUnhendging(params.getUserId(), params.getInstrument().getLabel());
                 Integer amountLeft = params.getUserAmount();
-
                 for (int i = 0; amountLeft > 0; i++) {
                     LifoPosition positionToConsume = allForUnhedging.get(i);
-                    BigDecimal quoteConsumptionAmount = positionToConsume.getRemainingQuoteAmount().min(BigDecimal.valueOf(amountLeft));
+                    BigDecimal quoteConsumptionAmount = positionToConsume.getRemainingAmount().min(BigDecimal.valueOf(amountLeft));
                     amountLeft -= quoteConsumptionAmount.intValue();
 
                     operationUserAmountBase = operationUserAmountBase.add(quoteConsumptionAmount.divide(positionToConsume.getOrder().getPrice(), 8, RoundingMode.HALF_DOWN));
@@ -137,7 +168,6 @@ public class VolumeCalculationService {
                 }
 
                 // should be >= 0
-//                tempClientBaseAmount = BigDecimal.ZERO.max(params.getUserInstrument().getActualClientOwnedBaseAmount().subtract(operationUserAmountBase));
                 tempClientBaseAmount = BigDecimal.ZERO.max(params.getUserInstrument().getClientOwnedBaseAmount().subtract(operationUserAmountBase));
 
                 // due to the loss of precision, tempClientBaseAmount may be something like 1e-8
@@ -152,15 +182,6 @@ public class VolumeCalculationService {
             BigDecimal executionBaseAmount = newTotalBaseAmount.subtract(currentTotal).abs();
             BigDecimal executionVolume = executionBaseAmount.divide(tradeContractSize, 8, RoundingMode.HALF_DOWN).abs();
             newUserOwnedBase = tempClientBaseAmount;
-/*            if (newTotalBaseAmount.compareTo(tempClientBaseAmount) >= 0) {
-                // 3600 -> 4000 case
-                newUserOwnedBase = tempClientBaseAmount;
-                log.info("HEDGE IN: new total base amount: {}, current total: {}, operation user amount base: {}, total volume: {}", newTotalBaseAmount, currentTotal, operationUserAmountBase, executionVolume);
-            } else {
-                // 1400 -> 1000 case
-                newUserOwnedBase = newTotalBaseAmount;
-                log.info("HEDGE IN: new total base amount: {}, current total: {}, operation user amount base: {}, total volume: {}", newTotalBaseAmount, currentTotal, operationUserAmountBase, executionVolume);
-            }*/
             BigDecimal oldHouseOwnedBase = params.getUserInstrument().getHouseOwnedBaseAmount();
             BigDecimal newHouseOwnedBase = newTotalBaseAmount.subtract(tempClientBaseAmount);
 
