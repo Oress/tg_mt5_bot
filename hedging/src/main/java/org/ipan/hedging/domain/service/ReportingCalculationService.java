@@ -35,7 +35,6 @@ public class ReportingCalculationService {
     @Transactional
     public CompletableFuture<Void> recalculateAllForUserInstrument(Long userInstrumentId) {
         try {
-
             AppUserInstrument userInstrument = appUserInstrumentRepository.findById(userInstrumentId).get();
 
             // TODO: has to be optimized to use pagination in the future
@@ -108,12 +107,7 @@ public class ReportingCalculationService {
     }
 
 
-    private interface OperationCalculator {
-        ReportingCalculation calculate(Order order, ReportingCalculation prevRecord);
-    }
-
-    private static class EurUsdOperationCalculator implements OperationCalculator {
-        @Override
+    private static abstract class OperationCalculator {
         public ReportingCalculation calculate(Order order, ReportingCalculation prevRecord) {
             ReportingCalculation record = new ReportingCalculation();
             record.setOrder(order);
@@ -125,7 +119,7 @@ public class ReportingCalculationService {
             record.setFix(order.getPrice());
 
             // calculated values
-            record.setUsdt(record.getAmount().multiply(order.getPrice()));
+            record.setUsdt(calculateUsdt(order, record, prevRecord));
             record.setCommission(COMMISSION_01_PERCENT.multiply(record.getUsdt()).negate());
 
             // in position
@@ -152,16 +146,7 @@ public class ReportingCalculationService {
             }
 
             // deposit
-            if (order.isHedgeOut()) {
-                record.setDeposit(
-                        record.getAmount().negate()
-                                .multiply(
-                                        record.getFix().subtract(record.getRate())
-                                )
-                );
-            } else {
-                record.setDeposit(record.getCommission().negate());
-            }
+            record.setDeposit(calculateDeposit(order, record));
 
             // deposit total
             if (prevRecord == null) {
@@ -181,75 +166,46 @@ public class ReportingCalculationService {
 
             return record;
         }
+
+        protected abstract BigDecimal calculateDeposit(Order order, ReportingCalculation record);
+        protected abstract BigDecimal calculateUsdt(Order order, ReportingCalculation record, ReportingCalculation prevRecord);
     }
 
-    private static class UsdCadOperationCalculator implements OperationCalculator {
+    private static class EurUsdOperationCalculator extends OperationCalculator {
         @Override
-        public ReportingCalculation calculate(Order order, ReportingCalculation prevRecord) {
-            ReportingCalculation record = new ReportingCalculation();
-            record.setOrder(order);
-            record.setUserInstrument(order.getUserInstrument());
+        protected BigDecimal calculateUsdt(Order order, ReportingCalculation record, ReportingCalculation prevRecord) {
+            return record.getAmount().multiply(order.getPrice());
+        }
 
-            // raw values
-            record.setDate(order.getCreatedAt());
-            record.setAmount(order.getUserAmountForGoogleSheet());
-            record.setFix(order.getPrice());
-
-            // calculated values
-            record.setUsdt(record.getAmount().divide(order.getPrice(), 8, RoundingMode.HALF_DOWN));
-            record.setCommission(COMMISSION_01_PERCENT.multiply(record.getUsdt()).negate());
-
-            // in position
-            if (prevRecord == null) {
-                record.setInPosition(record.getAmount());
-            } else {
-                record.setInPosition(prevRecord.getInPosition().add(record.getAmount()));
-            }
-
-            // rate
-            if (prevRecord == null) {
-                record.setRate(record.getFix());
-            } else {
-                if (order.isHedgeOut()) {
-                    record.setRate(prevRecord.getRate());
-                } else {
-                    // weighted avg
-                    record.setRate(
-                            prevRecord.getInPosition().multiply(prevRecord.getRate())
-                                    .add(record.getAmount().multiply(record.getFix()))
-                                    .divide(record.getInPosition(), 8, RoundingMode.HALF_DOWN)
-                    );
-                }
-            }
-
-            // deposit
+        @Override
+        protected BigDecimal calculateDeposit(Order order, ReportingCalculation record) {
             if (order.isHedgeOut()) {
-                record.setDeposit(
-                        record.getFix().divide(record.getRate(), 8, RoundingMode.HALF_DOWN)
+                return record.getAmount().negate()
+                        .multiply(
+                                record.getFix().subtract(record.getRate())
+                        );
+            } else {
+                return record.getCommission().negate();
+            }
+        }
+    }
+
+    private static class UsdCadOperationCalculator extends OperationCalculator {
+
+        @Override
+        protected BigDecimal calculateUsdt(Order order, ReportingCalculation record, ReportingCalculation prevRecord) {
+            return record.getAmount().divide(order.getPrice(), 8, RoundingMode.HALF_DOWN);
+        }
+
+        @Override
+        protected BigDecimal calculateDeposit(Order order, ReportingCalculation record) {
+            if (order.isHedgeOut()) {
+                return record.getFix().divide(record.getRate(), 8, RoundingMode.HALF_DOWN)
                         .subtract(BigDecimal.ONE).multiply(record.getAmount())
-                        .divide(record.getFix(), 8, RoundingMode.HALF_DOWN)
-                );
+                        .divide(record.getFix(), 8, RoundingMode.HALF_DOWN);
             } else {
-                record.setDeposit(record.getCommission().negate());
+                return record.getCommission().negate();
             }
-
-            // deposit total
-            if (prevRecord == null) {
-                record.setDepositTotal(record.getDeposit());
-            } else {
-                record.setDepositTotal(
-                        record.getDeposit()
-                                .add(prevRecord.getDepositTotal())
-                                .add(prevRecord.getDepositPayment())
-                );
-            }
-
-            // balance
-            record.setBalance(
-                    record.getDepositTotal().add(record.getDepositPayment())
-            );
-
-            return record;
         }
     }
 }
