@@ -283,7 +283,7 @@ function InstrumentToolbar({selectedInstrument, userId, user}) {
   );
 }
 
-function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, user}) {
+function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unrealizedPnL, loadingUnrealizedPnL, user}) {
   const [orderHistory, setOrderHistory] = useState([]);
 
   const fetchData = async () => {
@@ -422,7 +422,7 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, user})
           <Card size="small">
             <Flex direction="vertical" gap="small">
               <Statistic title={`${selectedInstrument.base}  Клиента`}
-                         value={selectedInstrument.clientOwnedBaseAmount} />
+                         value={formatCurrency(selectedInstrument.clientOwnedBaseAmount, selectedInstrument.base)} />
             </Flex>
           </Card>
         </Col>
@@ -431,6 +431,28 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, user})
             <Flex direction="vertical" gap="small">
               <Statistic title={`Баланс USD`}
                          value={selectedInstrument.balance !== null ? formatCurrency(selectedInstrument.balance) : "Нет данных" } />
+            </Flex>
+          </Card>
+        </Col>
+        <Col xs={24} sm={8} md={8}>
+          <Card size="small">
+            <Flex direction="vertical" gap="small">
+              <Statistic
+                title="Текущий курс"
+                value={loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? unrealizedPnL.rate : "Нет данных")}
+                loading={loadingUnrealizedPnL}
+              />
+            </Flex>
+          </Card>
+        </Col>
+        <Col xs={24} sm={8} md={8}>
+          <Card size="small">
+            <Flex direction="vertical" gap="small">
+              <Statistic
+                title="Нериализованный PnL Клиента"
+                value={loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profit) : "Нет данных")}
+                loading={loadingUnrealizedPnL}
+              />
             </Flex>
           </Card>
         </Col>
@@ -1422,10 +1444,13 @@ function UserPage({}) {
   let detailsComponent;
   switch (selectedInstrument?.mode) {
     case 'SHORT':
-      detailsComponent = <RegularHedgeDetails user={user} selectedInstrument={selectedInstrument} userId={userId} refreshTrigger={refreshCounter} />;
+      detailsComponent = <RegularHedgeDetails user={user} selectedInstrument={selectedInstrument} userId={userId} refreshTrigger={refreshCounter}
+                                              loadingUnrealizedPnL={loadingUnrealizedPnL} unrealizedPnL={unrealizedPnL}/>;
       break;
     case 'LONG':
-      detailsComponent = <InverseHedgeDetails user={user} selectedInstrument={selectedInstrument} userId={userId} refreshTrigger={refreshCounter} unrealizedPnL={unrealizedPnL} loadingUnrealizedPnL={loadingUnrealizedPnL} servicePnL={servicePnL} loadingServicePnL={loadingServicePnL} />;
+      detailsComponent = <InverseHedgeDetails user={user} selectedInstrument={selectedInstrument} userId={userId} refreshTrigger={refreshCounter}
+                                              unrealizedPnL={unrealizedPnL} loadingUnrealizedPnL={loadingUnrealizedPnL}
+                                              servicePnL={servicePnL} loadingServicePnL={loadingServicePnL} />;
       break;
     default:
       detailsComponent = (
