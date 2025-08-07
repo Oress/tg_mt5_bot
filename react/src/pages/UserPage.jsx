@@ -10,7 +10,7 @@ import {
   Flex,
   InputNumber,
   message,
-  Modal, Popconfirm,
+  Modal, notification, Popconfirm,
   Radio,
   Row,
   Space,
@@ -215,20 +215,27 @@ function formatOrderType(type) {
   }
 }
 
-function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, user}) {
-  const [orderHistory, setOrderHistory] = useState([]);
+function InstrumentToolbar({selectedInstrument, userId, user}) {
+  const [notificationApi, contextHolder] = notification.useNotification();
 
-  const fetchData = async () => {
+  const recalculateGoogleSheet = async () => {
     try {
-      // Set default active tab to first instrument if available
       if (selectedInstrument) {
-        // Fetch open positions for the selected instrument
-        // const positionsResponse = await api.get(`/users/${userId}/orders/${firstInstrument.id}`);
-        // setOpenPositions(positionsResponse.data);
-
         // Fetch order history for the selected instrument
-        const historyResponse = await api.get(`/users/${userId}/orders/${selectedInstrument.id}`);
-        setOrderHistory(historyResponse.data);
+        const recalculateResponse = await api.post(`/users/${userId}/instruments/${selectedInstrument.id}/recalculate-ggl-sheet`);
+        if (recalculateResponse.data.success) {
+          notificationApi['success']({
+            message: 'Гугл таблица была отправлена на обновление.',
+            description:
+              'Гугл таблица была отправлена на обновление. Пожалуйста, подождите.',
+          });
+        } else {
+          notificationApi['error']({
+            message: 'Ошибка',
+            description:
+              'Что-то пошло не так. Пожалуйста, попробуйте позже.',
+          });
+        }
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -245,6 +252,51 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, user})
         if (liquidateResponse.data) {
           // TODO: send full refresh signal
         }
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      // You might want to set an error state here to display to the user
+    }
+  };
+
+  return (
+    <div className="pb-4 space-x-2">
+      {contextHolder}
+      <Button
+        onClick={recalculateGoogleSheet}
+        type="primary">
+        Пересоздать гугл таблицу
+      </Button>
+
+      <Popconfirm
+        title="Ликвидация позиций"
+        description={`Вы уверены что хотите ликвидировать позиции ${selectedInstrument?.label} для пользователя ${user?.username || user?.firstName}?`}
+        onConfirm={liquidatePosition}
+        okText="Да"
+        cancelText="Нет"
+      >
+        <Button type="primary" danger>
+          Ликвидировать позиции
+        </Button>
+      </Popconfirm>
+    </div>
+  );
+}
+
+function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, user}) {
+  const [orderHistory, setOrderHistory] = useState([]);
+
+  const fetchData = async () => {
+    try {
+      // Set default active tab to first instrument if available
+      if (selectedInstrument) {
+        // Fetch open positions for the selected instrument
+        // const positionsResponse = await api.get(`/users/${userId}/orders/${firstInstrument.id}`);
+        // setOpenPositions(positionsResponse.data);
+
+        // Fetch order history for the selected instrument
+        const historyResponse = await api.get(`/users/${userId}/orders/${selectedInstrument.id}`);
+        setOrderHistory(historyResponse.data);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -361,19 +413,7 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, user})
 
   return (
     <div>
-      <div className="pb-4">
-        <Popconfirm
-          title="Ликвидация позиций"
-          description={`Вы уверены что хотите ликвидировать позиции  ${selectedInstrument.label} для пользователя ${user.username || user.firstName}?`}
-          onConfirm={liquidatePosition}
-          okText="Да"
-          cancelText="Нет"
-        >
-          <Button type="primary" danger>
-            Ликвидировать позиции
-          </Button>
-        </Popconfirm>
-      </div>
+      <InstrumentToolbar selectedInstrument={selectedInstrument} userId={userId} user={user} />
 
 
       {/* Ownership Info */}
@@ -437,22 +477,6 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
   const [orderHistory, setOrderHistory] = useState([]);
   const [expandedRows, setExpandedRows] = useState({});
 
-  const liquidatePosition = async () => {
-    try {
-      if (selectedInstrument) {
-        // Fetch order history for the selected instrument
-        const liquidateResponse = await api.post(`/users/${userId}/instruments/${selectedInstrument.id}/liquidate`);
-        console.log(liquidateResponse.data);
-        if (liquidateResponse.data) {
-          // TODO: send full refresh signal
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      // You might want to set an error state here to display to the user
-    }
-  };
-
   const fetchData = async () => {
     try {
       // Set default active tab to first instrument if available
@@ -481,19 +505,7 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
 
   return (
       <div>
-        <div className="pb-4">
-          <Popconfirm
-            title="Ликвидация позиций"
-            description={`Вы уверены что хотите ликвидировать позиции ${selectedInstrument.label} для пользователя ${user.username || user.firstName}?`}
-            onConfirm={liquidatePosition}
-            okText="Да"
-            cancelText="Нет"
-          >
-            <Button type="primary" danger>
-              Ликвидировать позиции
-            </Button>
-          </Popconfirm>
-        </div>
+        <InstrumentToolbar selectedInstrument={selectedInstrument} userId={userId} user={user} />
 
         {/* Ownership Info */}
         <Row gutter={[8, 8]} style={{ marginBottom: '24px' }}>
