@@ -17,6 +17,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.ipan.hedging.GoogleSheetsConfig;
 import org.ipan.hedging.domain.model.*;
+import org.ipan.hedging.domain.model.repository.AppUserInstrumentRepository;
 import org.ipan.hedging.domain.model.repository.OrderRepo;
 import org.ipan.hedging.domain.model.repository.UserBalanceActionRepo;
 import org.ipan.hedging.domain.model.repository.UserRepo;
@@ -53,10 +54,12 @@ public class GoogleSheetsService {
     private final Drive drive;
     private final OrderRepo orderRepo;
     private final UserBalanceActionRepo userBalanceActionRepo;
+    private final AppUserInstrumentRepository userInstrumentRepository;
 
-    public GoogleSheetsService(GoogleSheetsConfig config, UserRepo userRepo, OrderRepo orderRepo, UserBalanceActionRepo userBalanceActionRepo) throws IOException {
+    public GoogleSheetsService(GoogleSheetsConfig config, UserRepo userRepo, OrderRepo orderRepo, UserBalanceActionRepo userBalanceActionRepo, AppUserInstrumentRepository userInstrumentRepository) throws IOException {
         this.config = config;
         this.userRepo = userRepo;
+        this.userInstrumentRepository = userInstrumentRepository;
 
         GoogleCredentials credentials = GoogleCredentials
                 .fromStream(Files.newInputStream(Path.of(config.getSaJson())))
@@ -78,6 +81,23 @@ public class GoogleSheetsService {
         this.userBalanceActionRepo = userBalanceActionRepo;
     }
 
+    public void removeSheetForAnInstrument(Long userInstrumentId) {
+        AppUserInstrument userInstrument = userInstrumentRepository.findById(userInstrumentId).get();
+        AppUser user = userInstrument.getUser();
+
+        if (user.getGoogleSheetId() == null) {
+            log.error("User {} does not have a Google Sheet ID, cannot remove instrument sheet", user.getTelegramId());
+            return;
+        }
+
+        try {
+            Spreadsheet spreadsheet = sheets.spreadsheets().get(user.getGoogleSheetId()).setIncludeGridData(false).execute();
+            removeInstrumentSheetIfExists(spreadsheet, userInstrument);
+        } catch (Exception e) {
+            log.error("Something went wrong during sync ", e);
+        }
+    }
+
     @Transactional
     @Async
     public void syncUser(Long userId) {
@@ -91,7 +111,7 @@ public class GoogleSheetsService {
 
             Spreadsheet spreadsheet = sheets.spreadsheets().get(user.getGoogleSheetId()).setIncludeGridData(false).execute();
             createSheetsForUserIfNotExist(spreadsheet, user);
-            remove0SheetIfExists(spreadsheet, user);
+//            remove0SheetIfExists(spreadsheet, user);
 
             createTablesForUsersIfNotExist(spreadsheet, user);
             syncDataForUser(user, syncDt);
@@ -467,6 +487,28 @@ public class GoogleSheetsService {
                                 List.of(
                                         new Request()
                                                 .setDeleteSheet(new DeleteSheetRequest().setSheetId(0)
+                                                )
+                                )
+                        )).execute();
+    }
+
+    @SneakyThrows
+    private void removeInstrumentSheetIfExists(Spreadsheet spreadsheet, AppUserInstrument userInstrument) {
+        List<Integer> sheetIds = spreadsheet.getSheets().stream().map(s -> s.getProperties().getSheetId()).toList();
+
+        Integer sheetId = userInstrument.getSheetId();
+        AppUser user = userInstrument.getUser();
+        if (!sheetIds.contains(sheetId)) {
+            log.info("Instrument Sheet with id {} does not exist for user {}", sheetId, user.getTelegramId());
+            return;
+        }
+
+        sheets.spreadsheets().batchUpdate(user.getGoogleSheetId(),
+                new BatchUpdateSpreadsheetRequest()
+                        .setRequests(
+                                List.of(
+                                        new Request()
+                                                .setDeleteSheet(new DeleteSheetRequest().setSheetId(sheetId)
                                                 )
                                 )
                         )).execute();

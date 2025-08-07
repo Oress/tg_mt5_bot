@@ -2,10 +2,7 @@ package org.ipan.hedging.controller;
 
 import lombok.AllArgsConstructor;
 import org.ipan.hedging.Config;
-import org.ipan.hedging.application.service.Mt5Service;
-import org.ipan.hedging.application.service.Mt5ServiceImpl;
-import org.ipan.hedging.application.service.OrderOrchestrator;
-import org.ipan.hedging.application.service.UserBalanceService;
+import org.ipan.hedging.application.service.*;
 import org.ipan.hedging.controller.dto.*;
 import org.ipan.hedging.domain.AppConstants;
 import org.ipan.hedging.domain.model.*;
@@ -44,6 +41,7 @@ public class DashboardController {
     private final UnrealizedPnlCalculator unrealizedPnlCalculator;
     private final HousePositionConsumptionRepository housePositionConsumptionRepository;
     private final OrderOrchestrator orderOrchestrator;
+    private final GoogleSheetsService googleSheetsService;
 
     public DashboardController(UserRepo userRepo,
                                OrderRepo orderRepo,
@@ -55,7 +53,7 @@ public class DashboardController {
                                Mt5Service mt5Service,
                                ReportingCalculationRepository reportingCalculationRepository,
                                UserBalanceService userBalanceService,
-                               UnrealizedPnlCalculator unrealizedPnlCalculator, HousePositionConsumptionRepository housePositionConsumptionRepository, OrderService orderService, OrderOrchestrator orderOrchestrator) {
+                               UnrealizedPnlCalculator unrealizedPnlCalculator, HousePositionConsumptionRepository housePositionConsumptionRepository, OrderService orderService, OrderOrchestrator orderOrchestrator, GoogleSheetsService googleSheetsService) {
         this.userRepo = userRepo;
         this.orderRepo = orderRepo;
         this.userTelegramActivityRepo = userTelegramActivityRepo;
@@ -68,6 +66,7 @@ public class DashboardController {
         this.unrealizedPnlCalculator = unrealizedPnlCalculator;
         this.housePositionConsumptionRepository = housePositionConsumptionRepository;
         this.orderOrchestrator = orderOrchestrator;
+        this.googleSheetsService = googleSheetsService;
     }
 
     @GetMapping("/users")
@@ -190,6 +189,19 @@ public class DashboardController {
     @PostMapping("/users/{telegramId}/instruments/{userInstrumentId}/liquidate")
     public ApiResponse<?> liquidatePosition(@PathVariable Long userInstrumentId) {
         orderOrchestrator.liquidate(userInstrumentId);
+        return ApiResponse.success();
+    }
+
+    @PostMapping("/users/{telegramId}/instruments/{userInstrumentId}/recalculate-ggl-sheet")
+    public ApiResponse<?> recalculateGoogleSheet(@PathVariable Long userInstrumentId) {
+        AppUserInstrument userInstrument = appUserInstrumentRepository.findById(userInstrumentId).get();
+        AppUser user = userInstrument.getUser();
+        userInstrument.setLastGoogleSheetSync(null);
+        appUserInstrumentRepository.save(userInstrument);
+
+        googleSheetsService.removeSheetForAnInstrument(userInstrumentId);
+        googleSheetsService.syncUser(user.getTelegramId());
+
         return ApiResponse.success();
     }
 
