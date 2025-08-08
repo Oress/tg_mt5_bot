@@ -143,6 +143,7 @@ class OrderOrchestratorTest {
         }
     }
 
+    // hedge 5k, unhedge 1k, hedge 5k more
     @Test
     public void placeOrder_usdcad_failedScenario1() {
         PlaceOrderResponse response1 = placeEurUsdOrderResponse(5000, false, 1.16725);
@@ -173,6 +174,35 @@ class OrderOrchestratorTest {
         AppUserInstrument userInstrument4 = order4.getUserInstrument();
         assertThat(userInstrument4.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(0));
         assertThat(userInstrument4.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(0));
+    }
+
+    // hedge 5k EUR, hedge 5k CAD, unhedge 1k EUR
+    @Test
+    public void placeOrder_usdcad_failedScenario2() {
+        PlaceOrderResponse response1 = placeEurUsdOrderResponse(5000, false, 1.16725);
+        Order order1 = response1.getOrder();
+        AppUserInstrument userInstrument1 = order1.getUserInstrument();
+        assertThat(userInstrument1.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(5000));
+        assertThat(userInstrument1.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(0));
+        assertThat(userInstrument1.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(5000));
+        assertThat(order1.getType()).isEqualByComparingTo(OrderType.MT5_SHORT);
+        assertThat(order1.getStatus()).isEqualByComparingTo(OrderStatus.COMPLETE);
+
+        PlaceOrderResponse response2 = placeUsdCadOrderResponse(5000, true, 1.37334);
+        Order order2 = response2.getOrder();
+        AppUserInstrument userInstrument2 = order2.getUserInstrument();
+        assertThat(userInstrument2.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(3640.75902544));
+        assertThat(userInstrument2.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(359.24097456));
+        assertThat(userInstrument2.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(4000));
+        assertThat(order2.getType()).isEqualByComparingTo(OrderType.MT5_LONG);
+
+        PlaceOrderResponse response3 = placeEurUsdOrderResponse(1000, true, 1.16725);
+        Order order3 = response3.getOrder();
+        LifoPosition lifoPosition = order3.getLifoPosition();
+        AppUserInstrument userInstrument3 = order3.getUserInstrument();
+        assertThat(userInstrument3.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(4000));
+        assertThat(userInstrument3.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(4000));
+        assertThat(lifoPosition).isNull();
     }
 
     @Test

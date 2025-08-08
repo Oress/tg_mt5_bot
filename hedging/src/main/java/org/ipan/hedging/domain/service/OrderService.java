@@ -101,10 +101,6 @@ public class OrderService {
             order.setExecutedBaseAmount(BigDecimal.valueOf(command.getUserAmount()));
         } else if (InstrumentMode.LONG.equals(userInstrument.getInstrument().getMode())) {
             order.setUserEnteredQuoteAmount(BigDecimal.valueOf(command.getUserAmount()));
-
-            if (OrderType.MT5_LONG.equals(order.getType())) {
-                order.createLifoPosition(command.getUserAmount());
-            }
         }
 
         orderRepo.save(order);
