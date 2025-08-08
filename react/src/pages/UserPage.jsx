@@ -6,7 +6,7 @@ import {
   Card,
   Checkbox,
   Col,
-  Divider,
+  Divider, Dropdown,
   Flex,
   InputNumber,
   message,
@@ -21,7 +21,7 @@ import {
   theme,
   Typography
 } from 'antd';
-import {ArrowLeftOutlined, EditOutlined, LinkOutlined, PlusOutlined} from "@ant-design/icons";
+import {ArrowLeftOutlined, DownOutlined, EditOutlined, LinkOutlined, PlusOutlined} from "@ant-design/icons";
 
 const formatCurrency = (amount, currency = 'USD', locale = 'en-US') => {
   return new Intl.NumberFormat(locale, {
@@ -259,26 +259,46 @@ function InstrumentToolbar({selectedInstrument, userId, user}) {
     }
   };
 
+  const items = [
+    {
+      key: 'recalc_ggl_sheet',
+      label: (
+        <a onClick={recalculateGoogleSheet}>
+          Пересоздать гугл таблицу
+        </a>
+      ),
+    },
+    {
+      key: 'liquidate',
+      danger: true,
+      label: (
+        <Popconfirm
+          title="Ликвидация позиций"
+          description={`Вы уверены что хотите ликвидировать позиции ${selectedInstrument?.label} для пользователя ${user?.username || user?.firstName}?`}
+          onConfirm={liquidatePosition}
+          okText="Да"
+          cancelText="Нет"
+        >
+          <a type="primary" danger>
+            Ликвидировать позиции
+          </a>
+        </Popconfirm>
+      ),
+    },
+  ];
+
   return (
     <div className="pb-4 space-x-2">
       {contextHolder}
-      <Button
-        onClick={recalculateGoogleSheet}
-        type="primary">
-        Пересоздать гугл таблицу
-      </Button>
 
-      <Popconfirm
-        title="Ликвидация позиций"
-        description={`Вы уверены что хотите ликвидировать позиции ${selectedInstrument?.label} для пользователя ${user?.username || user?.firstName}?`}
-        onConfirm={liquidatePosition}
-        okText="Да"
-        cancelText="Нет"
-      >
-        <Button type="primary" danger>
-          Ликвидировать позиции
-        </Button>
-      </Popconfirm>
+      <Dropdown menu={{ items }}>
+        <a onClick={(e) => e.preventDefault()}>
+          <Space>
+            Действия
+            <DownOutlined />
+          </Space>
+        </a>
+      </Dropdown>
     </div>
   );
 }
@@ -413,9 +433,6 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
 
   return (
     <div>
-      <InstrumentToolbar selectedInstrument={selectedInstrument} userId={userId} user={user} />
-
-
       {/* Ownership Info */}
       <Row gutter={[8, 8]} style={{ marginBottom: '24px' }}>
         <Col xs={24} sm={12} md={8}>
@@ -527,8 +544,6 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
 
   return (
       <div>
-        <InstrumentToolbar selectedInstrument={selectedInstrument} userId={userId} user={user} />
-
         {/* Ownership Info */}
         <Row gutter={[8, 8]} style={{ marginBottom: '24px' }}>
           <Col xs={24} sm={8} md={8}>
@@ -1469,6 +1484,8 @@ function UserPage({}) {
     children: selectedInstrument?.label === instrument.label ? detailsComponent : null,
   }));
 
+  const operations = <InstrumentToolbar selectedInstrument={selectedInstrument} userId={userId} user={user} />;
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: token.colorBgLayout }}>
       <UserPageHeader onRefresh={fetchData} isRefreshing={loading} user={user} />
@@ -1498,6 +1515,7 @@ function UserPage({}) {
               activeKey={activeTab}
               onChange={handleTabChange}
               items={tabItems}
+              tabBarExtraContent={operations}
               type="card"
             />
           </Space>
