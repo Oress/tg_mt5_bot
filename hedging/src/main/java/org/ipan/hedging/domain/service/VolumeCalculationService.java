@@ -214,7 +214,7 @@ public class VolumeCalculationService {
                     HouseOwnedPosition positionToConsume = allForClosing.get(i);
                     BigDecimal consumptionAmount = positionToConsume.getRemainingAmount().min(amountLeft);
                     amountLeft = amountLeft.subtract(consumptionAmount);
-                    plannedLifoPositionConsumptions.add(new PlannedLifoPositionConsumption(positionToConsume.getId(), consumptionAmount));
+                    plannedHousePositionConsumptions.add(new PlannedHousePositionConsumption(positionToConsume.getId(), consumptionAmount));
                 }
             } else  {
                 // ????

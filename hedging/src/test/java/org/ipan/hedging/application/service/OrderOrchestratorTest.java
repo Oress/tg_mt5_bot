@@ -195,14 +195,33 @@ class OrderOrchestratorTest {
         assertThat(userInstrument2.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(359.24097456));
         assertThat(userInstrument2.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(4000));
         assertThat(order2.getType()).isEqualByComparingTo(OrderType.MT5_LONG);
+        assertThat(order2.getHouseOwnedPosition()).isNotNull();
 
         PlaceOrderResponse response3 = placeEurUsdOrderResponse(1000, true, 1.16725);
-        Order order3 = response3.getOrder();
+        Order order3 = orderRepo.findOrderWithConsumptions(response3.getOrder().getId());
         LifoPosition lifoPosition = order3.getLifoPosition();
         AppUserInstrument userInstrument3 = order3.getUserInstrument();
         assertThat(userInstrument3.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(4000));
         assertThat(userInstrument3.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(4000));
         assertThat(lifoPosition).isNull();
+        List<LifoPositionConsumption> consumptions = order3.getConsumptions();
+        assertThat(consumptions).hasSize(1);
+
+        PlaceOrderResponse response4 = placeUsdCadOrderResponse(1000, false, 1.37410);
+        Order order4 = orderRepo.findOrderWithConsumptions(response4.getOrder().getId());
+        LifoPosition lifoPosition4 = order4.getLifoPosition();
+        AppUserInstrument userInstrument4 = order3.getUserInstrument();
+        assertThat(userInstrument4.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(4000));
+        assertThat(userInstrument4.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(4000));
+        assertThat(lifoPosition4).isNull();
+        List<LifoPositionConsumption> consumptions4 = order4.getConsumptions();
+        assertThat(consumptions4).hasSize(1);
+        assertThat(consumptions4.get(0).getId()).isEqualTo(order2.getLifoPosition().getId());
+
+        order4 = orderRepo.findOrderWithHouseConsumptions(response4.getOrder().getId());
+        List<HousePositionConsumption> houseConsumptions4 = order4.getHousePositionConsumptions();
+        assertThat(houseConsumptions4).hasSize(1);
+        assertThat(houseConsumptions4.get(0).getId()).isEqualTo(order2.getHouseOwnedPosition().getId());
     }
 
     @Test

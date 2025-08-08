@@ -20,8 +20,11 @@ public interface OrderRepo extends JpaRepository<Order, Long> {
     List<Order> findAllForUnhendging(Long telegramId, String symbol);
 */
 
-    @Query("select o from Order o join fetch o.consumptions where o.id = :id")
+    @Query("select o from Order o left join fetch o.consumptions where o.id = :id")
     Order findOrderWithConsumptions(Long id);
+
+    @Query("select o from Order o left join fetch o.housePositionConsumptions where o.id = :id")
+    Order findOrderWithHouseConsumptions(Long id);
 
     @Query("select o from Order o join o.userInstrument ui where ui.id = :userInstrumentId order by o.createdAt asc")
     List<Order> findAllForReportingCalculation(Long userInstrumentId);
