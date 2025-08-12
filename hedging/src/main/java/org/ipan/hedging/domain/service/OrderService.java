@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.ipan.hedging.application.service.Mt5ServiceImpl;
 import org.ipan.hedging.application.service.command.PlaceOrderCommand;
 import org.ipan.hedging.domain.model.*;
+import org.ipan.hedging.domain.model.repository.HouseOwnedPositionRepository;
 import org.ipan.hedging.domain.model.repository.LifoPositionRepository;
 import org.ipan.hedging.domain.model.repository.OrderRepo;
 import org.ipan.hedging.domain.model.repository.UserRepo;

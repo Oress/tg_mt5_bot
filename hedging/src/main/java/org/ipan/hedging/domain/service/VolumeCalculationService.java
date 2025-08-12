@@ -3,6 +3,7 @@ package org.ipan.hedging.domain.service;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.ipan.hedging.domain.model.*;
+import org.ipan.hedging.domain.model.repository.HouseOwnedPositionRepository;
 import org.ipan.hedging.domain.model.repository.LifoPositionRepository;
 import org.ipan.hedging.domain.model.repository.OrderRepo;
 import org.springframework.stereotype.Service;
@@ -204,11 +205,12 @@ public class VolumeCalculationService {
             else if (newHouseOwnedBase.abs().compareTo(oldHouseOwnedBase.abs()) > 0) {
                 createHousePosition = new CreateHousePosition(newHouseOwnedBase.subtract(oldHouseOwnedBase));
             }
-            // decrease in absolute value -> close some positions
+            // decrease in absolute value -> close position partially
             // 320 -> 300
             // -320 -> -300
             else if (newHouseOwnedBase.abs().compareTo(oldHouseOwnedBase.abs()) < 0) {
-                BigDecimal amountLeft = oldHouseOwnedBase;
+                // e.g. 20
+                BigDecimal amountLeft = newHouseOwnedBase.subtract(oldHouseOwnedBase).abs();
                 List<HouseOwnedPosition> allForClosing = houseOwnedPositionRepository.findAllForClosingFifo(params.getUserInstrument().getId());
                 for (int i = 0; amountLeft.compareTo(BigDecimal.ZERO) > 0; i++) {
                     HouseOwnedPosition positionToConsume = allForClosing.get(i);

@@ -31,8 +31,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-// TODO: EUR USD move to the common logic
-// TODO: reporting calculation
 // TODO: unrealized PnL calculation
 // TODO: House PnL calculation !!!!
 // TODO: INTERNAL TRANSFERS!!!!!
@@ -52,6 +50,10 @@ class OrderOrchestratorTest {
             .withReuse(false)
             .withUsername("test")
             .withPassword("test");
+    @Autowired
+    private LifoPositionRepository lifoPositionRepository;
+    @Autowired
+    private HousePositionConsumptionRepository housePositionConsumptionRepository;
 
 
     @DynamicPropertySource
@@ -122,6 +124,8 @@ class OrderOrchestratorTest {
 
         // clean orders for clean state every test.
         reportingCalculationRepository.deleteAll();
+        housePositionConsumptionRepository.deleteAll();
+        lifoPositionRepository.deleteAll();
         userBalanceActionRepo.deleteAll();
         orderRepo.deleteAll();
         userInstrumentRepository.deleteAll();
@@ -141,6 +145,93 @@ class OrderOrchestratorTest {
             userService.toggleInstrument(USER_ID, USDCAD);
             userService.toggleInstrument(USER_ID, EURUSD);
         }
+    }
+
+    @Test
+    public void reportingCalculation_eurUsd_3hedges() {
+        placeEurUsdOrderResponse(1000, false, 1.16755000);
+        placeEurUsdOrderResponse(2000, false, 1.16754000);
+        placeEurUsdOrderResponse(3000, false, 1.16754000);
+
+        List<ReportingCalculation> all = reportingCalculationRepository.findAllOrdByDate();
+        assertThat(all).hasSize(3);
+        ReportingCalculation firstElem = all.get(0);
+        assertThat(firstElem.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(-1000));
+        assertThat(firstElem.getUsdt()).isEqualByComparingTo(BigDecimal.valueOf(-1167.55000000));
+        assertThat(firstElem.getCommission()).isEqualByComparingTo(BigDecimal.valueOf(1.16755000));
+        assertThat(firstElem.getInPosition()).isEqualByComparingTo(BigDecimal.valueOf(-1000));
+        assertThat(firstElem.getDeposit()).isEqualByComparingTo(BigDecimal.valueOf(-1.16755000));
+        assertThat(firstElem.getDepositPayment()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(firstElem.getBalance()).isEqualByComparingTo(BigDecimal.valueOf(-1.16755000));
+
+        ReportingCalculation secondElem = all.get(1);
+        assertThat(secondElem.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(-2000));
+        assertThat(secondElem.getUsdt()).isEqualByComparingTo(BigDecimal.valueOf(-2335.08000000));
+        assertThat(secondElem.getCommission()).isEqualByComparingTo(BigDecimal.valueOf(2.33508000));
+        assertThat(secondElem.getInPosition()).isEqualByComparingTo(BigDecimal.valueOf(-3000));
+        assertThat(secondElem.getDeposit()).isEqualByComparingTo(BigDecimal.valueOf(-2.33508000));
+        assertThat(secondElem.getDepositTotal()).isEqualByComparingTo(BigDecimal.valueOf(-3.50263000));
+        assertThat(secondElem.getDepositPayment()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(secondElem.getBalance()).isEqualByComparingTo(BigDecimal.valueOf(-3.50263000));
+
+        ReportingCalculation thirdElem = all.get(2);
+        assertThat(thirdElem.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(-3000));
+        assertThat(thirdElem.getUsdt()).isEqualByComparingTo(BigDecimal.valueOf(-3502.62000000));
+        assertThat(thirdElem.getCommission()).isEqualByComparingTo(BigDecimal.valueOf(3.50262000));
+        assertThat(thirdElem.getInPosition()).isEqualByComparingTo(BigDecimal.valueOf(-6000));
+        assertThat(thirdElem.getDeposit()).isEqualByComparingTo(BigDecimal.valueOf(-3.50262000));
+        assertThat(thirdElem.getDepositTotal()).isEqualByComparingTo(BigDecimal.valueOf(-7.00525000));
+        assertThat(thirdElem.getDepositPayment()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(thirdElem.getBalance()).isEqualByComparingTo(BigDecimal.valueOf(-7.00525000));
+    }
+
+    @Test
+    public void reportingCalculation_eurUsd_hedgeDepositHedge() {
+        PlaceOrderResponse response = placeEurUsdOrderResponse(1000, false, 1.16758000);
+        userBalanceService.createDepositAction(response.getOrder().getUserInstrument().getId(), BigDecimal.valueOf(1000), Instant.now());
+        placeEurUsdOrderResponse(3000, false, 1.16756000);
+
+        List<ReportingCalculation> all = reportingCalculationRepository.findAllOrdByDate();
+        assertThat(all).hasSize(3);
+        ReportingCalculation firstElem = all.get(0);
+        assertThat(firstElem.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(-1000));
+        assertThat(firstElem.getUsdt()).isEqualByComparingTo(BigDecimal.valueOf(-1167.58000000));
+        assertThat(firstElem.getCommission()).isEqualByComparingTo(BigDecimal.valueOf(1.16758000));
+        assertThat(firstElem.getInPosition()).isEqualByComparingTo(BigDecimal.valueOf(-1000));
+        assertThat(firstElem.getDeposit()).isEqualByComparingTo(BigDecimal.valueOf(-1.16758000));
+        assertThat(firstElem.getDepositTotal()).isEqualByComparingTo(BigDecimal.valueOf(-1.16758000));
+        assertThat(firstElem.getDepositPayment()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(firstElem.getBalance()).isEqualByComparingTo(BigDecimal.valueOf(-1.16758000));
+
+        ReportingCalculation secondElem = all.get(1);
+        assertThat(secondElem.getInPosition()).isEqualByComparingTo(BigDecimal.valueOf(-1000));
+        assertThat(secondElem.getDepositTotal()).isEqualByComparingTo(BigDecimal.valueOf(-1.16758000));
+        assertThat(secondElem.getDepositPayment()).isEqualByComparingTo(BigDecimal.valueOf(1000));
+        assertThat(secondElem.getBalance()).isEqualByComparingTo(BigDecimal.valueOf(998.83242000));
+
+        ReportingCalculation thirdElem = all.get(2);
+        assertThat(thirdElem.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(-3000));
+        assertThat(thirdElem.getUsdt()).isEqualByComparingTo(BigDecimal.valueOf(-3502.68000000));
+        assertThat(thirdElem.getCommission()).isEqualByComparingTo(BigDecimal.valueOf(3.50268000));
+        assertThat(thirdElem.getInPosition()).isEqualByComparingTo(BigDecimal.valueOf(-4000));
+        assertThat(thirdElem.getDeposit()).isEqualByComparingTo(BigDecimal.valueOf(-3.50268000));
+        assertThat(thirdElem.getDepositTotal()).isEqualByComparingTo(BigDecimal.valueOf(995.32974000));
+        assertThat(thirdElem.getDepositPayment()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(thirdElem.getBalance()).isEqualByComparingTo(BigDecimal.valueOf(995.32974000));
+    }
+
+    @Test
+    public void reportingCalculation_eurUsd_hedgeWithdrawalDeposit() {
+        // hedge 1
+        // withdrawal
+        // deposit
+    }
+
+    @Test
+    public void reportingCalculation_eurUsd_hedgeDepositWithdrawal() {
+        // hedge 1
+        // deposit
+        // withdrawal
     }
 
     // hedge 5k, unhedge 1k, hedge 5k more
