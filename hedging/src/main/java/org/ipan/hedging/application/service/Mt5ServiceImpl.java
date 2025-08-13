@@ -14,149 +14,198 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 @Slf4j
 @AllArgsConstructor
 public class Mt5ServiceImpl implements Mt5Service {
+    private final ReentrantLock lock = new ReentrantLock(true);
+
     private RestTemplate restTemplate;
     private PythonProxyConfig pythonProxyConfig;
     private PasswordService passwordService;
 
     public Boolean checkCredentials(Integer accountNumber, String password) {
-        UriComponentsBuilder componentsBuilder = UriComponentsBuilder
-                .fromUriString(pythonProxyConfig.getUrl())
-                .path("/check-credentials");
+        lock.lock();
+        try {
+            UriComponentsBuilder componentsBuilder = UriComponentsBuilder
+                    .fromUriString(pythonProxyConfig.getUrl())
+                    .path("/check-credentials");
 
-        BaseCredsPayload request = BaseCredsPayload.builder()
-                .account_number(accountNumber)
-                .password(password)
-                .build();
-        ResponseEntity<CheckCredsResponse> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, CheckCredsResponse.class);
-        log.info("validate credentials response {}", resp.toString());
-        return resp.getBody().getValid();
+            BaseCredsPayload request = BaseCredsPayload.builder()
+                    .account_number(accountNumber)
+                    .password(password)
+                    .build();
+            ResponseEntity<CheckCredsResponse> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, CheckCredsResponse.class);
+            log.info("validate credentials response {}", resp.toString());
+            return resp.getBody().getValid();
+        } finally {
+            lock.unlock();
+        }
     }
 
     public SymbolInfo symbolInfo(AppUser user, String symbol) {
-        UriComponentsBuilder componentsBuilder = UriComponentsBuilder
-                .fromUriString(pythonProxyConfig.getUrl())
-                .path("/symbol-info");
+        lock.lock();
+        try {
+            UriComponentsBuilder componentsBuilder = UriComponentsBuilder
+                    .fromUriString(pythonProxyConfig.getUrl())
+                    .path("/symbol-info");
 
-        GetSymbolReq getSymbolReq = GetSymbolReq.builder()
-                .symbol(symbol)
-                .account_number(user.getMt5AccNumber())
-                .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
-                .build();
-        ResponseEntity<SymbolInfoResponse> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), getSymbolReq, SymbolInfoResponse.class);
-        log.info("symbolInfo response {}", resp.toString());
-        return resp.getBody().getInfo();
+            GetSymbolReq getSymbolReq = GetSymbolReq.builder()
+                    .symbol(symbol)
+                    .account_number(user.getMt5AccNumber())
+                    .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
+                    .build();
+            ResponseEntity<SymbolInfoResponse> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), getSymbolReq, SymbolInfoResponse.class);
+            log.info("symbolInfo response {}", resp.toString());
+            return resp.getBody().getInfo();
+        } finally {
+            lock.unlock();
+        }
     }
 
     public AccountType determineAccountType(Integer accountNumber, String password) {
-        UriComponentsBuilder componentsBuilder = UriComponentsBuilder
-                .fromUriString(pythonProxyConfig.getUrl())
-                .path("/determine-account-type");
+        lock.lock();
+        try {
+            UriComponentsBuilder componentsBuilder = UriComponentsBuilder
+                    .fromUriString(pythonProxyConfig.getUrl())
+                    .path("/determine-account-type");
 
-        BaseCredsPayload request = BaseCredsPayload.builder()
-                .account_number(accountNumber)
-                .password(password)
-                .build();
-        ResponseEntity<AccountTypeResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, AccountTypeResp.class);
-        log.info("determineAccountType response {}", resp.toString());
-        return resp.getBody().getAcc_type();
+            BaseCredsPayload request = BaseCredsPayload.builder()
+                    .account_number(accountNumber)
+                    .password(password)
+                    .build();
+            ResponseEntity<AccountTypeResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, AccountTypeResp.class);
+            log.info("determineAccountType response {}", resp.toString());
+            return resp.getBody().getAcc_type();
+        } finally {
+            lock.unlock();
+        }
     }
 
     public TradePos positionsGet(AppUser user, String symbol) {
-        UriComponentsBuilder componentsBuilder = UriComponentsBuilder
-                .fromUriString(pythonProxyConfig.getUrl())
-                .path("/positions-get");
+        lock.lock();
+        try {
+            UriComponentsBuilder componentsBuilder = UriComponentsBuilder
+                    .fromUriString(pythonProxyConfig.getUrl())
+                    .path("/positions-get");
 
-        GetSymbolReq request = GetSymbolReq.builder()
-                .account_number(user.getMt5AccNumber())
-                .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
-                .symbol(symbol)
-                .build();
-        ResponseEntity<PositionsGetResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, PositionsGetResp.class);
-        log.info("positionsGet response {}", resp.toString());
-        return resp.getBody().getPositions().isEmpty() ? null : resp.getBody().getPositions().get(0);
+            GetSymbolReq request = GetSymbolReq.builder()
+                    .account_number(user.getMt5AccNumber())
+                    .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
+                    .symbol(symbol)
+                    .build();
+            ResponseEntity<PositionsGetResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, PositionsGetResp.class);
+            log.info("positionsGet response {}", resp.toString());
+            return resp.getBody().getPositions().isEmpty() ? null : resp.getBody().getPositions().get(0);
+        } finally {
+            lock.unlock();
+        }
     }
 
     public List<TradePos> positionsGetAll(AppUser user) {
-        UriComponentsBuilder componentsBuilder = UriComponentsBuilder
-                .fromUriString(pythonProxyConfig.getUrl())
-                .path("/positions-get-all");
+        lock.lock();
+        try {
+            UriComponentsBuilder componentsBuilder = UriComponentsBuilder
+                    .fromUriString(pythonProxyConfig.getUrl())
+                    .path("/positions-get-all");
 
-        GetSymbolReq request = GetSymbolReq.builder()
-                .account_number(user.getMt5AccNumber())
-                .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
-                .build();
-        ResponseEntity<PositionsGetResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, PositionsGetResp.class);
-        log.info("positionsGet response {}", resp.toString());
-        return resp.getBody().getPositions();
+            GetSymbolReq request = GetSymbolReq.builder()
+                    .account_number(user.getMt5AccNumber())
+                    .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
+                    .build();
+            ResponseEntity<PositionsGetResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, PositionsGetResp.class);
+            log.info("positionsGet response {}", resp.toString());
+            return resp.getBody().getPositions();
+        } finally {
+            lock.unlock();
+        }
     }
 
     public Double getPriceForShort(AppUser user, String symbol) {
-        UriComponentsBuilder componentsBuilder = UriComponentsBuilder
-                .fromUriString(pythonProxyConfig.getUrl())
-                .path("/get-price-for-short");
+        lock.lock();
+        try {
+            UriComponentsBuilder componentsBuilder = UriComponentsBuilder
+                    .fromUriString(pythonProxyConfig.getUrl())
+                    .path("/get-price-for-short");
 
-        GetSymbolReq request = GetSymbolReq.builder()
-                .account_number(user.getMt5AccNumber())
-                .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
-                .symbol(symbol)
-                .build();
-        ResponseEntity<PriceForShortResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, PriceForShortResp.class);
-        log.info("getPriceForShort response {}", resp.toString());
-        return resp.getBody().getPrice();
+            GetSymbolReq request = GetSymbolReq.builder()
+                    .account_number(user.getMt5AccNumber())
+                    .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
+                    .symbol(symbol)
+                    .build();
+            ResponseEntity<PriceForShortResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, PriceForShortResp.class);
+            log.info("getPriceForShort response {}", resp.toString());
+            return resp.getBody().getPrice();
+        } finally {
+            lock.unlock();
+        }
     }
 
     public InfoTick getInfoTick(AppUser user, String symbol) {
-        UriComponentsBuilder componentsBuilder = UriComponentsBuilder
-                .fromUriString(pythonProxyConfig.getUrl())
-                .path("/get-price-tick");
+        lock.lock();
+        try {
+            UriComponentsBuilder componentsBuilder = UriComponentsBuilder
+                    .fromUriString(pythonProxyConfig.getUrl())
+                    .path("/get-price-tick");
 
-        GetSymbolReq request = GetSymbolReq.builder()
-                .account_number(user.getMt5AccNumber())
-                .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
-                .symbol(symbol)
-                .build();
-        ResponseEntity<InfoTickResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, InfoTickResp.class);
-        log.info("getPriceForShort response {}", resp.toString());
-        return resp.getBody().getTick();
+            GetSymbolReq request = GetSymbolReq.builder()
+                    .account_number(user.getMt5AccNumber())
+                    .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
+                    .symbol(symbol)
+                    .build();
+            ResponseEntity<InfoTickResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, InfoTickResp.class);
+            log.info("getPriceForShort response {}", resp.toString());
+            return resp.getBody().getTick();
+        } finally {
+            lock.unlock();
+        }
     }
 
     public OrderDetails placeLongOrder(AppUser user, Long ticket, String symbol, Double volume) {
-        UriComponentsBuilder componentsBuilder = UriComponentsBuilder
-                .fromUriString(pythonProxyConfig.getUrl())
-                .path("/close-short-order");
+        lock.lock();
+        try {
+            UriComponentsBuilder componentsBuilder = UriComponentsBuilder
+                    .fromUriString(pythonProxyConfig.getUrl())
+                    .path("/close-short-order");
 
-        OrderReq request = OrderReq.builder()
-                .account_number(user.getMt5AccNumber())
-                .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
-                .symbol(symbol)
-                .position_id(ticket)
-                .volume(volume)
-                .build();
-        ResponseEntity<OrderResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, OrderResp.class);
-        log.info("placeLongOrder response {}", resp);
-        return resp.getBody().getOrder();
+            OrderReq request = OrderReq.builder()
+                    .account_number(user.getMt5AccNumber())
+                    .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
+                    .symbol(symbol)
+                    .position_id(ticket)
+                    .volume(volume)
+                    .build();
+            ResponseEntity<OrderResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, OrderResp.class);
+            log.info("placeLongOrder response {}", resp);
+            return resp.getBody().getOrder();
+        } finally {
+            lock.unlock();
+
+        }
     }
 
     public OrderDetails placeShortOrder(AppUser user, Long ticket, String symbol, Double volume) {
-        UriComponentsBuilder componentsBuilder = UriComponentsBuilder
-                .fromUriString(pythonProxyConfig.getUrl())
-                .path("/place-short-order");
+        lock.lock();
+        try {
+            UriComponentsBuilder componentsBuilder = UriComponentsBuilder
+                    .fromUriString(pythonProxyConfig.getUrl())
+                    .path("/place-short-order");
 
-        OrderReq request = OrderReq.builder()
-                .account_number(user.getMt5AccNumber())
-                .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
-                .symbol(symbol)
-                .position_id(ticket)
-                .volume(volume)
-                .build();
-        ResponseEntity<OrderResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, OrderResp.class);
-        log.info("placeShortOrder response {}", resp);
-        return resp.getBody().getOrder();
+            OrderReq request = OrderReq.builder()
+                    .account_number(user.getMt5AccNumber())
+                    .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
+                    .symbol(symbol)
+                    .position_id(ticket)
+                    .volume(volume)
+                    .build();
+            ResponseEntity<OrderResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, OrderResp.class);
+            log.info("placeShortOrder response {}", resp);
+            return resp.getBody().getOrder();
+        } finally {
+            lock.unlock();
+        }
     }
 
     @SuperBuilder
