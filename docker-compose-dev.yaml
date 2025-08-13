@@ -28,6 +28,8 @@ services:
     extends:
       file: docker-compose-base.yaml
       service: pythonproxyservice
+    environment:
+      - MT5_HOST=mt5_1
     ports:
       - 9000:8000
 
