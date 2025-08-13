@@ -264,7 +264,7 @@ function InstrumentToolbar({selectedInstrument, userId, user}) {
       key: 'recalc_ggl_sheet',
       label: (
         <a onClick={recalculateGoogleSheet}>
-          Пересоздать гугл таблицу
+          Пересоздать гугл лист для инструмента
         </a>
       ),
     },
@@ -914,7 +914,7 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
                                 {formatCurrency(amount, selectedInstrument.quote)}
                               </Typography.Text>
                             ),                          },
-                          {
+/*                          {
                             title: `Еквивалент в ${selectedInstrument.base}`,
                             dataIndex: 'baseEquivalent',
                             key: 'baseEquivalent',
@@ -924,7 +924,7 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
                                 {formatCurrency(amount, selectedInstrument.base)}
                               </Typography.Text>
                             ),
-                          },
+                          },*/
                           {
                             title: 'ID',
                             key: 'id',
