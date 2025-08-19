@@ -114,6 +114,30 @@ public class DashboardController {
         return ApiResponse.success(userInstrumentDto);
     }
 
+    @GetMapping("/users/{telegramId}/terminal-data")
+    @Transactional(readOnly = true)
+    public ApiResponse<List<TerminalPositionDto>> getMt5Data(@PathVariable Long telegramId) {
+        AppUser user = userRepo.findById(telegramId).get();
+        List<Mt5ServiceImpl.TradePos> positions = mt5Service.positionsGetAll(user);
+        List<TerminalPositionDto> result = positions.stream()
+                .map((p) -> {
+                    TerminalPositionDto dto = new TerminalPositionDto();
+                    dto.setIdentifier(p.getIdentifier());
+                    dto.setPriceCurrent(BigDecimal.valueOf(p.getPrice_current()).setScale(5, RoundingMode.HALF_DOWN).doubleValue());
+                    dto.setPriceOpen(BigDecimal.valueOf(p.getPrice_open()).setScale(5, RoundingMode.HALF_DOWN).doubleValue());
+                    dto.setProfit(BigDecimal.valueOf(p.getProfit()).setScale(2, RoundingMode.HALF_DOWN).doubleValue());
+                    dto.setSymbol(p.getSymbol());
+                    dto.setTicket(p.getTicket());
+                    dto.setTime(p.getTime());
+                    dto.setType(p.getType());
+                    dto.setVolume(p.getVolume());
+                    return dto;
+                })
+                .toList();
+        return ApiResponse.success(result);
+    }
+
+
     @GetMapping("/users/{telegramId}/instruments/{userInstrumentId}/unrealized")
     @Transactional(readOnly = true)
     public ApiResponse<UnrealizedProfit> getUnrealizedProfit(@PathVariable Long telegramId, @PathVariable Long userInstrumentId) {
