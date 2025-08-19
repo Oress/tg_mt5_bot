@@ -177,7 +177,7 @@ public class HedgingHandler {
                     hedgeViews.promptVolumeForHedgeOutInverse(userState,
                             instrumentBySymbol.getSymbolByMode(),
                             instrumentBySymbol.getLabel(),
-                            availToSpend.toString()
+                            availToSpend
                     );
                 } else {
                     BigDecimal availToSpend = userInstrument.getClientOwnedBaseAmount().setScale(0, RoundingMode.HALF_DOWN);
@@ -186,7 +186,7 @@ public class HedgingHandler {
                     hedgeViews.promptVolumeForHedgeOut(userState,
                             instrumentBySymbol.getSymbolByMode(),
                             instrumentBySymbol.getLabel(),
-                            availToSpend.toString()
+                            availToSpend
                     );
                 }
             }
@@ -256,7 +256,7 @@ public class HedgingHandler {
             hedgeViews.showPreview(userState,
                     getLabelForOperationAndInstrument(hedgeOp.getOperation(), instrument),
                     instrument.getLabel(),
-                    amountStr,
+                    BigDecimal.valueOf(amount),
                     instrument.getSymbolByMode(),
                     price);
             telegramState.updateUserState(userState.getTelegramId(), userState.withState(States.HEDGE_PREVIEW));
@@ -322,9 +322,9 @@ public class HedgingHandler {
                         FormattingTools.formatDateToUtc(order.getCreatedAt()),
                         getLabelForOperationAndInstrument(hedgeOp.getOperation(), instrument),
                         instrumentBySymbol.getLabel(),
-                        order.getUserEnteredAmount().setScale(0, RoundingMode.HALF_DOWN).toString(),
+                        order.getUserEnteredAmount().setScale(0, RoundingMode.HALF_DOWN),
                         order.getPrice().setScale(5, RoundingMode.HALF_DOWN).toString(),
-                        currentBalance.toString(),
+                        currentBalance,
                         instrumentBySymbol.getSymbolByMode()
                 );
                 googleSheetsService.syncUser(userState.getTelegramId());

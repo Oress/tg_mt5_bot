@@ -12,6 +12,7 @@ import org.ipan.hedging.domain.model.InstrumentMode;
 import org.ipan.hedging.telegram.i18n.BalanceLabels;
 import org.ipan.hedging.telegram.i18n.CommonLabels;
 import org.ipan.hedging.telegram.state.UserState;
+import org.ipan.hedging.telegram.utils.FormattingTools;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
@@ -61,7 +62,7 @@ public class BalanceViews {
                     Инструмент: %s
                     Захеджировано: %s %s
                     """
-                    .formatted(instrument.getLabel(), hedgedAmount, instrument.getSymbolByMode());
+                    .formatted(instrument.getLabel(), FormattingTools.formatPrice(hedgedAmount), instrument.getSymbolByMode());
         }).collect(Collectors.joining("\n"));
 
         EditMessageText message = EditMessageText

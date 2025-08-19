@@ -8,6 +8,7 @@ import org.ipan.hedging.telegram.InlineMenuCallbacks;
 import org.ipan.hedging.telegram.i18n.CommonLabels;
 import org.ipan.hedging.telegram.i18n.HedgeLabels;
 import org.ipan.hedging.telegram.state.UserState;
+import org.ipan.hedging.telegram.utils.FormattingTools;
 import org.ipan.hedging.telegram.utils.ParseUtils;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -80,7 +81,7 @@ public class HedgeViews {
     }
 
     @SneakyThrows
-    public void promptVolumeForHedgeOut(UserState userState, String unit, String label, String avail) {
+    public void promptVolumeForHedgeOut(UserState userState, String unit, String label, BigDecimal avail) {
         EditMessageText message = EditMessageText
                 .builder()
                 .chatId(userState.getChatId())
@@ -93,7 +94,7 @@ public class HedgeViews {
     }
 
     @SneakyThrows
-    public void promptVolumeForHedgeOutInverse(UserState userState, String unit, String label, String avail) {
+    public void promptVolumeForHedgeOutInverse(UserState userState, String unit, String label, BigDecimal avail) {
         EditMessageText message = EditMessageText
                 .builder()
                 .chatId(userState.getChatId())
@@ -107,7 +108,7 @@ public class HedgeViews {
 
 
     @SneakyThrows
-    public void showPreview(UserState userState, String operation, String instrument, String amount, String unit, Double price) {
+    public void showPreview(UserState userState, String operation, String instrument, BigDecimal amount, String unit, Double price) {
         EditMessageText message = EditMessageText
                 .builder()
                 .chatId(userState.getChatId())
@@ -211,7 +212,7 @@ public class HedgeViews {
 
     @SneakyThrows
     public void successOrder(UserState userState, String orderId, String date, String operation,
-                             String instrument, String userAmount, String price, String balance, String unit) {
+                             String instrument, BigDecimal userAmount, String price, BigDecimal totalHedged, String unit) {
         EditMessageText message = EditMessageText
                 .builder()
                 .chatId(userState.getChatId())
@@ -230,8 +231,14 @@ public class HedgeViews {
                                 Цена: %s
                                 Захеджировано: *%s %s*
                                 """.formatted(
-                                orderId, date, ParseUtils.escapeMarkdown(operation), instrument,
-                                userAmount, price, balance, unit
+                                orderId,
+                        date,
+                        ParseUtils.escapeMarkdown(operation),
+                        instrument,
+                        FormattingTools.formatPrice(userAmount),
+                        price,
+                        FormattingTools.formatPrice(totalHedged),
+                        unit
                         )
                 )
                 .build();

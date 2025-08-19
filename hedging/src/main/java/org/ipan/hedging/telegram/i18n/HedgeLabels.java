@@ -2,6 +2,7 @@ package org.ipan.hedging.telegram.i18n;
 
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
+import org.ipan.hedging.telegram.utils.FormattingTools;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Component;
 
@@ -33,12 +34,12 @@ public class HedgeLabels {
         return "Выберите операцию:";
     }
 
-    public String promptVolumeForOut(String unit, String label, String avail) {
+    public String promptVolumeForOut(String unit, String label, BigDecimal avail) {
         return """
                 *Сколько %s?* (Напишите сумму в чат📝)
                 Инструмент: %s
                 Доступно для покупки: %s %s
-                """.formatted(unit, label, avail, unit);
+                """.formatted(unit, label, FormattingTools.formatPrice(avail), unit);
     }
 
     public String promptVolume(String unit, String label) {
@@ -48,7 +49,7 @@ public class HedgeLabels {
                 """.formatted(unit, label);
     }
 
-    public String preview(String operation, String instrument, String amount, String unit, String rate) {
+    public String preview(String operation, String instrument, BigDecimal amount, String unit, String rate) {
         return """
                 🔎 Предварительный просмотр:
                 
@@ -57,8 +58,10 @@ public class HedgeLabels {
                 Сколько: %s %s
                 Приблизительный курс: %s
                 """.formatted(
-                operation, instrument,
-                amount, unit,
+                operation,
+                instrument,
+                FormattingTools.formatPrice(amount),
+                unit,
                 rate
         );
     }
@@ -87,28 +90,28 @@ public class HedgeLabels {
         return """
                 ❗Число меньше минимума: %s.
                  Пожалуйста, введите корректное число."""
-                .formatted(BigDecimal.valueOf(minAmount).setScale(0, RoundingMode.HALF_DOWN));
+                .formatted(FormattingTools.formatPrice(BigDecimal.valueOf(minAmount).setScale(0, RoundingMode.HALF_DOWN)));
     }
 
     public String greaterThatAvail(BigDecimal availToSpend) {
         return """
                 ❗Число превышает доступный баланс: %s.
                 Пожалуйста, введите корректное число.
-                """.formatted(availToSpend.setScale(0, RoundingMode.HALF_DOWN));
+                """.formatted(FormattingTools.formatPrice(availToSpend.setScale(0, RoundingMode.HALF_DOWN)));
     }
 
     public String greaterThatMax(BigDecimal maxToSpend) {
         return """
                 ❗Число превышает макс/ доступную сумму за 1 операцию: %s.
                 Пожалуйста, введите корректное число.
-                """.formatted(maxToSpend.setScale(0, RoundingMode.HALF_DOWN));
+                """.formatted(FormattingTools.formatPrice(maxToSpend.setScale(0, RoundingMode.HALF_DOWN)));
     }
 
     public String stepWarning(Double step) {
         return """
                 ❗Число должно быть кратно %s.
                  Пожалуйста, введите корректное число."""
-                .formatted(BigDecimal.valueOf(step).setScale(0, RoundingMode.HALF_DOWN));
+                .formatted(FormattingTools.formatPrice(BigDecimal.valueOf(step).setScale(0, RoundingMode.HALF_DOWN)));
     }
 
     public String noActivePositions() {

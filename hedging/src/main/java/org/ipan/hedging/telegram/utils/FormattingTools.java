@@ -4,11 +4,14 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.Currency;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import lombok.AllArgsConstructor;
@@ -96,4 +99,12 @@ public class FormattingTools {
         return df.format(number);
     }
 
+    public static String formatPrice(BigDecimal number) {
+        NumberFormat defaultCurrencyFormat = NumberFormat.getNumberInstance(Locale.of("ru"));
+        return defaultCurrencyFormat.format(number);
+    }
+
+    public static String formatPrice(Integer number) {
+        return formatPrice(BigDecimal.valueOf(number));
+    }
 }
