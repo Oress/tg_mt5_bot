@@ -401,7 +401,7 @@ function Mt5DataSection({userId, refreshTrigger}) {
       width: 60,
     },
     {
-      title: 'Прибыль (на сейчас)',
+      title: 'Нериализованный PnL (на сейчас)',
       key: 'profit',
       dataIndex: 'profit',
       width: 60,
@@ -711,46 +711,25 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
   return (
     <div>
       {/* Ownership Info */}
-      <Row gutter={[8, 8]} style={{ marginBottom: '24px' }}>
-        <Col xs={24} sm={12} md={8}>
-          <Card size="small">
-            <Flex direction="vertical" gap="small">
-              <Statistic title={`${selectedInstrument.base}  Клиента`}
-                         value={formatCurrency(selectedInstrument.clientOwnedBaseAmount, selectedInstrument.base)} />
-            </Flex>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={8}>
-          <Card size="small">
-            <Flex direction="vertical" gap="small">
-              <Statistic title={`Баланс USD`}
-                         value={selectedInstrument.balance !== null ? formatCurrency(selectedInstrument.balance) : "Нет данных" } />
-            </Flex>
-          </Card>
-        </Col>
-        <Col xs={24} sm={8} md={8}>
-          <Card size="small">
-            <Flex direction="vertical" gap="small">
-              <Statistic
-                title="Текущий курс"
-                value={loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? unrealizedPnL.rate : "Нет данных")}
-                loading={loadingUnrealizedPnL}
-              />
-            </Flex>
-          </Card>
-        </Col>
-        <Col xs={24} sm={8} md={8}>
-          <Card size="small">
-            <Flex direction="vertical" gap="small">
-              <Statistic
-                title="Нериализованный PnL Клиента"
-                value={loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profit) : "Нет данных")}
-                loading={loadingUnrealizedPnL}
-              />
-            </Flex>
-          </Card>
-        </Col>
-      </Row>
+      <Space size="small" style={{ marginBottom: '24px' }}>
+        <Descriptions
+          title="Информация об инструменте"
+          size="small"
+        >
+          <Descriptions.Item label={`${selectedInstrument.base} Клиента`}>
+            {formatCurrency(selectedInstrument.clientOwnedBaseAmount, selectedInstrument.base)}
+          </Descriptions.Item>
+          <Descriptions.Item label="Баланс USD">
+            {selectedInstrument.balance !== null ? formatCurrency(selectedInstrument.balance) : "Нет данных"}
+          </Descriptions.Item>
+          <Descriptions.Item label="Текущий курс">
+            {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? unrealizedPnL.rate : "Нет данных")}
+          </Descriptions.Item>
+          <Descriptions.Item label="Нериализованный PnL Клиента">
+            {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profit) : "Нет данных")}
+          </Descriptions.Item>
+        </Descriptions>
+      </Space>
 
       {/* Order History */}
       <div>
@@ -814,73 +793,34 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
   return (
       <div>
         {/* Ownership Info */}
-        <Row gutter={[8, 8]} style={{ marginBottom: '24px' }}>
-          <Col xs={24} sm={8} md={8}>
-            <Card size="small">
-              <Flex direction="vertical" gap="small">
-                <Statistic title={`${selectedInstrument.quote}  Клиента`}
-                           value={formatCurrency(selectedInstrument.clientOwnedQuoteAmount, selectedInstrument.quote)} />
-              </Flex>
-            </Card>
-          </Col>
-          <Col xs={24} sm={8} md={8}>
-            <Card size="small">
-              <Flex direction="vertical" gap="small">
-                <Statistic title={`${selectedInstrument.base}  Клиента`}
-                           value={formatCurrency(selectedInstrument.clientOwnedBaseAmount, selectedInstrument.base)} />
-              </Flex>
-            </Card>
-          </Col>
-          <Col xs={24} sm={8} md={8}>
-            <Card size="small">
-              <Flex direction="vertical" gap="small">
-                <Statistic title={`${selectedInstrument.base} Сервиса`}
-                           value={formatCurrency(selectedInstrument.houseOwnedBaseAmount, selectedInstrument.base)} />
-              </Flex>
-            </Card>
-          </Col>
-          <Col xs={24} sm={8} md={8}>
-            <Card size="small">
-              <Flex direction="vertical" gap="small">
-                <Statistic title="Баланс USD"
-                           value={selectedInstrument.balance !== null ? formatCurrency(selectedInstrument.balance) : "Нет данных"} />
-              </Flex>
-            </Card>
-          </Col>
-          <Col xs={24} sm={8} md={8}>
-            <Card size="small">
-              <Flex direction="vertical" gap="small">
-                <Statistic 
-                  title="Текущий курс"
-                  value={loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? unrealizedPnL.rate : "Нет данных")}
-                  loading={loadingUnrealizedPnL}
-                />
-              </Flex>
-            </Card>
-          </Col>
-          <Col xs={24} sm={8} md={8}>
-            <Card size="small">
-              <Flex direction="vertical" gap="small">
-                <Statistic
-                  title="Нериализованный PnL Клиента"
-                  value={loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profit) : "Нет данных")}
-                  loading={loadingUnrealizedPnL}
-                />
-              </Flex>
-            </Card>
-          </Col>
-          <Col xs={24} sm={8} md={8}>
-            <Card size="small">
-              <Flex direction="vertical" gap="small">
-                <Statistic
-                  title="PnL Сервиса"
-                  value={loadingServicePnL ? "Загрузка..." : (servicePnL !== null ? formatCurrency(servicePnL.profit) : "Нет данных")}
-                  loading={loadingServicePnL}
-                />
-              </Flex>
-            </Card>
-          </Col>
-        </Row>
+        <Space size="small" style={{ marginBottom: '24px' }}>
+          <Descriptions
+            title="Информация об инструменте"
+            size="small"
+          >
+            <Descriptions.Item label={`${selectedInstrument.quote} Клиента`}>
+              {formatCurrency(selectedInstrument.clientOwnedQuoteAmount, selectedInstrument.quote)}
+            </Descriptions.Item>
+            <Descriptions.Item label={`${selectedInstrument.base} Клиента`}>
+              {formatCurrency(selectedInstrument.clientOwnedBaseAmount, selectedInstrument.base)}
+            </Descriptions.Item>
+            <Descriptions.Item label={`${selectedInstrument.base} Сервиса`}>
+              {formatCurrency(selectedInstrument.houseOwnedBaseAmount, selectedInstrument.base)}
+            </Descriptions.Item>
+            <Descriptions.Item label="Баланс USD">
+              {selectedInstrument.balance !== null ? formatCurrency(selectedInstrument.balance) : "Нет данных"}
+            </Descriptions.Item>
+            <Descriptions.Item label="Текущий курс">
+              {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? unrealizedPnL.rate : "Нет данных")}
+            </Descriptions.Item>
+            <Descriptions.Item label="Нериализованный PnL Клиента">
+              {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profit) : "Нет данных")}
+            </Descriptions.Item>
+            <Descriptions.Item label="PnL Сервиса">
+              {loadingServicePnL ? "Загрузка..." : (servicePnL !== null ? formatCurrency(servicePnL.profit) : "Нет данных")}
+            </Descriptions.Item>
+          </Descriptions>
+        </Space>
 
         {/* Open Positions */}
         {/* No sense to show them for regular hedge */}
