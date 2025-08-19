@@ -39,11 +39,11 @@ public class ReportingCalculationService {
 
             // TODO: has to be optimized to use pagination in the future
             List<Order> orders = orderRepo.findAllForReportingCalculation(userInstrumentId);
-            List<UserBalanceAction> depositActions = userBalanceActionRepo.findAllByUserInstrumentOrderByDateDesc(userInstrument);
+            List<UserBalanceAction> depositActions = userBalanceActionRepo.findAllByUserOrderByDateDesc(userInstrument.getUser());
 
             // remove all
             reportingCalculationRepository.deleteAllOperationsByInstrumentId(userInstrumentId);
-            reportingCalculationRepository.deleteAllDepositsByInstrumentId(userInstrumentId);
+            reportingCalculationRepository.deleteAllDepositsByUserId(userInstrumentId);
 
             UserBalanceActionCalculator userBalanceActionCalculator = new DepositOperationCalculator();
             OperationCalculator operationCalculator = switch (userInstrument.getInstrument().getLabel()) {
@@ -93,7 +93,8 @@ public class ReportingCalculationService {
             ReportingCalculation record = new ReportingCalculation();
 
             record.setUserBalanceAction(balanceAction);
-            record.setUserInstrument(balanceAction.getUserInstrument());
+            // TODO: fix it
+//            record.setUserInstrument(balanceAction.getUserInstrument());
             record.setDepositPayment(balanceAction.getAmountForGoogleSheet());
             record.setDate(balanceAction.getDate());
 

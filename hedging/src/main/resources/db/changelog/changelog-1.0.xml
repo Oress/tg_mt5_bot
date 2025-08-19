@@ -331,7 +331,7 @@
             <column name="id" type="bigint">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column name="user_instrument_id" type="bigint" />
+            <column name="user_id" type="bigint" />
             <column name="type" type="text" />
             <column name="amount" type="decimal(20,8)" />
             <column name="date" type="timestamp" />
@@ -339,9 +339,9 @@
         </createTable>
     </changeSet>
 
-    <changeSet id="create idx_hed_user_balance_actions_user_instrument_id" author="oress">
-        <createIndex indexName="idx_hed_user_balance_actions_user_instrument_id" tableName="hed_user_balance_actions">
-            <column name="user_instrument_id"/>
+    <changeSet id="create idx_hed_user_balance_actions_user_id" author="oress">
+        <createIndex indexName="idx_hed_user_balance_actions_user_id" tableName="hed_user_balance_actions">
+            <column name="user_id"/>
         </createIndex>
     </changeSet>
 
@@ -355,9 +355,9 @@
         <addForeignKeyConstraint
                 constraintName="fk_hed_user_balance_actions_user_id"
                 baseTableName="hed_user_balance_actions"
-                baseColumnNames="user_instrument_id"
-                referencedTableName="hed_user_instruments"
-                referencedColumnNames="id"
+                baseColumnNames="user_id"
+                referencedTableName="hed_users"
+                referencedColumnNames="tg_id"
                 onDelete="SET NULL"/>
     </changeSet>
 

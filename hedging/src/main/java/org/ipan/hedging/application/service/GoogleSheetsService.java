@@ -130,7 +130,8 @@ public class GoogleSheetsService {
             Instrument instrument = userInstrument.getInstrument();
             Integer sheetId = userInstrument.getSheetId();
 
-            List<UserBalanceAction> balanceActions = userBalanceActionRepo.findAllForSyncByInstrument(lastSyncDt, user.getTelegramId(), instrument.getLabel());
+            // TODO: fix it
+            List<UserBalanceAction> balanceActions = List.of();//userBalanceActionRepo.findAllForSyncByUser(lastSyncDt, user.getTelegramId());
             List<Order> ordersForSync = orderRepo.findAllForSyncByInstrument(lastSyncDt, user.getTelegramId(), instrument.getLabel());
 
             if (ordersForSync.isEmpty() && balanceActions.isEmpty()) {

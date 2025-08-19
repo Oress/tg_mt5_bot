@@ -1,15 +1,21 @@
 package org.ipan.hedging.controller;
 
+import lombok.extern.slf4j.Slf4j;
 import org.ipan.hedging.Config;
 import org.ipan.hedging.application.service.*;
 import org.ipan.hedging.controller.dto.*;
 import org.ipan.hedging.domain.AppConstants;
+import org.ipan.hedging.domain.exception.InvalidAccountCredentialsException;
+import org.ipan.hedging.domain.exception.UserIsDisabledException;
+import org.ipan.hedging.domain.exception.UserWithSameAccountNumberAlreadyExists;
 import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.repository.*;
 import org.ipan.hedging.domain.service.OrderService;
 import org.ipan.hedging.domain.service.UnrealizedPnl;
 import org.ipan.hedging.domain.service.UnrealizedPnlCalculator;
 import org.ipan.hedging.domain.service.UserService;
+import org.ipan.hedging.telegram.state.UserEdit;
+import org.ipan.hedging.telegram.utils.FormattingTools;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Limit;
@@ -28,6 +34,7 @@ import java.util.List;
 @RequestMapping("/api")
 @Profile("!test")
 @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
+@Slf4j
 public class DashboardController {
     private final UserRepo userRepo;
     private final OrderRepo orderRepo;
@@ -164,25 +171,25 @@ public class DashboardController {
                 .toList();
     }
 
-    @GetMapping("/users/{telegramId}/instruments/{userInstrumentId}/balance-actions")
+    @GetMapping("/users/{telegramId}/balance-actions")
     @Transactional(readOnly = true)
-    public List<UserBalanceActionsDto> userBalanceActions(@PathVariable Long userInstrumentId) {
-        List<UserBalanceAction> allByUserId = userBalanceActionsRepository.findByUserInstrumentIdOrderByDateDesc(userInstrumentId);
+    public List<UserBalanceActionsDto> userBalanceActions(@PathVariable Long telegramId) {
+        List<UserBalanceAction> allByUserId = userBalanceActionsRepository.findAllByUserTelegramIdOrderByDateDesc(telegramId);
         return allByUserId.stream()
                 .map(this::mapToDto)
                 .toList();
     }
 
-    @PostMapping("/users/{telegramId}/instruments/{userInstrumentId}/balance-actions")
-    public UserBalanceActionsDto createUserBalanceActions(@PathVariable Long userInstrumentId,
+    @PostMapping("/users/{telegramId}/balance-actions")
+    public UserBalanceActionsDto createUserBalanceActions(@PathVariable Long telegramId,
                                                           @RequestBody UserBalanceActionsDto payload) {
         validateUserBalanceAction(payload);
 
         UserBalanceAction newItem;
         if (payload.getType().equals(BalanceActionType.DEPOSIT.name())) {
-            newItem = userBalanceService.createDepositAction(userInstrumentId, payload.getAmount(), Instant.now());
+            newItem = userBalanceService.createDepositAction(telegramId, payload.getAmount(), Instant.now());
         } else if (payload.getType().equals(BalanceActionType.WITHDRAWAL.name())) {
-            newItem = userBalanceService.createWithdrawAction(userInstrumentId, payload.getAmount(), Instant.now());
+            newItem = userBalanceService.createWithdrawAction(telegramId, payload.getAmount(), Instant.now());
         } else {
             throw new IllegalArgumentException("Unsupported balance action type: " + payload.getType());
         }
@@ -244,11 +251,50 @@ public class DashboardController {
     }
 */
 
-    @DeleteMapping("/users/{telegramId}/instruments/{userInstrumentId}/balance-actions/{id}")
+    @DeleteMapping("/users/{telegramId}/balance-actions/{id}")
     @Transactional
     public ResponseEntity<?> deleteUserBalanceAction(@PathVariable Long id) {
         userBalanceActionsRepository.deleteById(id);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/users/{telegramId}/change-credentials")
+    @Transactional
+    public ApiResponse<?> changeAccountCreds(@PathVariable Long telegramId,
+                                             @RequestBody ChangeAccountCredsDto dto) {
+
+        Integer accountNumber = dto.getAccountNumber();
+        String accountPwd = dto.getAccountPassword();
+
+        List<AppUser> users = userRepo.findByMt5AccNumber(accountNumber);
+        if (!users.isEmpty()) {
+            log.warn("User with the same mt5 account # already exist {}", FormattingTools.formatUser(users.get(0)));
+            throw new UserWithSameAccountNumberAlreadyExists();
+        }
+
+        if (!mt5Service.checkCredentials(accountNumber, accountPwd)) {
+            log.warn("User enters invalid credentials");
+            throw new InvalidAccountCredentialsException();
+        }
+        AccountType accountType = mt5Service.determineAccountType(accountNumber, accountPwd);
+
+        userService.changeGerchikCreds(telegramId, accountNumber, accountPwd, accountType);
+
+        return ApiResponse.success();
+    }
+
+    @ExceptionHandler(UserWithSameAccountNumberAlreadyExists.class)
+    public ResponseEntity<ApiResponse<?>> handleUserWithSameAccountNumberAlreadyExists() {
+        return ResponseEntity
+                .badRequest()
+                .body(ApiResponse.error("Пользователь с таким аккаунтом уже существует"));
+    }
+
+    @ExceptionHandler(InvalidAccountCredentialsException.class)
+    public ResponseEntity<ApiResponse<?>> handleInvalidAccountCredentialsException() {
+        return ResponseEntity
+                .badRequest()
+                .body(ApiResponse.error("Неверные учетные данные аккаунта"));
     }
 
     private UserBalanceActionsDto mapToDto(UserBalanceAction userBalanceAction) {

@@ -6,6 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface UserBalanceActionsRepository extends JpaRepository<UserBalanceAction, Long> {
-    List<UserBalanceAction> findByUserInstrumentId(Long userInstrumentId);
-    List<UserBalanceAction> findByUserInstrumentIdOrderByDateDesc(Long userInstrumentId);
+    List<UserBalanceAction> findAllByUserTelegramIdOrderByDateDesc(Long telegramId);
 }

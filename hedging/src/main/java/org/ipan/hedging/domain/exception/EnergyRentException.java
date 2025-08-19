@@ -9,4 +9,6 @@ public class EnergyRentException extends RuntimeException {
         super(message, cause);
     }
 
+    public EnergyRentException() {
+    }
 }

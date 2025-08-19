@@ -24,8 +24,8 @@ public interface ReportingCalculationRepository extends JpaRepository<ReportingC
     void deleteAllOperationsByInstrumentId(Long instrumentId);
 
     @Modifying
-    @Query("delete from ReportingCalculation rc where rc.userBalanceAction.userInstrument.id = :instrumentId")
-    void deleteAllDepositsByInstrumentId(Long instrumentId);
+    @Query("delete from ReportingCalculation rc where rc.userBalanceAction.user.telegramId = :telegramId")
+    void deleteAllDepositsByUserId(Long telegramId);
 
     @Query("select rc.balance from ReportingCalculation rc where rc.userInstrument.id = :userInstrumentId order by rc.date desc")
     BigDecimal getBalanceForTheUserInstrument(Long userInstrumentId, Limit limit);

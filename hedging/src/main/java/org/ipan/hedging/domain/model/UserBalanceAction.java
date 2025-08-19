@@ -22,8 +22,8 @@ public class UserBalanceAction {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "user_instrument_id")
-    private AppUserInstrument userInstrument;
+    @JoinColumn(name = "user_id")
+    private AppUser user;
 
     @Enumerated(EnumType.STRING)
     private BalanceActionType type;
