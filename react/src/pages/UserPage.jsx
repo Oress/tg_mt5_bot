@@ -5,7 +5,7 @@ import {
   Button,
   Card,
   Checkbox,
-  Col,
+  Col, Descriptions,
   Divider, Dropdown,
   Flex,
   InputNumber,
@@ -135,6 +135,43 @@ function UserPageHeader({ onRefresh, isRefreshing, user }) {
 }
 
 function UserInfoSection({user}) {
+  const items = [
+    {
+      key: 'tgId',
+      label: 'Telegram ID',
+      children: <p>{user.telegramId}</p>,
+    },
+    {
+      key: 'name',
+      label: 'Имя',
+      children: <p>{user.firstName}</p>,
+    },
+    {
+      key: 'username',
+      label: 'Имя пользователя',
+      children: <p>{user.username}</p>,
+    },
+    {
+      key: 'accountType',
+      label: 'Тип аккаунта Герчик',
+      children: <p>{user.accountType}</p>,
+    },
+    {
+      key: 'accountNumber',
+      label: '№ аккаунта Герчик',
+      children: <p>{user.mt5Account}</p>,
+    },
+    {
+      key: 'googleSheetUrl',
+      label: 'Google Sheet',
+      children: <>{
+        user.googleSheetId
+        ? (<Button type="link" href={user.googleSheetId} size="small" target="_blank" icon={<LinkOutlined />}>Открыть</Button>)
+        : (<span>-</span>)
+      }</>,
+    },
+  ];
+
   return (
     <Card style={{ marginBottom: '24px' }}>
       <Space direction="vertical" size="middle" style={{ width: '100%' }}>
@@ -142,60 +179,20 @@ function UserInfoSection({user}) {
           Информация о пользователе
         </Typography.Title>
         <Divider style={{ margin: 0 }} />
-        <Row gutter={[8, 8]}>
-          <Col xs={24} sm={12} md={8}>
-            <Card size="small">
-              <Space direction="vertical" size="small">
-                <Statistic title="Telegram ID" value={user.telegramId} formatter={(val)=>val} />
-              </Space>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={8}>
-            <Card size="small">
-              <Space direction="vertical" size="small">
-                <Statistic title="Имя" value={user.firstName} />
-              </Space>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={8}>
-            <Card size="small">
-              <Space direction="vertical" size="small">
-                <Statistic title="Имя пользователя" value={user.username} />
-              </Space>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={8}>
-            <Card size="small">
-              <Space direction="vertical" size="small">
-                <Statistic title="Тип аккаунта Герчик" value={user.accountType} />
-              </Space>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={8}>
-            <Card size="small">
-              <Space direction="vertical" size="small">
-                <Statistic title="№ аккаунта Герчик" value={user.mt5Account} />
-              </Space>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={8}>
-            <Card size="small">
-              <Space direction="vertical" size="small">
-                <Statistic title="Google Sheet" value={user.googleSheetId}
-                formatter={(val) =>
-                    val ? (
-                    <Button type="link" href={val} size="small" target="_blank"
-                    icon={<LinkOutlined />}
-                    >Открыть
-                    </Button>)
-                      : (<span>-</span>)
-                }
-                />
-              </Space>
-            </Card>
-          </Col>
-        </Row>
+        <Descriptions items={items} />
       </Space>
+    </Card>
+  );
+}
+
+
+function UserDepositsAndWithdrawals({userId, refreshTrigger}) {
+  return (
+    <Card style={{ marginBottom: '24px' }}>
+      <DepositsWithdrawalsSection
+        userId={userId}
+        refreshTrigger={refreshTrigger}
+      />
     </Card>
   );
 }
@@ -475,14 +472,6 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
         </Col>
       </Row>
 
-      {/* Deposits and Withdrawals Section */}
-      <DepositsWithdrawalsSection
-        userId={userId}
-        instrumentId={selectedInstrument.id}
-        refreshTrigger={refreshTrigger}
-        instrumentInfo={selectedInstrument}
-      />
-
       {/* Order History */}
       <div>
         <Typography.Title level={4} style={{ marginBottom: '16px' }}>
@@ -612,14 +601,6 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
             </Card>
           </Col>
         </Row>
-
-        {/* Deposits and Withdrawals Section */}
-        <DepositsWithdrawalsSection
-          userId={userId}
-          instrumentId={selectedInstrument.id}
-          refreshTrigger={refreshTrigger}
-          instrumentInfo={selectedInstrument}
-        />
 
         {/* Open Positions */}
         {/* No sense to show them for regular hedge */}
@@ -968,7 +949,7 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
   )
 }
 
-function DepositsWithdrawalsSection({ userId, instrumentId, refreshTrigger, instrumentInfo }) {
+function DepositsWithdrawalsSection({ userId, refreshTrigger }) {
   const [transactions, setTransactions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -983,7 +964,7 @@ function DepositsWithdrawalsSection({ userId, instrumentId, refreshTrigger, inst
   const fetchTransactions = async () => {
     setIsLoading(true);
     try {
-      const response = await api.get(`/users/${userId}/instruments/${instrumentId}/balance-actions`);
+      const response = await api.get(`/users/${userId}/balance-actions`);
       setTransactions(response.data || []);
     } catch (error) {
       console.error('Error fetching deposits:', error);
@@ -993,10 +974,8 @@ function DepositsWithdrawalsSection({ userId, instrumentId, refreshTrigger, inst
   };
 
   useEffect(() => {
-    if (instrumentId) {
-      fetchTransactions();
-    }
-  }, [userId, instrumentId, refreshTrigger]);
+    fetchTransactions();
+  }, [userId, refreshTrigger]);
 
   const handleOpenDialog = (transaction = null) => {
     // Reset errors
@@ -1039,7 +1018,7 @@ function DepositsWithdrawalsSection({ userId, instrumentId, refreshTrigger, inst
     if (!transactionToDelete) return;
 
     try {
-      await api.delete(`/users/${userId}/instruments/${instrumentId}/balance-actions/${transactionToDelete.id}`);
+      await api.delete(`/users/${userId}/balance-actions/${transactionToDelete.id}`);
 
       // Refresh the transactions list
       fetchTransactions();
@@ -1073,14 +1052,14 @@ function DepositsWithdrawalsSection({ userId, instrumentId, refreshTrigger, inst
     try {
       if (currentTransaction) {
         // Update existing transaction
-        await api.put(`/users/${userId}/instruments/${instrumentId}/balance-actions/${currentTransaction.id}`, {
+        await api.put(`/users/${userId}/balance-actions/${currentTransaction.id}`, {
           amount: amount,
           type: actionType,
           date: new Date(date)
         });
       } else {
         // Create new transaction
-        await api.post(`/users/${userId}/instruments/${instrumentId}/balance-actions`, {
+        await api.post(`/users/${userId}/balance-actions`, {
           amount: amount,
           type: actionType,
           date: new Date(date)
@@ -1166,7 +1145,7 @@ function DepositsWithdrawalsSection({ userId, instrumentId, refreshTrigger, inst
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
       <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
         <Typography.Title level={4} style={{ margin: 0 }}>
-          Депозиты и выводы {instrumentInfo && `(${instrumentInfo.label})`}
+          Депозиты и выводы
         </Typography.Title>
         <Button
           type="default"
@@ -1195,7 +1174,7 @@ function DepositsWithdrawalsSection({ userId, instrumentId, refreshTrigger, inst
       ) : (
         <Flex justify="center" style={{ padding: '40px 0' }}>
           <Typography.Text type="secondary">
-            Нет записей о депозитах и выводах для этого инструмента
+            Нет записей о депозитах и выводах для этого клиента
           </Typography.Text>
         </Flex>
       )}
@@ -1493,6 +1472,8 @@ function UserPage({}) {
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px', paddingTop: '104px' }}>
         {/* User Info Section */}
         <UserInfoSection user={user} />
+
+        <UserDepositsAndWithdrawals userId={userId} refreshTrigger={refreshCounter}/>
 
         {/* Instruments Section */}
         <Card style={{ marginBottom: '24px' }}>
