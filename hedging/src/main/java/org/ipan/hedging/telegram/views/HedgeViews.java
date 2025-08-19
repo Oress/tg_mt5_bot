@@ -229,7 +229,7 @@ public class HedgeViews {
                                 
                                 Сумма: %s
                                 Цена: %s
-                                Захеджировано: *%s %s*
+                                Захеджировано всего: *%s %s*
                                 """.formatted(
                                 orderId,
                         date,
