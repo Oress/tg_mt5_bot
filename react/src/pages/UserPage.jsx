@@ -141,6 +141,31 @@ function UserInfoSection({user}) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [balance, setBalance] = useState(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [balanceError, setBalanceError] = useState(null);
+
+  // Fetch user balance
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (!user?.telegramId) return;
+      
+      setBalanceLoading(true);
+      setBalanceError(null);
+      
+      try {
+        const response = await api.get(`/users/${user.telegramId}/terminal-balance`);
+        setBalance(response.data.data.balance || null);
+      } catch (error) {
+        console.error('Error fetching user balance:', error);
+        setBalanceError(error);
+      } finally {
+        setBalanceLoading(false);
+      }
+    };
+
+    fetchBalance();
+  }, [user?.telegramId]);
 
   const items = [
     {
@@ -176,6 +201,21 @@ function UserInfoSection({user}) {
         ? (<Button type="link" href={user.googleSheetId} size="small" target="_blank" icon={<LinkOutlined />}>Открыть</Button>)
         : (<span>-</span>)
       }</>,
+    },
+    {
+      key: 'terminalBalance',
+      label: 'Баланс MT5',
+      children: <>
+        {balanceLoading ? (
+          <Spin size="small" />
+        ) : balanceError ? (
+          <span style={{ color: '#ff4d4f' }}>Ошибка загрузки</span>
+        ) : balance !== null ? (
+          <p>{formatCurrency(balance)}</p>
+        ) : (
+          <span>-</span>
+        )}
+      </>,
     },
   ];
 
@@ -365,6 +405,11 @@ function Mt5DataSection({userId, refreshTrigger}) {
       key: 'profit',
       dataIndex: 'profit',
       width: 60,
+      render: (profit) => (
+        <Typography.Text>
+          {formatCurrency(profit)}
+        </Typography.Text>
+      )
     },
     {
       title: 'Лоты',
@@ -1704,7 +1749,7 @@ function UserPage({}) {
     <div style={{ minHeight: '100vh', backgroundColor: token.colorBgLayout }}>
       <UserPageHeader onRefresh={fetchData} isRefreshing={loading} user={user} />
 
-      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px', paddingTop: '104px' }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto', paddingTop: '104px' }} className="px-2 md:px-4">
         {/* User Info Section */}
         <UserInfoSection user={user} />
 
