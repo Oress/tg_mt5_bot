@@ -8,6 +8,8 @@ import {
   Col, Descriptions,
   Divider, Dropdown,
   Flex,
+  Form,
+  Input,
   InputNumber,
   message,
   Modal, notification, Popconfirm,
@@ -135,6 +137,11 @@ function UserPageHeader({ onRefresh, isRefreshing, user }) {
 }
 
 function UserInfoSection({user}) {
+  const [notificationApi, contextHolder] = notification.useNotification();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+
   const items = [
     {
       key: 'tgId',
@@ -172,16 +179,122 @@ function UserInfoSection({user}) {
     },
   ];
 
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
+    form.resetFields();
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    form.resetFields();
+  };
+
+  const handleSubmit = async (values) => {
+    setLoading(true);
+    try {
+      await api.post(`/users/${user.telegramId}/change-credentials`, {
+        accountNumber: values.username,
+        accountPassword: values.password
+      });
+
+      notificationApi.success('Учетные данные успешно изменены');
+      handleCloseModal();
+    } catch (error) {
+      console.error('Error changing credentials:', error);
+      
+      if (error.response) {
+        if (error.response.status === 400) {
+          notificationApi['error']({
+            message: 'Ошибка',
+            description: error.response.data.error
+          });
+        } else {
+          notificationApi['error']({
+            message: 'Ошибка',
+            description:
+              'Ошибка при изменении учетных данных. Попробуйте позже.',
+          });
+        }
+      } else {
+        notificationApi['error']({
+          message: 'Ошибка',
+          description:
+            'Ошибка сети. Проверьте подключение.',
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <Card style={{ marginBottom: '24px' }}>
-      <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-        <Typography.Title level={3} style={{ margin: 0 }}>
-          Информация о пользователе
-        </Typography.Title>
-        <Divider style={{ margin: 0 }} />
-        <Descriptions items={items} />
-      </Space>
-    </Card>
+    <>
+      {contextHolder}
+      <Card style={{ marginBottom: '24px' }}>
+        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+          <Flex justify="space-between" align="center">
+            <Typography.Title level={3} style={{ margin: 0 }}>
+              Информация о пользователе
+            </Typography.Title>
+            <Button 
+              type="default"
+              icon={<EditOutlined />}
+              onClick={handleOpenModal}
+            >
+              Изменить аккаунт Герчик
+            </Button>
+          </Flex>
+          <Divider style={{ margin: 0 }} />
+          <Descriptions items={items} />
+        </Space>
+      </Card>
+
+      <Modal
+        title="Изменить аккаунт Герчик"
+        open={isModalOpen}
+        onCancel={handleCloseModal}
+        footer={null}
+        width={400}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+          style={{ marginTop: '20px' }}
+        >
+          <Form.Item
+            label="№ Аккаунта Герчик"
+            name="username"
+            rules={[
+              { required: true, message: 'Пожалуйста, введите имя пользователя' },
+            ]}
+          >
+            <InputNumber style={{width: '100%'}} placeholder="Введите новое имя пользователя" />
+          </Form.Item>
+
+          <Form.Item
+            label="Пароль Аккаунта Герчик"
+            name="password"
+            rules={[
+              { required: true, message: 'Пожалуйста, введите пароль' },
+            ]}
+          >
+            <Input.Password placeholder="Введите новый пароль" />
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 0, marginTop: '24px' }}>
+            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+              <Button onClick={handleCloseModal}>
+                Отмена
+              </Button>
+              <Button type="primary" htmlType="submit" loading={loading}>
+                Сохранить
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+    </>
   );
 }
 
