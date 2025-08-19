@@ -10,6 +10,7 @@ public interface Mt5Service {
     Mt5ServiceImpl.SymbolInfo symbolInfo(AppUser user, String symbol);
     AccountType determineAccountType(Integer accountNumber, String password);
     Mt5ServiceImpl.TradePos positionsGet(AppUser user, String symbol);
+    Mt5ServiceImpl.BalanceDetails getAccountInfo(AppUser user);
     List<Mt5ServiceImpl.TradePos> positionsGetAll(AppUser user);
     Double getPriceForShort(AppUser user, String symbol);
     Mt5ServiceImpl.InfoTick getInfoTick(AppUser user, String symbol);

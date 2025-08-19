@@ -104,6 +104,25 @@ public class Mt5ServiceImpl implements Mt5Service {
         }
     }
 
+    public BalanceDetails getAccountInfo(AppUser user) {
+        lock.lock();
+        try {
+            UriComponentsBuilder componentsBuilder = UriComponentsBuilder
+                    .fromUriString(pythonProxyConfig.getUrl())
+                    .path("/account-info");
+
+            BaseCredsPayload request = BaseCredsPayload.builder()
+                    .account_number(user.getMt5AccNumber())
+                    .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
+                    .build();
+            ResponseEntity<BalanceDetails> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, BalanceDetails.class);
+            log.info("positionsGet response {}", resp.toString());
+            return resp.getBody();
+        } finally {
+            lock.unlock();
+        }
+    }
+
     public List<TradePos> positionsGetAll(AppUser user) {
         lock.lock();
         try {
@@ -248,6 +267,26 @@ public class Mt5ServiceImpl implements Mt5Service {
         private Integer retcodeExternal;
         private Double volume;
     }
+
+    @Data
+    public static class BalanceDetails {
+        private Double assets;
+        private Double balance;
+        private Double commission_blocked;
+        private Double credit;
+        private String currency;
+        private Double equity;
+        private Double liabilities;
+        private Double margin;
+        private Double margin_free;
+        private Double margin_initial;
+        private Double margin_level;
+        private Double margin_maintenance;
+        private Double margin_so_call;
+        private Double margin_so_so;
+        private Double profit;
+    }
+
 
     @Data
     public static class InfoTickResp {

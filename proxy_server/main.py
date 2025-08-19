@@ -23,6 +23,13 @@ def check_credentials():
     is_valid = mt5service.check_credentials(data['account_number'], data['password'])
     return jsonify({"valid": is_valid})
 
+@app.route('/account-info', methods=['POST'])
+def account_info():
+    data = request.get_json()
+    print(data)
+    balance = mt5service.get_balance(data['account_number'], data['password'])
+    return jsonify(balance)
+
 @app.route('/get-price-for-short', methods=['POST'])
 def get_price_for_short():
     data = request.get_json()

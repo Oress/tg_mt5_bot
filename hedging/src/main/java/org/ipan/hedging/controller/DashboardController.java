@@ -138,6 +138,22 @@ public class DashboardController {
     }
 
 
+    @GetMapping("/users/{telegramId}/terminal-balance")
+    @Transactional(readOnly = true)
+    public ApiResponse<TerminalBalanceDto> getMt5Balance(@PathVariable Long telegramId) {
+        AppUser user = userRepo.findById(telegramId).get();
+        Mt5ServiceImpl.BalanceDetails balanceDetails = mt5Service.getAccountInfo(user);
+
+        TerminalBalanceDto dto = new TerminalBalanceDto();
+        dto.setCurrency(balanceDetails.getCurrency());
+        dto.setBalance(BigDecimal.valueOf(balanceDetails.getBalance()).setScale(2, RoundingMode.HALF_DOWN).doubleValue());
+        dto.setEquity(BigDecimal.valueOf(balanceDetails.getEquity()).setScale(2, RoundingMode.HALF_DOWN).doubleValue());
+        dto.setAssets(BigDecimal.valueOf(balanceDetails.getAssets()).setScale(2, RoundingMode.HALF_DOWN).doubleValue());
+        dto.setCommissionBlocked(BigDecimal.valueOf(balanceDetails.getCommission_blocked()).setScale(2, RoundingMode.HALF_DOWN).doubleValue());
+
+        return ApiResponse.success(dto);
+    }
+
     @GetMapping("/users/{telegramId}/instruments/{userInstrumentId}/unrealized")
     @Transactional(readOnly = true)
     public ApiResponse<UnrealizedProfit> getUnrealizedProfit(@PathVariable Long telegramId, @PathVariable Long userInstrumentId) {
