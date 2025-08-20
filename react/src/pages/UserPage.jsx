@@ -1389,12 +1389,13 @@ function DepositsWithdrawalsSection({ userId, refreshTrigger }) {
         </Flex>
       ) : transactions.length > 0 ? (
         <Table
-          style={{maxHeight: '400px', overflow: 'auto'}}
+          style={{maxHeight: '350px'}}
           columns={columns}
           dataSource={transactions}
+          pagination={{ pageSize: 20 }}
           rowKey="id"
-          scroll={{ x: 'max-content' }}
-          pagination={false}
+          // scroll={{ x: 'max-content' }}
+          scroll={{ y: 55 * 5 }}
           size="small"
         />
       ) : (
