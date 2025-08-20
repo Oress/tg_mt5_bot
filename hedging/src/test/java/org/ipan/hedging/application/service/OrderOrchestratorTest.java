@@ -35,6 +35,7 @@ import static org.mockito.Mockito.when;
 // TODO: House PnL calculation !!!!
 // TODO: INTERNAL TRANSFERS!!!!!
 // TODO: Test reporting calculation when there are orders with error status
+// TODO: Test reporting calculation when first operation is deposit (prevRecord == null)
 @SpringBootTest(classes = {TestAsyncConfig.class})
 @Testcontainers
 @ActiveProfiles("test")
@@ -147,6 +148,20 @@ class OrderOrchestratorTest {
             userService.toggleInstrument(USER_ID, EURUSD);
         }
     }
+
+    @Test
+    public void reportingCalculation_depositFirst() {
+        userBalanceService.createDepositAction(USER_ID, BigDecimal.valueOf(1000), Instant.now());
+        placeEurUsdOrderResponse(1000, false, 1.16755000);
+
+        List<ReportingCalculation> all = reportingCalculationRepository.findAllOrdByDate();
+        assertThat(all).hasSize(2);
+        ReportingCalculation firstElem = all.get(0);
+        assertThat(firstElem.getDepositPayment()).isEqualByComparingTo(BigDecimal.valueOf(1000));
+        assertThat(firstElem.getRate()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(firstElem.getInPosition()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
 
     @Test
     public void reportingCalculation_eurUsd_3hedges() {
@@ -563,7 +578,7 @@ class OrderOrchestratorTest {
         PlaceOrderResponse response1 = placeUsdCadOrderResponse(1000, true, 1.36567);
         PlaceOrderResponse response2 = placeUsdCadOrderResponse(4000, true, 1.32678);
         PlaceOrderResponse response3 = placeUsdCadOrderResponse(9000, true, 1.25764);
-        userBalanceService.createDepositAction(response3.getOrder().getUserInstrument().getId(), BigDecimal.valueOf(80_000), Instant.now());
+        userBalanceService.createDepositAction(USER_ID, BigDecimal.valueOf(80_000), Instant.now());
 
         List<ReportingCalculation> all = reportingCalculationRepository.findAllOrdByDate();
         assertThat(all).hasSize(4);

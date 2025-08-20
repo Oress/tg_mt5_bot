@@ -60,7 +60,20 @@ public class ReportingCalculation {
     @Column(name = "created_at")
     private Instant createdAt;
 
+    public BigDecimal getRate() {
+        return rate == null ? BigDecimal.ZERO : rate;
+    }
+
+    public BigDecimal getInPosition() {
+        return inPosition == null ? BigDecimal.ZERO : inPosition;
+    }
+
     public BigDecimal getDepositPayment() {
         return depositPayment == null ? BigDecimal.ZERO : depositPayment;
     }
+
+    public BigDecimal getDepositTotal() {
+        return depositTotal == null ? BigDecimal.ZERO : depositTotal;
+    }
+
 }

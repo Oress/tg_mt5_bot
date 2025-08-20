@@ -48,7 +48,7 @@ public class ReportingCalculationService {
 
             // remove all
             reportingCalculationRepository.deleteAllOperationsByInstrumentId(userInstrumentId);
-            reportingCalculationRepository.deleteAllDepositsByUserId(userInstrumentId);
+            reportingCalculationRepository.deleteAllDepositsByUserId(userInstrument.getUser().getTelegramId());
 
             UserBalanceActionCalculator userBalanceActionCalculator = new DepositOperationCalculator();
             OperationCalculator operationCalculator = switch (userInstrument.getInstrument().getLabel()) {
@@ -102,9 +102,11 @@ public class ReportingCalculationService {
             record.setDepositPayment(balanceAction.getAmountForGoogleSheet());
             record.setDate(balanceAction.getDate());
 
-            record.setInPosition(prevRecord.getInPosition());
-            record.setRate(prevRecord.getRate());
-            record.setDepositTotal(prevRecord.getDepositTotal().add(prevRecord.getDepositPayment()));
+            if (prevRecord != null) {
+                record.setInPosition(prevRecord.getInPosition());
+                record.setRate(prevRecord.getRate());
+                record.setDepositTotal(prevRecord.getDepositTotal().add(prevRecord.getDepositPayment()));
+            }
             record.setBalance(record.getDepositTotal().add(record.getDepositPayment()));
 
             return record;
