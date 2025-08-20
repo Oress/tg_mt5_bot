@@ -467,7 +467,7 @@ function Mt5DataSection({userId, refreshTrigger}) {
         ) : (
           <Flex justify="center" style={{ padding: '40px 0' }}>
             <Typography.Text type="secondary">
-              Нет записей о депозитах и выводах для этого клиента
+              Нет записей о позициях для этого клиента
             </Typography.Text>
           </Flex>
         )}
@@ -580,7 +580,7 @@ function InstrumentToolbar({selectedInstrument, userId, user}) {
   );
 }
 
-function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unrealizedPnL, loadingUnrealizedPnL, user}) {
+function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unrealizedPnL, loadingUnrealizedPnL, houseUnrealizedPnL, loadingHouseUnrealizedPnL, user}) {
   const [orderHistory, setOrderHistory] = useState([]);
 
   const fetchData = async () => {
@@ -713,7 +713,7 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
       {/* Ownership Info */}
       <Space size="small" style={{ marginBottom: '24px' }}>
         <Descriptions
-          title="Информация об инструменте"
+          title={<Typography.Title level={4}>Информация об инструменте</Typography.Title>}
           size="small"
         >
           <Descriptions.Item label={`${selectedInstrument.base} Клиента`}>
@@ -727,6 +727,9 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
           </Descriptions.Item>
           <Descriptions.Item label="Нериализованный PnL Клиента">
             {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profit) : "Нет данных")}
+          </Descriptions.Item>
+          <Descriptions.Item label="Нериализованный PnL Сервиса">
+            {loadingHouseUnrealizedPnL ? "Загрузка..." : (houseUnrealizedPnL !== null ? formatCurrency(houseUnrealizedPnL.profit) : "Нет данных")}
           </Descriptions.Item>
         </Descriptions>
       </Space>
@@ -759,7 +762,7 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
   )
 }
 
-function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unrealizedPnL, loadingUnrealizedPnL, servicePnL, loadingServicePnL, user}) {
+function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unrealizedPnL, loadingUnrealizedPnL, houseUnrealizedPnL, loadingHouseUnrealizedPnL, servicePnL, loadingServicePnL, user}) {
   const [openPositions, setOpenPositions] = useState([]);
   const [orderHistory, setOrderHistory] = useState([]);
   const [expandedRows, setExpandedRows] = useState({});
@@ -795,29 +798,32 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
         {/* Ownership Info */}
         <Space size="small" style={{ marginBottom: '24px' }}>
           <Descriptions
-            title="Информация об инструменте"
+            title={<Typography.Title level={4}>Информация об инструменте</Typography.Title>}
             size="small"
           >
-            <Descriptions.Item label={`${selectedInstrument.quote} Клиента`}>
-              {formatCurrency(selectedInstrument.clientOwnedQuoteAmount, selectedInstrument.quote)}
-            </Descriptions.Item>
             <Descriptions.Item label={`${selectedInstrument.base} Клиента`}>
               {formatCurrency(selectedInstrument.clientOwnedBaseAmount, selectedInstrument.base)}
             </Descriptions.Item>
+            <Descriptions.Item label={`${selectedInstrument.quote} Клиента`}>
+              {formatCurrency(selectedInstrument.clientOwnedQuoteAmount, selectedInstrument.quote)}
+            </Descriptions.Item>
+            <Descriptions.Item label="Нериализованный PnL Клиента">
+              {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profit) : "Нет данных")}
+            </Descriptions.Item>
             <Descriptions.Item label={`${selectedInstrument.base} Сервиса`}>
               {formatCurrency(selectedInstrument.houseOwnedBaseAmount, selectedInstrument.base)}
+            </Descriptions.Item>
+            <Descriptions.Item label="PnL Сервиса">
+              {loadingServicePnL ? "Загрузка..." : (servicePnL !== null ? formatCurrency(servicePnL.profit) : "Нет данных")}
+            </Descriptions.Item>
+            <Descriptions.Item label="Нериализованный PnL Сервиса">
+              {loadingHouseUnrealizedPnL ? "Загрузка..." : (houseUnrealizedPnL !== null ? formatCurrency(houseUnrealizedPnL.profit) : "Нет данных")}
             </Descriptions.Item>
             <Descriptions.Item label="Баланс USD">
               {selectedInstrument.balance !== null ? formatCurrency(selectedInstrument.balance) : "Нет данных"}
             </Descriptions.Item>
             <Descriptions.Item label="Текущий курс">
               {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? unrealizedPnL.rate : "Нет данных")}
-            </Descriptions.Item>
-            <Descriptions.Item label="Нериализованный PnL Клиента">
-              {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profit) : "Нет данных")}
-            </Descriptions.Item>
-            <Descriptions.Item label="PnL Сервиса">
-              {loadingServicePnL ? "Загрузка..." : (servicePnL !== null ? formatCurrency(servicePnL.profit) : "Нет данных")}
             </Descriptions.Item>
           </Descriptions>
         </Space>
@@ -1511,6 +1517,8 @@ function UserPage({}) {
   const [isUpdatingInstruments, setIsUpdatingInstruments] = useState(false);
   const [unrealizedPnL, setUnrealizedPnL] = useState(null);
   const [loadingUnrealizedPnL, setLoadingUnrealizedPnL] = useState(false);
+  const [houseUnrealizedPnL, setHouseUnrealizedPnL] = useState(null);
+  const [loadingHouseUnrealizedPnL, setLoadingHouseUnrealizedPnL] = useState(false);
   const [servicePnL, setServicePnL] = useState(null);
   const [loadingServicePnL, setLoadingServicePnL] = useState(false);
 
@@ -1528,6 +1536,21 @@ function UserPage({}) {
       setUnrealizedPnL(null);
     } finally {
       setLoadingUnrealizedPnL(false);
+    }
+  };
+
+  const fetchHouseUnrealizedPnL = async (telegramId, instrumentId) => {
+    if (!telegramId || !instrumentId) return;
+    
+    setLoadingHouseUnrealizedPnL(true);
+    try {
+      const response = await api.get(`/users/${telegramId}/instruments/${instrumentId}/house-unrealized`);
+      setHouseUnrealizedPnL(response.data.data);
+    } catch (error) {
+      console.error('Error fetching house unrealized PnL:', error);
+      setHouseUnrealizedPnL(null);
+    } finally {
+      setLoadingHouseUnrealizedPnL(false);
     }
   };
 
@@ -1564,8 +1587,9 @@ function UserPage({}) {
         const firstInstrument = instrumentsResp[0];
         setActiveTab(firstInstrument.label);
         setSelectedInstrument(firstInstrument);
-        // Fetch unrealized PnL and service PnL for the first instrument
+        // Fetch unrealized PnL, house unrealized PnL, and service PnL for the first instrument
         await fetchUnrealizedPnL(userResponse.data.telegramId, firstInstrument.id);
+        await fetchHouseUnrealizedPnL(userResponse.data.telegramId, firstInstrument.id);
         await fetchServicePnL(userResponse.data.telegramId, firstInstrument.id);
       }
 
@@ -1588,9 +1612,10 @@ function UserPage({}) {
     const instrument = instruments.find(i => i.label === instrumentName);
     setSelectedInstrument(instrument);
     
-    // Fetch unrealized PnL and service PnL for the selected instrument
+    // Fetch unrealized PnL, house unrealized PnL, and service PnL for the selected instrument
     if (user && instrument) {
       await fetchUnrealizedPnL(user.telegramId, instrument.id);
+      await fetchHouseUnrealizedPnL(user.telegramId, instrument.id);
       await fetchServicePnL(user.telegramId, instrument.id);
     }
     
@@ -1659,11 +1684,13 @@ function UserPage({}) {
   switch (selectedInstrument?.mode) {
     case 'SHORT':
       detailsComponent = <RegularHedgeDetails user={user} selectedInstrument={selectedInstrument} userId={userId} refreshTrigger={refreshCounter}
-                                              loadingUnrealizedPnL={loadingUnrealizedPnL} unrealizedPnL={unrealizedPnL}/>;
+                                              unrealizedPnL={unrealizedPnL} loadingUnrealizedPnL={loadingUnrealizedPnL}
+                                              houseUnrealizedPnL={houseUnrealizedPnL} loadingHouseUnrealizedPnL={loadingHouseUnrealizedPnL}/>;
       break;
     case 'LONG':
       detailsComponent = <InverseHedgeDetails user={user} selectedInstrument={selectedInstrument} userId={userId} refreshTrigger={refreshCounter}
                                               unrealizedPnL={unrealizedPnL} loadingUnrealizedPnL={loadingUnrealizedPnL}
+                                              houseUnrealizedPnL={houseUnrealizedPnL} loadingHouseUnrealizedPnL={loadingHouseUnrealizedPnL}
                                               servicePnL={servicePnL} loadingServicePnL={loadingServicePnL} />;
       break;
     default:
