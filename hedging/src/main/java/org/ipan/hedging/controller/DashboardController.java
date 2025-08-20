@@ -177,6 +177,29 @@ public class DashboardController {
         }
     }
 
+    @GetMapping("/users/{telegramId}/instruments/{userInstrumentId}/house-unrealized")
+    @Transactional(readOnly = true)
+    public ApiResponse<UnrealizedProfit> getHouseUnrealizedProfit(@PathVariable Long telegramId, @PathVariable Long userInstrumentId) {
+        AppUserInstrument userInstrument = appUserInstrumentRepository.findById(userInstrumentId).get();
+        AppUser user = userInstrument.getUser();
+
+        if (user.hasAccount()) {
+            Instrument instrument = userInstrument.getInstrument();
+            Mt5ServiceImpl.InfoTick infoTick = mt5Service.getInfoTick(user, user.getSymbolByLabelAndAccType(instrument.getLabel()));
+            BigDecimal rate = InstrumentMode.LONG.equals(instrument.getMode())
+                    ? BigDecimal.valueOf(infoTick.getBid()).setScale(5, RoundingMode.HALF_DOWN)
+                    : BigDecimal.valueOf(infoTick.getAsk()).setScale(5, RoundingMode.HALF_DOWN);
+            UnrealizedPnl calculate = unrealizedPnlCalculator.calculateHouse(userInstrumentId, rate);
+            return ApiResponse.success(
+                    new UnrealizedProfit(rate,
+                            calculate.getResult().doubleValue(),
+                            instrument.getLabel())
+            );
+        } else {
+            return ApiResponse.error("User has no account");
+        }
+    }
+
     @GetMapping("/users/{telegramId}/instruments/{userInstrumentId}/house-pnl")
     @Transactional(readOnly = true)
     public ApiResponse<UnrealizedProfit> getHousePnl(@PathVariable Long telegramId, @PathVariable Long userInstrumentId) {

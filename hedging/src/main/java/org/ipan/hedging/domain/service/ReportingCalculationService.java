@@ -3,14 +3,8 @@ package org.ipan.hedging.domain.service;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.ipan.hedging.domain.AppConstants;
-import org.ipan.hedging.domain.model.AppUserInstrument;
-import org.ipan.hedging.domain.model.Order;
-import org.ipan.hedging.domain.model.ReportingCalculation;
-import org.ipan.hedging.domain.model.UserBalanceAction;
-import org.ipan.hedging.domain.model.repository.AppUserInstrumentRepository;
-import org.ipan.hedging.domain.model.repository.OrderRepo;
-import org.ipan.hedging.domain.model.repository.ReportingCalculationRepository;
-import org.ipan.hedging.domain.model.repository.UserBalanceActionRepo;
+import org.ipan.hedging.domain.model.*;
+import org.ipan.hedging.domain.model.repository.*;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +23,17 @@ public class ReportingCalculationService {
     private final OrderRepo orderRepo;
     private final ReportingCalculationRepository reportingCalculationRepository;
     private final UserBalanceActionRepo userBalanceActionRepo;
+    private final UserRepo userRepo;
+
+    @Async
+    @Transactional
+    public CompletableFuture<Void> recalculateAllForUser(Long userId) {
+        AppUser user = userRepo.findById(userId).get();
+        for (AppUserInstrument availableInstrument : user.getAvailableInstruments()) {
+            recalculateAllForUserInstrument(availableInstrument.getId());
+        }
+        return CompletableFuture.completedFuture(null);
+    }
 
     // TODO: add date instant parameter to allow recalculation for specific date range
     @Async
@@ -93,7 +98,6 @@ public class ReportingCalculationService {
             ReportingCalculation record = new ReportingCalculation();
 
             record.setUserBalanceAction(balanceAction);
-            // TODO: fix it
 //            record.setUserInstrument(balanceAction.getUserInstrument());
             record.setDepositPayment(balanceAction.getAmountForGoogleSheet());
             record.setDate(balanceAction.getDate());

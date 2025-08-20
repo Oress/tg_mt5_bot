@@ -126,7 +126,6 @@ public class OrderOrchestrator {
                     command.getUserId(), command.getInstrumentLabel(), command.getUserAmount(), command.isBuy());
 
             // usually this means that the value is small
-            // TODO: handle orders that have zero volume. Just redistribute house amount to client.
             order = orderService.redistributeBaseAmount(command, estimateVolumeCalculation);
         }
 

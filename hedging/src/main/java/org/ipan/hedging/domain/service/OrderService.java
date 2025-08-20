@@ -206,16 +206,11 @@ public class OrderService {
             houseOwnedPosition.decreaseRemainingAmount(plannedHousePositionConsumption.getConsumptionAmount());
 
             BigDecimal pnl = null;
-            if (HouseOwnedPositionType.LONG.equals(houseOwnedPosition.getType())) {
+            if (HouseOwnedPositionType.LONG.equals(houseOwnedPosition.getType()) || HouseOwnedPositionType.SHORT.equals(houseOwnedPosition.getType())) {
                 // PnL = position_usd * ((exit_rate / entry_rate) - 1)
+                // short position is < 0, long position is > 0
                 pnl = plannedHousePositionConsumption.getConsumptionAmount().multiply(
                         volumeCalculation.getPrice().divide(houseOwnedPosition.getOrder().getPrice(), 8, RoundingMode.HALF_DOWN)
-                                .subtract(BigDecimal.ONE)
-                );
-            } else if (HouseOwnedPositionType.SHORT.equals(houseOwnedPosition.getType())) {
-                // PnL = position_usd * ((entry_rate / exit_rate) - 1)
-                pnl = plannedHousePositionConsumption.getConsumptionAmount().multiply(
-                        houseOwnedPosition.getOrder().getPrice().divide(volumeCalculation.getPrice(), 8, RoundingMode.HALF_DOWN)
                                 .subtract(BigDecimal.ONE)
                 );
             } else {
