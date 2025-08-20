@@ -120,6 +120,7 @@ public class OrderOrchestrator {
                 if (order != null) {
                     order = orderService.rollbackOrder(order.getId(), orderDetails);
                 }
+                throw e;
             }
         } else {
             log.info("Estimated execution volume is zero for user: {}, instrument: {}, amount: {}, buy: {}. Redistributing house amount to client.",

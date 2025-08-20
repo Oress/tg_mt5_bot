@@ -34,6 +34,7 @@ import static org.mockito.Mockito.when;
 // TODO: unrealized PnL calculation
 // TODO: House PnL calculation !!!!
 // TODO: INTERNAL TRANSFERS!!!!!
+// TODO: Test reporting calculation when there are orders with error status
 @SpringBootTest(classes = {TestAsyncConfig.class})
 @Testcontainers
 @ActiveProfiles("test")

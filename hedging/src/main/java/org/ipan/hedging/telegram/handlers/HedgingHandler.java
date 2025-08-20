@@ -76,7 +76,7 @@ import java.util.Optional;
 @Slf4j
 @Profile("!test")
 public class HedgingHandler {
-    private final OrderService orderService;
+    public static final double STEP_AMOUNT = 10.0;
     private final UserRepo userRepo;
     private final TelegramState telegramState;
     private final BalanceViews balanceViews;
@@ -233,10 +233,12 @@ public class HedgingHandler {
                 }
             }
 
-            Double minAmount = symbolInfo.getVolume_min() * symbolInfo.getTrade_contract_size(); // usually 1_000 base units
+//            Double minAmount = symbolInfo.getVolume_min() * symbolInfo.getTrade_contract_size(); // usually 1_000 base units
+            Double minAmount = 0.0;
             Double maxAmount = symbolInfo.getVolume_max() * symbolInfo.getTrade_contract_size();  // usually 1_000_000 base units
-            Double stepAmount = symbolInfo.getVolume_step() * symbolInfo.getTrade_contract_size(); // usually 1000 base units
-            if (amount < minAmount) {
+//            Double stepAmount = symbolInfo.getVolume_step() * symbolInfo.getTrade_contract_size(); // usually 1000 base units
+            Double stepAmount = STEP_AMOUNT;
+            if (amount <= minAmount) {
                 log.warn("User {} tried to hedge with amount less than minimum: {} < {}", userState.getTelegramId(), amount, minAmount);
                 hedgeViews.lessThanMinAmount(userState, minAmount);
                 return;
@@ -317,17 +319,19 @@ public class HedgingHandler {
 //                    currentBalance = BigDecimal.valueOf(tp.getVolume()).multiply(BigDecimal.valueOf(symbolInfo.getTrade_contract_size())).setScale(0, RoundingMode.HALF_DOWN);
                 }
 
-                hedgeViews.successOrder(userState,
-                        order.getCorrelationId().toString(),
-                        FormattingTools.formatDateToUtc(order.getCreatedAt()),
-                        getLabelForOperationAndInstrument(hedgeOp.getOperation(), instrument),
-                        instrumentBySymbol.getLabel(),
-                        order.getUserEnteredAmount().setScale(0, RoundingMode.HALF_DOWN),
-                        order.getPrice().setScale(5, RoundingMode.HALF_DOWN).toString(),
-                        currentBalance,
-                        instrumentBySymbol.getSymbolByMode()
-                );
-                googleSheetsService.syncUser(userState.getTelegramId());
+                if (OrderStatus.COMPLETE.equals(order.getStatus())) {
+                    hedgeViews.successOrder(userState,
+                            order.getCorrelationId().toString(),
+                            FormattingTools.formatDateToUtc(order.getCreatedAt()),
+                            getLabelForOperationAndInstrument(hedgeOp.getOperation(), instrument),
+                            instrumentBySymbol.getLabel(),
+                            order.getUserEnteredAmount().setScale(0, RoundingMode.HALF_DOWN),
+                            order.getPrice().setScale(5, RoundingMode.HALF_DOWN).toString(),
+                            currentBalance,
+                            instrumentBySymbol.getSymbolByMode()
+                    );
+                    googleSheetsService.syncUser(userState.getTelegramId());
+                }
             }
         } catch (Exception e) {
             log.error("Error when placing order: ", e);

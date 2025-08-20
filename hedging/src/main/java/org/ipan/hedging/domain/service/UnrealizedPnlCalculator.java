@@ -87,11 +87,12 @@ public class UnrealizedPnlCalculator {
 
         for (HouseOwnedPosition openPosition : openPositions) {
             BigDecimal usdCadRate = openPosition.getOrder().getPrice();
-            BigDecimal cadAmount = openPosition.getRemainingAmount();
+            BigDecimal usdAmount = openPosition.getRemainingAmount();
 
-            BigDecimal unrealizedPnlPerPosition = cadAmount.multiply(
-                    BigDecimal.ONE.divide(currentUsdCadRate, 8, RoundingMode.HALF_DOWN)
-                            .subtract(BigDecimal.ONE.divide(usdCadRate, 8, RoundingMode.HALF_DOWN)));
+            BigDecimal unrealizedPnlPerPosition = usdAmount.multiply(
+                    currentUsdCadRate.divide(usdCadRate, 8, RoundingMode.HALF_DOWN)
+                            .subtract(BigDecimal.ONE)
+            );
 
             result = switch (openPosition.getType()) {
                 case LONG -> result.add(unrealizedPnlPerPosition);

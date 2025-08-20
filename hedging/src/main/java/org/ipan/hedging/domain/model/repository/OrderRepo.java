@@ -12,7 +12,7 @@ import java.util.List;
 
 @Repository
 public interface OrderRepo extends JpaRepository<Order, Long> {
-    @Query("select o from Order o join o.userInstrument ui join ui.user u join ui.instrument i where i.label = :label and o.createdAt > :syncDt and u.telegramId = :telegramId order by o.createdAt")
+    @Query("select o from Order o join o.userInstrument ui join ui.user u join ui.instrument i where i.label = :label and o.status = 'COMPLETE' and o.createdAt > :syncDt and u.telegramId = :telegramId order by o.createdAt")
     List<Order> findAllForSyncByInstrument(Instant syncDt, Long telegramId, String label);
 
 /*

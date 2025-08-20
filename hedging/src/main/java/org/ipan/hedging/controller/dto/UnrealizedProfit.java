@@ -14,5 +14,6 @@ import java.math.BigDecimal;
 public class UnrealizedProfit {
     private BigDecimal rate;
     private Double profit;
+    private Double profitHouse;
     private String instrument;
 }

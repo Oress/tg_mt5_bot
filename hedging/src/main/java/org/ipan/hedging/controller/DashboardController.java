@@ -167,9 +167,11 @@ public class DashboardController {
                     ? BigDecimal.valueOf(infoTick.getBid()).setScale(5, RoundingMode.HALF_DOWN)
                     : BigDecimal.valueOf(infoTick.getAsk()).setScale(5, RoundingMode.HALF_DOWN);
             UnrealizedPnl calculate = unrealizedPnlCalculator.calculate(userInstrumentId, rate);
+            UnrealizedPnl calculateHouse = unrealizedPnlCalculator.calculateHouse(userInstrumentId, rate);
             return ApiResponse.success(
                     new UnrealizedProfit(rate,
                             calculate.getResult().doubleValue(),
+                            calculateHouse.getResult().doubleValue(),
                             instrument.getLabel())
             );
         } else {
@@ -177,7 +179,7 @@ public class DashboardController {
         }
     }
 
-    @GetMapping("/users/{telegramId}/instruments/{userInstrumentId}/house-unrealized")
+/*    @GetMapping("/users/{telegramId}/instruments/{userInstrumentId}/house-unrealized")
     @Transactional(readOnly = true)
     public ApiResponse<UnrealizedProfit> getHouseUnrealizedProfit(@PathVariable Long telegramId, @PathVariable Long userInstrumentId) {
         AppUserInstrument userInstrument = appUserInstrumentRepository.findById(userInstrumentId).get();
@@ -198,13 +200,13 @@ public class DashboardController {
         } else {
             return ApiResponse.error("User has no account");
         }
-    }
+    }*/
 
     @GetMapping("/users/{telegramId}/instruments/{userInstrumentId}/house-pnl")
     @Transactional(readOnly = true)
     public ApiResponse<UnrealizedProfit> getHousePnl(@PathVariable Long telegramId, @PathVariable Long userInstrumentId) {
         BigDecimal totalPnl = housePositionConsumptionRepository.getPnlForUserInstrument(userInstrumentId);
-        return ApiResponse.success(new UnrealizedProfit(null, totalPnl != null ? totalPnl.doubleValue() : 0,""));
+        return ApiResponse.success(new UnrealizedProfit(null, totalPnl != null ? totalPnl.doubleValue() : 0, 0.0,""));
     }
 
     @GetMapping("/users/{telegramId}/orders/{userInstrumentId}")
