@@ -35,6 +35,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -130,7 +131,7 @@ public class GoogleSheetsService {
             Instrument instrument = userInstrument.getInstrument();
             Integer sheetId = userInstrument.getSheetId();
 
-            List<UserBalanceAction> balanceActions = userBalanceActionRepo.findAllForSyncByUser(lastSyncDt, user.getTelegramId());
+            List<UserBalanceAction> balanceActions = Collections.emptyList(); //userBalanceActionRepo.findAllForSyncByUser(lastSyncDt, user.getTelegramId());
             List<Order> ordersForSync = orderRepo.findAllForSyncByInstrument(lastSyncDt, user.getTelegramId(), instrument.getLabel());
 
             if (ordersForSync.isEmpty() && balanceActions.isEmpty()) {
