@@ -227,8 +227,8 @@ public class HedgeViews {
                                 Операция: %s
                                 Инструмент: %s
                                 
-                                Сумма: %s
-                                Цена: %s
+                                Сумма: *%s*
+                                Цена: *%s*
                                 Захеджировано всего: *%s %s*
                                 """.formatted(
                                 orderId,

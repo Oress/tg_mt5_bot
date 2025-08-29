@@ -177,6 +177,7 @@ public class GoogleSheetsService {
         }
     }
 
+    // TODO: refresh every 5 minutes
     private void syncCommonSheet(AppUser user) throws IOException {
         googleSheetsApiService.clearSheet(user.getGoogleSheetId(), 0);
 
