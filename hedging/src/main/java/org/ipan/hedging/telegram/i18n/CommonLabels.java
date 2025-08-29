@@ -31,8 +31,8 @@ public class CommonLabels {
         return getLocalizedMessage("common.cross");
     }
 
-    public String getMainWelcome() {
-        return getLocalizedMessage("main.welcome");
+    public String getMainWelcome(String balances) {
+        return getLocalizedMessage("main.welcome", balances);
     }
 
     public String yes() {

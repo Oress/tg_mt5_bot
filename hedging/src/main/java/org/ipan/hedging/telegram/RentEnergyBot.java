@@ -6,9 +6,11 @@ import java.util.Locale;
 import java.util.Objects;
 
 
+import org.ipan.hedging.application.service.MainMenuStatsService;
 import org.ipan.hedging.cron.TelegramAuditJob;
 import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.model.UserRole;
+import org.ipan.hedging.domain.model.repository.UserRepo;
 import org.ipan.hedging.domain.service.UserService;
 import org.ipan.hedging.domain.service.commands.users.CreateUserCommand;
 import org.ipan.hedging.telegram.i18n.TgUserLocaleHolder;
@@ -39,8 +41,10 @@ public class RentEnergyBot implements LongPollingSingleThreadUpdateConsumer {
     private TelegramState telegramState;
     private TelegramMessages telegramMessages;
     private UserService userService;
+    private UserRepo userRepo;
     private FormattingTools formattingTools;
     private TelegramAuditJob telegramAuditJob;
+    private MainMenuStatsService mainMenuStatsService;
 
     private final StateHandlerRegistry stateHandlerRegistry;
 
@@ -78,7 +82,7 @@ public class RentEnergyBot implements LongPollingSingleThreadUpdateConsumer {
 
         log.info("User state: {}", userState);
 
-        AppUser user = userService.getById(userId);
+        AppUser user = userRepo.findByIdWithInstruments(userId);
         if (user != null && Boolean.TRUE.equals(user.getDisabled())) {
             log.warn("disabled user tries to access the bot  user: {}", formattingTools.formatUserForSearch(user));
             return;
@@ -148,10 +152,10 @@ public class RentEnergyBot implements LongPollingSingleThreadUpdateConsumer {
             if (InlineMenuCallbacks.TO_MAIN_MENU.equals(data)) {
                 switch (userState.getRole()) {
                     case ADMIN:
-                        telegramMessages.updateMsgToAdminMainMenu(userState, user);
+                        telegramMessages.updateMsgToAdminMainMenu(userState, user, mainMenuStatsService.createPayload(user));
                         break;
                     default:
-                        telegramMessages.updateMsgToMainMenu(userState, user);
+                        telegramMessages.updateMsgToMainMenu(userState, user, mainMenuStatsService.createPayload(user));
                         break;
                 }
                 telegramState.updateUserState(userId, userState.withState(States.MAIN_MENU));
@@ -212,7 +216,7 @@ public class RentEnergyBot implements LongPollingSingleThreadUpdateConsumer {
                     }; */
                 }
 //                Message newMenuMsg = telegramMessages.sendPromptLanguage(userState, update.getMessage().getChatId());
-                Message newMenuMsg = telegramMessages.sendUserMainMenuBasedOnRole(userState, update.getMessage().getChatId(), user);
+                Message newMenuMsg = telegramMessages.sendUserMainMenuBasedOnRole(userState, update.getMessage().getChatId(), user, mainMenuStatsService.createPayload(user));
                 UserRole role = user != null ? user.getRole() : UserRole.USER;
 
                 // remove old menu message if exists

@@ -1,11 +1,15 @@
 package org.ipan.hedging.telegram;
 
-import java.util.List;
-
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.model.UserRole;
 import org.ipan.hedging.telegram.i18n.CommonLabels;
 import org.ipan.hedging.telegram.state.UserState;
+import org.ipan.hedging.telegram.utils.FormattingTools;
 import org.springframework.context.annotation.Profile;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
@@ -21,9 +25,9 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardRow;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
-import lombok.AllArgsConstructor;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 @Slf4j
@@ -103,23 +107,23 @@ public class TelegramMessages {
     }
 
     @SneakyThrows
-    public Message sendUserMainMenuBasedOnRole(UserState userState, Long chatId, AppUser user) {
+    public Message sendUserMainMenuBasedOnRole(UserState userState, Long chatId, AppUser user, MainMenuPayload payload) {
         UserRole role = user != null ? user.getRole() : UserRole.USER;
 
         Message newMenuMsg = switch (role) {
-            case ADMIN -> sendAdminMainMenu(userState, chatId, user);
-            default -> sendMainMenu(userState, chatId, user);
+            case ADMIN -> sendAdminMainMenu(userState, chatId, user, payload);
+            default -> sendMainMenu(userState, chatId, user, payload);
         };
         return newMenuMsg;
     }
 
     @Retryable
     @SneakyThrows
-    public Message sendMainMenu(UserState userState, Long chatId, AppUser user) {
+    public Message sendMainMenu(UserState userState, Long chatId, AppUser user, MainMenuPayload payload) {
         SendMessage message = SendMessage
                 .builder()
                 .chatId(chatId)
-                .text(getMainMenuMessage(user))
+                .text(getMainMenuMessage(payload))
                 .replyMarkup(getMainMenuReplyMarkup(false))
                 .linkPreviewOptions(LinkPreviewOptions.builder().isDisabled(true).build())
                 .parseMode("MARKDOWN")
@@ -129,12 +133,12 @@ public class TelegramMessages {
 
     @Retryable
     @SneakyThrows
-    public Message sendAdminMainMenu(UserState userState, Long chatId, AppUser user) {
+    public Message sendAdminMainMenu(UserState userState, Long chatId, AppUser user, MainMenuPayload payload) {
         SendMessage message = SendMessage
                 .builder()
                 .chatId(chatId)
                 .linkPreviewOptions(LinkPreviewOptions.builder().isDisabled(true).build())
-                .text(getMainMenuMessage(user))
+                .text(getMainMenuMessage(payload))
                 .replyMarkup(getMainMenuReplyMarkup(true))
                 .parseMode("MARKDOWN")
                 .build();
@@ -163,22 +167,22 @@ public class TelegramMessages {
     }
 
     @SneakyThrows
-    public void updateUserMainMenuBasedOnRole(UserState userState, AppUser user) {
+    public void updateUserMainMenuBasedOnRole(UserState userState, AppUser user, MainMenuPayload payload) {
         UserRole role = user != null ? user.getRole() : UserRole.USER;
 
         switch (role) {
-            case ADMIN -> updateMsgToAdminMainMenu(userState, user);
-            default -> updateMsgToMainMenu(userState, user);
+            case ADMIN -> updateMsgToAdminMainMenu(userState, user, payload);
+            default -> updateMsgToMainMenu(userState, user, payload);
         }
     }
 
     @SneakyThrows
-    public void updateMsgToMainMenu(UserState userState, AppUser user) {
+    public void updateMsgToMainMenu(UserState userState, AppUser user, MainMenuPayload payload) {
         EditMessageText message = EditMessageText
                 .builder()
                 .chatId(userState.getChatId())
                 .messageId(userState.getMenuMessageId())
-                .text(getMainMenuMessage(user))
+                .text(getMainMenuMessage(payload))
                 .linkPreviewOptions(LinkPreviewOptions.builder().isDisabled(true).build())
                 .parseMode("MARKDOWN")
                 .replyMarkup(getMainMenuReplyMarkup(false))
@@ -187,12 +191,12 @@ public class TelegramMessages {
     }
 
     @SneakyThrows
-    public void updateMsgToAdminMainMenu(UserState userState, AppUser user) {
+    public void updateMsgToAdminMainMenu(UserState userState, AppUser user, MainMenuPayload payload) {
         EditMessageText message = EditMessageText
                 .builder()
                 .chatId(userState.getChatId())
                 .messageId(userState.getMenuMessageId())
-                .text(getMainMenuMessage(user))
+                .text(getMainMenuMessage(payload))
                 .parseMode("MARKDOWN")
                 .linkPreviewOptions(LinkPreviewOptions.builder().isDisabled(true).build())
                 .replyMarkup(getMainMenuReplyMarkup(true))
@@ -200,8 +204,21 @@ public class TelegramMessages {
         tgClient.execute(message);
     }
 
-    private String getMainMenuMessage(AppUser user) {
-        return commonLabels.getMainWelcome();
+    private String getMainMenuMessage(MainMenuPayload payload) {
+        List<String> balances = new ArrayList<>();
+        balances.add("Общий баланс: \n %s".formatted(FormattingTools.formatPrice(payload.deposits)));
+
+        if (payload.cadBalance != null) {
+            balances.add("Баланс по USD/CAD: \n %s".formatted(FormattingTools.formatPrice(payload.cadBalance)));
+        }
+
+        if (payload.eurBalance != null) {
+            balances.add("Баланс по EUR/USD: \n %s".formatted(FormattingTools.formatPrice(payload.eurBalance)));
+        }
+
+        String balancesStr = String.join("\n\n", balances);
+
+        return commonLabels.getMainWelcome(balancesStr);
     }
 
     private InlineKeyboardMarkup getLanguageNotficationMarkup() {
@@ -321,5 +338,14 @@ public class TelegramMessages {
 
                 )
                 .build();
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MainMenuPayload {
+        private BigDecimal deposits = BigDecimal.ZERO;
+        private BigDecimal cadBalance;
+        private BigDecimal eurBalance;
     }
 }

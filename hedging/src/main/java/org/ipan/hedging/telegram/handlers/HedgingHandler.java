@@ -3,6 +3,7 @@ package org.ipan.hedging.telegram.handlers;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.ipan.hedging.application.service.GoogleSheetsService;
+import org.ipan.hedging.application.service.MainMenuStatsService;
 import org.ipan.hedging.application.service.Mt5ServiceImpl;
 import org.ipan.hedging.application.service.OrderOrchestrator;
 import org.ipan.hedging.application.service.command.PlaceOrderCommand;
@@ -87,6 +88,7 @@ public class HedgingHandler {
     private final GoogleSheetsService googleSheetsService;
     private final OrderOrchestrator orderOrchestrator;
     private final InstrumentRepo instrumentRepo;
+    private final MainMenuStatsService mainMenuStatsService;
 
     @MatchStates({
             @MatchState(state = States.MAIN_MENU, callbackData = InlineMenuCallbacks.MENU_START_HEDGE),
@@ -338,7 +340,7 @@ public class HedgingHandler {
             hedgeViews.orderFailed(userState);
         }
 
-        Message newMenuMsg = telegramMessages.sendUserMainMenuBasedOnRole(userState, userState.getChatId(), user);
+        Message newMenuMsg = telegramMessages.sendUserMainMenuBasedOnRole(userState, userState.getChatId(), user, mainMenuStatsService.createPayload(user));
         telegramState.updateUserState(userState.getTelegramId(), userState
                 .withState(States.MAIN_MENU)
                 .withChatId(newMenuMsg.getChatId())

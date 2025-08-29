@@ -95,6 +95,10 @@ public class FormattingTools {
         return df.format(number);
     }
 
+    public static String formatNumber(BigDecimal number) {
+        return df.format(number.setScale(2, RoundingMode.HALF_DOWN));
+    }
+
     public static String formatNumber(Integer number) {
         return df.format(number);
     }

@@ -1,6 +1,7 @@
 package org.ipan.hedging.telegram.handlers;
 
 import lombok.AllArgsConstructor;
+import org.ipan.hedging.application.service.MainMenuStatsService;
 import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.service.UserService;
 import org.ipan.hedging.telegram.States;
@@ -23,6 +24,7 @@ public class MainMenuHandler {
     private final TelegramState telegramState;
     private final TelegramMessages telegramMessages;
     private final UserService userService;
+    private final MainMenuStatsService mainMenuStatsService;
 
     @MatchState(state = States.CHOOSE_LANGUAGE, updateTypes = UpdateType.CALLBACK_QUERY)
     public void changeLanguage(UserState userState, Update update) {
@@ -34,7 +36,9 @@ public class MainMenuHandler {
 
             TgUserLocaleHolder.setUserLocale(Locale.of(data));
 
-            telegramMessages.updateUserMainMenuBasedOnRole(userState, user);
+
+            // TODO: implement payload
+            telegramMessages.updateUserMainMenuBasedOnRole(userState, user, mainMenuStatsService.createPayload(user));
             telegramState.updateUserState(userState.getTelegramId(), userState.withState(States.MAIN_MENU));
         }
     }
