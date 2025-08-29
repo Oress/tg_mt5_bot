@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -44,7 +45,7 @@ public class ReportingCalculationService {
 
             // TODO: has to be optimized to use pagination in the future
             List<Order> orders = orderRepo.findAllForReportingCalculation(userInstrumentId);
-            List<UserBalanceAction> depositActions = userBalanceActionRepo.findAllByUserOrderByDateDesc(userInstrument.getUser());
+            List<UserBalanceAction> depositActions = Collections.emptyList(); //userBalanceActionRepo.findAllByUserOrderByDateDesc(userInstrument.getUser());
 
             // remove all
             reportingCalculationRepository.deleteAllOperationsByInstrumentId(userInstrumentId);

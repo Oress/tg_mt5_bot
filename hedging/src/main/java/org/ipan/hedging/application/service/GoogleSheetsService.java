@@ -15,20 +15,21 @@ import com.google.auth.oauth2.GoogleCredentials;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.ipan.hedging.Config;
 import org.ipan.hedging.GoogleSheetsConfig;
 import org.ipan.hedging.domain.model.*;
-import org.ipan.hedging.domain.model.repository.AppUserInstrumentRepository;
-import org.ipan.hedging.domain.model.repository.OrderRepo;
-import org.ipan.hedging.domain.model.repository.UserBalanceActionRepo;
-import org.ipan.hedging.domain.model.repository.UserRepo;
+import org.ipan.hedging.domain.model.repository.*;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
+import org.springframework.data.domain.Limit;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -36,8 +37,10 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 @Service
 @Slf4j
@@ -56,11 +59,22 @@ public class GoogleSheetsService {
     private final OrderRepo orderRepo;
     private final UserBalanceActionRepo userBalanceActionRepo;
     private final AppUserInstrumentRepository userInstrumentRepository;
+    private final ReportingCalculationRepository reportingCalculationRepository;
+    private final GoogleSheetsApiService googleSheetsApiService;
+    private final Mt5Service mt5Service;
 
-    public GoogleSheetsService(GoogleSheetsConfig config, UserRepo userRepo, OrderRepo orderRepo, UserBalanceActionRepo userBalanceActionRepo, AppUserInstrumentRepository userInstrumentRepository) throws IOException {
+    public GoogleSheetsService(GoogleSheetsConfig config, UserRepo userRepo,
+                               OrderRepo orderRepo, UserBalanceActionRepo userBalanceActionRepo,
+                               AppUserInstrumentRepository userInstrumentRepository,
+                               ReportingCalculationRepository reportingCalculationRepository,
+                               GoogleSheetsApiService googleSheetsApiService,
+                               @Qualifier(Config.AUX_MT5)
+                               Mt5Service mt5Service) throws IOException {
         this.config = config;
         this.userRepo = userRepo;
         this.userInstrumentRepository = userInstrumentRepository;
+        this.googleSheetsApiService = googleSheetsApiService;
+        this.mt5Service = mt5Service;
 
         GoogleCredentials credentials = GoogleCredentials
                 .fromStream(Files.newInputStream(Path.of(config.getSaJson())))
@@ -80,6 +94,7 @@ public class GoogleSheetsService {
                 .build();
         this.orderRepo = orderRepo;
         this.userBalanceActionRepo = userBalanceActionRepo;
+        this.reportingCalculationRepository = reportingCalculationRepository;
     }
 
     public void removeSheetForAnInstrument(Long userInstrumentId) {
@@ -124,6 +139,8 @@ public class GoogleSheetsService {
 
     @SneakyThrows
     private void syncDataForUser(AppUser user, Instant syncDt) {
+        syncCommonSheet(user);
+
         for (AppUserInstrument userInstrument : user.getAvailableInstruments()) {
             Instant lastSyncDt = userInstrument.getLastGoogleSheetSync() == null
                     ? Instant.EPOCH
@@ -158,6 +175,188 @@ public class GoogleSheetsService {
             userInstrument.setLastGoogleSheetSync(syncDt);
             log.info("result batchUpdate {}", batchUpdate);
         }
+    }
+
+    private void syncCommonSheet(AppUser user) throws IOException {
+        googleSheetsApiService.clearSheet(user.getGoogleSheetId(), 0);
+
+        List<UserBalanceAction> allForSyncByUser = userBalanceActionRepo.findAllForSyncByUser(Instant.EPOCH, user.getTelegramId());
+        BigDecimal sumOfAllActionsByUser = BigDecimal.valueOf(calculateSum(allForSyncByUser));
+
+        int nextRowIndex = 1;
+        List<AppUserInstrument> sorted = user.getAvailableInstruments().stream().sorted(Comparator.comparing(k -> k.getInstrument().getLabel())).toList();
+        for (AppUserInstrument userInstrument : sorted) {
+            ReportingCalculation lastReportingRow = reportingCalculationRepository.getLastRowForTheUserInstrument(userInstrument.getId(), Limit.of(1));
+            if (lastReportingRow != null) {
+                BigDecimal balanceForTheUserInstrument = lastReportingRow.getBalance();
+                nextRowIndex+=3;
+                sumOfAllActionsByUser = sumOfAllActionsByUser.add(balanceForTheUserInstrument);
+
+                Instrument instrument = userInstrument.getInstrument();
+                RowData data = new RowData()
+                        .setValues(List.of(
+                                new CellData()
+                                        .setUserEnteredValue(
+                                                new ExtendedValue().setStringValue("Баланс по %s".formatted(instrument.getLabel()))
+                                        ),
+                                new CellData()
+                                        .setUserEnteredValue(
+                                                new ExtendedValue().setNumberValue(balanceForTheUserInstrument.setScale(2, RoundingMode.HALF_DOWN).doubleValue())
+                                        )
+                        ));
+                googleSheetsApiService.updateCells(
+                        user.getGoogleSheetId(),
+                        new UpdateCellsRequest()
+                                .setFields("*")
+                                .setStart(new GridCoordinate()
+                                        .setRowIndex(nextRowIndex)
+                                        .setSheetId(0)
+                                        .setColumnIndex(0))
+                                .setRows(List.of(data))
+                );
+
+                boolean isLong = InstrumentMode.LONG.equals(instrument.getMode());
+                String symbol = user.getSymbolByLabelAndAccType(instrument.getLabel());
+                Mt5ServiceImpl.InfoTick infoTick = mt5Service.getInfoTick(user, symbol);
+                BigDecimal currentUsdCadRate = isLong
+                        ? BigDecimal.valueOf(infoTick.getBid()).setScale(5, RoundingMode.HALF_DOWN)
+                        : BigDecimal.valueOf(infoTick.getAsk()).setScale(5, RoundingMode.HALF_DOWN);
+
+                BigDecimal oldUsdCadRate = lastReportingRow.getRate();
+                BigDecimal inPosition = lastReportingRow.getInPosition();
+                BigDecimal unrealizedPnl;
+                if (isLong) {
+                    unrealizedPnl = inPosition.multiply(
+                            BigDecimal.ONE.divide(currentUsdCadRate, 8, RoundingMode.HALF_DOWN)
+                                    .subtract(BigDecimal.ONE.divide(oldUsdCadRate, 8, RoundingMode.HALF_DOWN)));
+                } else {
+                    unrealizedPnl = inPosition.multiply(currentUsdCadRate.subtract(oldUsdCadRate));
+                }
+
+                // unrealized PnL
+                RowData data1 = new RowData()
+                        .setValues(List.of(
+                                new CellData()
+                                        .setUserEnteredValue(
+                                                new ExtendedValue().setStringValue("Нереализованная курсовая разница %s".formatted(instrument.getLabel()))
+                                        ),
+                                new CellData()
+                                        .setUserEnteredValue(
+                                                new ExtendedValue().setNumberValue(unrealizedPnl.setScale(2, RoundingMode.HALF_DOWN).doubleValue())
+                                        )
+                        ));
+                RowData data2 = new RowData()
+                        .setValues(List.of(
+                                new CellData()
+                                        .setUserEnteredValue(
+                                                new ExtendedValue().setStringValue("Текущий крос курс")
+                                        ),
+                                new CellData()
+                                        .setUserEnteredValue(
+                                                new ExtendedValue().setNumberValue(oldUsdCadRate.setScale(5, RoundingMode.HALF_DOWN).doubleValue())
+                                        )
+                        ));
+                googleSheetsApiService.updateCells(
+                        user.getGoogleSheetId(),
+                        new UpdateCellsRequest()
+                                .setFields("*")
+                                .setStart(new GridCoordinate()
+                                        .setRowIndex(nextRowIndex)
+                                        .setSheetId(0)
+                                        .setColumnIndex(4))
+                                .setRows(List.of(data1, data2))
+                );
+            }
+        }
+
+        RowData commonBalanceRow = new RowData()
+                .setValues(List.of(
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setStringValue("Общий баланс обеспечения")
+                                ),
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setNumberValue(sumOfAllActionsByUser.setScale(2, RoundingMode.HALF_DOWN).doubleValue())
+                                )
+                ));
+        googleSheetsApiService.updateCells(
+                user.getGoogleSheetId(),
+                new UpdateCellsRequest()
+                        .setFields("*")
+                        .setStart(new GridCoordinate()
+                                .setRowIndex(1)
+                                .setSheetId(0)
+                                .setColumnIndex(0))
+                        .setRows(List.of(commonBalanceRow))
+        );
+
+        nextRowIndex+=3;
+        RowData depositsHeader = new RowData()
+                .setValues(List.of(
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setStringValue("Депозиты/Выводы")
+                                )
+                ));
+        googleSheetsApiService.updateCells(
+                user.getGoogleSheetId(),
+                new UpdateCellsRequest()
+                        .setFields("*")
+                        .setStart(new GridCoordinate()
+                                .setRowIndex(nextRowIndex)
+                                .setSheetId(0)
+                                .setColumnIndex(0))
+                        .setRows(List.of(depositsHeader))
+        );
+
+        int batchSize = 50;
+        nextRowIndex++;
+        List<UserBalanceAction> batch = new ArrayList<>();
+        for (int i = 0; i < allForSyncByUser.size(); i++) {
+            batch.add(allForSyncByUser.get(i));
+            if (batch.size() >= batchSize || i == allForSyncByUser.size() - 1) {
+                log.info("Syncing batch of {} balance actions for user {}", batch.size(), user.getTelegramId());
+                List<RowData> batchRows = batch.stream().map(userBalanceAction -> new RowData()
+                        .setValues(List.of(
+                                new CellData()
+                                        .setUserEnteredValue(
+                                                new ExtendedValue().setStringValue(formatter.format(userBalanceAction.getDate().atZone(ZoneId.of("UTC"))))
+                                        ),
+                                new CellData()
+                                        .setUserEnteredValue(
+                                                new ExtendedValue().setNumberValue(userBalanceAction.getAmountForGoogleSheet().setScale(2, RoundingMode.HALF_DOWN).doubleValue())
+                                        )
+                        ))).toList();
+                googleSheetsApiService.updateCells(
+                        user.getGoogleSheetId(),
+                        new UpdateCellsRequest()
+                                .setFields("*")
+                                .setStart(new GridCoordinate()
+                                        .setRowIndex(nextRowIndex)
+                                        .setSheetId(0)
+                                        .setColumnIndex(0))
+                                .setRows(batchRows)
+                );
+
+                nextRowIndex += batchSize;
+                batch.clear();
+            }
+        }
+    }
+
+    private Long calculateSum(List<UserBalanceAction> allForSyncByUser) {
+        long result = 0L;
+
+        for (UserBalanceAction action : allForSyncByUser) {
+            if (action.getType() == BalanceActionType.DEPOSIT) {
+                result += action.getAmount().longValue();
+            } else if (action.getType() == BalanceActionType.WITHDRAWAL) {
+                result -= action.getAmount().longValue();
+            }
+        }
+
+        return result;
     }
 
     @NotNull

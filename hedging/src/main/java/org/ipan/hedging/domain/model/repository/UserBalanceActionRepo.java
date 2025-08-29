@@ -17,4 +17,7 @@ public interface UserBalanceActionRepo extends JpaRepository<UserBalanceAction, 
     List<UserBalanceAction> findAllForSyncByUser(Instant syncDt, Long telegramId);
 
     List<UserBalanceAction> findAllByUserOrderByDateDesc(AppUser user);
+
+    @Query("select sum(a.amount * case when a.type = 'WITHDRAWAL' then -1 ELSE 1 END) from UserBalanceAction a where a.user.telegramId = :userId")
+    Long getSumOfAllActionsByUser(Long userId);
 }
