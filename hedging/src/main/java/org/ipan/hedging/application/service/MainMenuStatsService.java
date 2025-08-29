@@ -33,10 +33,12 @@ public class MainMenuStatsService {
             Instrument instrument = userInstrument.getInstrument();
             ReportingCalculation lastRow = reportingCalculationRepository.getLastRowForTheUserInstrument(userInstrument.getId(), Limit.of(1));
 
-            if (AppConstants.USD_CAD.equals(instrument.getLabel())) {
-                mainMenuPayload.setCadBalance(lastRow.getBalance());
-            } else if (AppConstants.EUR_USD.equals(instrument.getLabel())) {
-                mainMenuPayload.setEurBalance(lastRow.getBalance());
+            if (lastRow != null) {
+                if (AppConstants.USD_CAD.equals(instrument.getLabel())) {
+                    mainMenuPayload.setCadBalance(lastRow.getBalance());
+                } else if (AppConstants.EUR_USD.equals(instrument.getLabel())) {
+                    mainMenuPayload.setEurBalance(lastRow.getBalance());
+                }
             }
         }
 
