@@ -225,14 +225,14 @@ public class TelegramMessages {
 
     private String getMainMenuMessage(MainMenuPayload payload) {
         List<String> balances = new ArrayList<>();
-        balances.add("Общий баланс: \n %s".formatted(FormattingTools.formatPrice(payload.deposits)));
+        balances.add("Общий баланс: \n%s".formatted(FormattingTools.formatPrice(payload.deposits)));
 
         if (payload.cadBalance != null) {
-            balances.add("Баланс по USD/CAD: \n %s".formatted(FormattingTools.formatPrice(payload.cadBalance)));
+            balances.add("Баланс по USD/CAD: \n%s".formatted(FormattingTools.formatPrice(payload.cadBalance)));
         }
 
         if (payload.eurBalance != null) {
-            balances.add("Баланс по EUR/USD: \n %s".formatted(FormattingTools.formatPrice(payload.eurBalance)));
+            balances.add("Баланс по EUR/USD: \n%s".formatted(FormattingTools.formatPrice(payload.eurBalance)));
         }
 
         String balancesStr = String.join("\n\n", balances);
