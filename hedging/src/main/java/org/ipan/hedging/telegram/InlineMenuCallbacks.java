@@ -39,6 +39,7 @@ public class InlineMenuCallbacks {
     public static final String GENERATE_DASHBOARD_PWD = "generate_dashboard_pwd";
 
     // menu actions
+    public static final String MENU_SHOW_INFO = "menu_show_info";
     public static final String MENU_SHOW_BALANCE = "menu_show_balance";
     public static final String MENU_START_HEDGE = "menu_start_hedge";
 

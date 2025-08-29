@@ -127,4 +127,12 @@ public class CommonLabels {
     public  String menuBalance() {
         return "⚖️ Баланс";
     }
+
+    public String menuInformation() {
+        return "ℹ️ Информация";
+    }
+
+    public String menuInformationLabel() {
+        return getLocalizedMessage("information.label");
+    }
 }

@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import org.ipan.hedging.application.service.MainMenuStatsService;
 import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.service.UserService;
+import org.ipan.hedging.telegram.InlineMenuCallbacks;
 import org.ipan.hedging.telegram.States;
 import org.ipan.hedging.telegram.TelegramMessages;
 import org.ipan.hedging.telegram.i18n.TgUserLocaleHolder;
@@ -25,6 +26,12 @@ public class MainMenuHandler {
     private final TelegramMessages telegramMessages;
     private final UserService userService;
     private final MainMenuStatsService mainMenuStatsService;
+
+    @MatchState(state = States.MAIN_MENU, callbackData = InlineMenuCallbacks.MENU_SHOW_INFO)
+    public void showInfo(UserState userState, Update update) {
+        telegramMessages.updMenuToShowInfo(userState);
+        telegramState.updateUserState(userState.getTelegramId(), userState.withState(States.INFO_REVIEW));
+    }
 
     @MatchState(state = States.CHOOSE_LANGUAGE, updateTypes = UpdateType.CALLBACK_QUERY)
     public void changeLanguage(UserState userState, Update update) {

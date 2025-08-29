@@ -10,6 +10,7 @@ import org.ipan.hedging.domain.model.UserRole;
 import org.ipan.hedging.telegram.i18n.CommonLabels;
 import org.ipan.hedging.telegram.state.UserState;
 import org.ipan.hedging.telegram.utils.FormattingTools;
+import org.ipan.hedging.telegram.views.CommonViews;
 import org.springframework.context.annotation.Profile;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
@@ -36,6 +37,24 @@ import java.util.List;
 public class TelegramMessages {
     private final TelegramClient tgClient;
     private final CommonLabels commonLabels;
+    private final CommonViews commonViews;
+
+    @SneakyThrows
+    public void updMenuToShowInfo(UserState userState) {
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(userState.getChatId())
+                .messageId(userState.getMenuMessageId())
+                .text(commonLabels.menuInformationLabel())
+                .replyMarkup(commonViews.getToMainMenuMarkup())
+                .build();
+        try {
+            tgClient.execute(message);
+        } catch (Exception e) {
+            log.error("Failed to updateMsgToChangeLanguage user: {}", userState, e);
+        }
+    }
+
 
     @SneakyThrows
     public void updMenuToShowBalance(UserState userState) {
@@ -310,6 +329,13 @@ public class TelegramMessages {
                                         .builder()
                                         .text(commonLabels.menuBalance())
                                         .callbackData(InlineMenuCallbacks.MENU_SHOW_BALANCE)
+                                        .build()))
+                .keyboardRow(
+                        new InlineKeyboardRow(
+                                InlineKeyboardButton
+                                        .builder()
+                                        .text(commonLabels.menuInformation())
+                                        .callbackData(InlineMenuCallbacks.MENU_SHOW_INFO)
                                         .build()));
 
         if (isAdmin) {
