@@ -41,7 +41,7 @@ public class MainMenuStatsService {
         }
 
         BigDecimal sumOfAllActionsByUser = userBalanceActionRepo.getSumOfAllActionsByUser(user.getTelegramId());
-        mainMenuPayload.setDeposits(sumOfAllActionsByUser);
+        mainMenuPayload.setDeposits(sumOfAllActionsByUser != null ? sumOfAllActionsByUser : BigDecimal.ZERO);
         return mainMenuPayload;
     }
 }
