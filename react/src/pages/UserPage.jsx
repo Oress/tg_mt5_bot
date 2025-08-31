@@ -5,7 +5,7 @@ import {
   Button,
   Card,
   Checkbox,
-  Col, Descriptions,
+  Descriptions,
   Divider, Dropdown,
   Flex,
   Form,
@@ -337,7 +337,6 @@ function UserInfoSection({user}) {
     </>
   );
 }
-
 
 function UserDepositsAndWithdrawals({userId, refreshTrigger}) {
   return (
@@ -1571,8 +1570,7 @@ function UserPage({}) {
         const firstInstrument = instrumentsResp[0];
         setActiveTab(firstInstrument.label);
         setSelectedInstrument(firstInstrument);
-        // Fetch unrealized PnL, house unrealized PnL, and service PnL for the first instrument
-        await fetchUnrealizedPnL(userResponse.data.telegramId, firstInstrument.id);
+        // await fetchUnrealizedPnL(userResponse.data.telegramId, firstInstrument.id);
         await fetchServicePnL(userResponse.data.telegramId, firstInstrument.id);
       }
 
@@ -1590,14 +1588,24 @@ function UserPage({}) {
     fetchData();
   }, [userId]);
 
+  // Refresh urealized PnL every 5 sec.
+  useEffect(() => {
+    if (!userId || !selectedInstrument) return;
+    fetchUnrealizedPnL(userId, selectedInstrument.id);
+    const id = setInterval(() => {
+      fetchUnrealizedPnL(userId, selectedInstrument.id);
+    }, 5000);
+
+    return () => clearInterval(id);
+  }, [userId, selectedInstrument]);
+
   const handleTabChange = async (instrumentName) => {
     setActiveTab(instrumentName);
     const instrument = instruments.find(i => i.label === instrumentName);
     setSelectedInstrument(instrument);
     
-    // Fetch unrealized PnL, house unrealized PnL, and service PnL for the selected instrument
     if (user && instrument) {
-      await fetchUnrealizedPnL(user.telegramId, instrument.id);
+      // await fetchUnrealizedPnL(user.telegramId, instrument.id);
       await fetchServicePnL(user.telegramId, instrument.id);
     }
     
