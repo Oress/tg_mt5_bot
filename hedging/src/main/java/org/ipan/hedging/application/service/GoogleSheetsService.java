@@ -17,6 +17,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.ipan.hedging.Config;
 import org.ipan.hedging.GoogleSheetsConfig;
+import org.ipan.hedging.domain.AppConstants;
 import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.repository.*;
 import org.jetbrains.annotations.NotNull;
@@ -40,7 +41,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
 
 @Service
 @Slf4j
@@ -127,7 +127,7 @@ public class GoogleSheetsService {
 
             Spreadsheet spreadsheet = sheets.spreadsheets().get(user.getGoogleSheetId()).setIncludeGridData(false).execute();
             createSheetsForUserIfNotExist(spreadsheet, user);
-//            remove0SheetIfExists(spreadsheet, user);
+            remove0SheetIfExists(spreadsheet, user);
 
             createTablesForUsersIfNotExist(spreadsheet, user);
             syncDataForUser(user, syncDt);
@@ -177,9 +177,11 @@ public class GoogleSheetsService {
         }
     }
 
-    // TODO: refresh every 5 minutes
+    // TODO: refresh every 30 minutes
     private void syncCommonSheet(AppUser user) throws IOException {
-        googleSheetsApiService.clearSheet(user.getGoogleSheetId(), 0);
+        Integer commonSheetId = AppConstants.COMMON_SHEET_ID;
+
+        googleSheetsApiService.clearSheet(user.getGoogleSheetId(), commonSheetId);
 
         List<UserBalanceAction> allForSyncByUser = userBalanceActionRepo.findAllForSyncByUser(Instant.EPOCH, user.getTelegramId());
         BigDecimal sumOfAllActionsByUser = BigDecimal.valueOf(calculateSum(allForSyncByUser));
@@ -211,7 +213,7 @@ public class GoogleSheetsService {
                                 .setFields("*")
                                 .setStart(new GridCoordinate()
                                         .setRowIndex(nextRowIndex)
-                                        .setSheetId(0)
+                                        .setSheetId(commonSheetId)
                                         .setColumnIndex(0))
                                 .setRows(List.of(data))
                 );
@@ -263,7 +265,7 @@ public class GoogleSheetsService {
                                 .setFields("*")
                                 .setStart(new GridCoordinate()
                                         .setRowIndex(nextRowIndex)
-                                        .setSheetId(0)
+                                        .setSheetId(commonSheetId)
                                         .setColumnIndex(4))
                                 .setRows(List.of(data1, data2))
                 );
@@ -287,7 +289,7 @@ public class GoogleSheetsService {
                         .setFields("*")
                         .setStart(new GridCoordinate()
                                 .setRowIndex(1)
-                                .setSheetId(0)
+                                .setSheetId(commonSheetId)
                                 .setColumnIndex(0))
                         .setRows(List.of(commonBalanceRow))
         );
@@ -306,7 +308,7 @@ public class GoogleSheetsService {
                         .setFields("*")
                         .setStart(new GridCoordinate()
                                 .setRowIndex(nextRowIndex)
-                                .setSheetId(0)
+                                .setSheetId(commonSheetId)
                                 .setColumnIndex(0))
                         .setRows(List.of(depositsHeader))
         );
@@ -335,7 +337,7 @@ public class GoogleSheetsService {
                                 .setFields("*")
                                 .setStart(new GridCoordinate()
                                         .setRowIndex(nextRowIndex)
-                                        .setSheetId(0)
+                                        .setSheetId(commonSheetId)
                                         .setColumnIndex(0))
                                 .setRows(batchRows)
                 );
@@ -719,6 +721,21 @@ public class GoogleSheetsService {
     private void createSheetsForUserIfNotExist(Spreadsheet spreadsheet, AppUser user) {
         List<Integer> sheetIds = spreadsheet.getSheets().stream().map(s -> s.getProperties().getSheetId()).toList();
 
+        if (!sheetIds.contains(AppConstants.COMMON_SHEET_ID)) {
+            log.info("Creating common sheet with id {} already exists for user {}", AppConstants.COMMON_SHEET_ID, user.getTelegramId());
+            AddSheetRequest addCommonSheetRequest = new AddSheetRequest()
+                    .setProperties(new SheetProperties()
+                            .setTitle(AppConstants.COMMON_SHEET_TITLE)
+                            .setSheetId(AppConstants.COMMON_SHEET_ID)
+                            .setGridProperties(
+                                    new GridProperties()
+                                            .setRowCount(1000)
+                                            .setColumnCount(26)
+                            )
+                    );
+            googleSheetsApiService.createSheet(user.getGoogleSheetId(), addCommonSheetRequest);
+        }
+
         for (AppUserInstrument userInstrument : user.getAvailableInstruments()) {
             Instrument instrument = userInstrument.getInstrument();
             Integer sheetId = userInstrument.getSheetId();
@@ -738,11 +755,7 @@ public class GoogleSheetsService {
                                             .setColumnCount(26)
                             )
                     );
-            BatchUpdateSpreadsheetResponse execute = sheets.spreadsheets().batchUpdate(user.getGoogleSheetId(),
-                    new BatchUpdateSpreadsheetRequest().setRequests(
-                            List.of(new Request().setAddSheet(addSheetRequest))
-                    )
-            ).execute();
+            googleSheetsApiService.createSheet(user.getGoogleSheetId(), addSheetRequest);
         }
 
     }

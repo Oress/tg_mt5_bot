@@ -69,6 +69,7 @@ public class GoogleSheetsApiService {
         ).execute();
     }
 
+    @Retryable
     public void clearSheet(String googleSheetId, int sheetId) throws IOException {
         sheets.spreadsheets().batchUpdate(
                 googleSheetId,
@@ -87,4 +88,15 @@ public class GoogleSheetsApiService {
         ).execute();
 
     }
+
+    @Retryable
+    public void createSheet(String googleSheetId, AddSheetRequest addSheetRequest) throws IOException {
+        BatchUpdateSpreadsheetResponse execute = sheets.spreadsheets()
+                .batchUpdate(googleSheetId,
+                new BatchUpdateSpreadsheetRequest().setRequests(
+                        List.of(new Request().setAddSheet(addSheetRequest))
+                )
+        ).execute();
+    }
+
 }
