@@ -105,7 +105,7 @@ public class FormattingTools {
 
     public static String formatPrice(BigDecimal number) {
         NumberFormat defaultCurrencyFormat = NumberFormat.getNumberInstance(Locale.of("ru"));
-        return defaultCurrencyFormat.format(number);
+        return defaultCurrencyFormat.format(number.setScale(2, RoundingMode.DOWN));
     }
 
     public static String formatPrice(Integer number) {
