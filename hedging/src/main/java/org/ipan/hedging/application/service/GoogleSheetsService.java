@@ -20,6 +20,7 @@ import org.ipan.hedging.GoogleSheetsConfig;
 import org.ipan.hedging.domain.AppConstants;
 import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.repository.*;
+import org.ipan.hedging.domain.service.UnrealizedPnlCalculator;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
@@ -62,6 +63,7 @@ public class GoogleSheetsService {
     private final ReportingCalculationRepository reportingCalculationRepository;
     private final GoogleSheetsApiService googleSheetsApiService;
     private final Mt5Service mt5Service;
+    private final UnrealizedPnlCalculator unrealizedPnlCalculator;
 
     public GoogleSheetsService(GoogleSheetsConfig config, UserRepo userRepo,
                                OrderRepo orderRepo, UserBalanceActionRepo userBalanceActionRepo,
@@ -69,12 +71,13 @@ public class GoogleSheetsService {
                                ReportingCalculationRepository reportingCalculationRepository,
                                GoogleSheetsApiService googleSheetsApiService,
                                @Qualifier(Config.AUX_MT5)
-                               Mt5Service mt5Service) throws IOException {
+                               Mt5Service mt5Service, UnrealizedPnlCalculator unrealizedPnlCalculator) throws IOException {
         this.config = config;
         this.userRepo = userRepo;
         this.userInstrumentRepository = userInstrumentRepository;
         this.googleSheetsApiService = googleSheetsApiService;
         this.mt5Service = mt5Service;
+        this.unrealizedPnlCalculator = unrealizedPnlCalculator;
 
         GoogleCredentials credentials = GoogleCredentials
                 .fromStream(Files.newInputStream(Path.of(config.getSaJson())))
@@ -177,14 +180,15 @@ public class GoogleSheetsService {
         }
     }
 
-    // TODO: refresh every 30 minutes
-    private void syncCommonSheet(AppUser user) throws IOException {
+    public void syncCommonSheet(AppUser user) throws IOException {
         Integer commonSheetId = AppConstants.COMMON_SHEET_ID;
 
         googleSheetsApiService.clearSheet(user.getGoogleSheetId(), commonSheetId);
 
         List<UserBalanceAction> allForSyncByUser = userBalanceActionRepo.findAllForSyncByUser(Instant.EPOCH, user.getTelegramId());
         BigDecimal sumOfAllActionsByUser = BigDecimal.valueOf(calculateSum(allForSyncByUser));
+
+        List<UpdateCellsRequest> updateRequests = new ArrayList<>();
 
         int nextRowIndex = 1;
         List<AppUserInstrument> sorted = user.getAvailableInstruments().stream().sorted(Comparator.comparing(k -> k.getInstrument().getLabel())).toList();
@@ -207,8 +211,7 @@ public class GoogleSheetsService {
                                                 new ExtendedValue().setNumberValue(balanceForTheUserInstrument.setScale(2, RoundingMode.HALF_DOWN).doubleValue())
                                         )
                         ));
-                googleSheetsApiService.updateCells(
-                        user.getGoogleSheetId(),
+                updateRequests.add(
                         new UpdateCellsRequest()
                                 .setFields("*")
                                 .setStart(new GridCoordinate()
@@ -221,20 +224,11 @@ public class GoogleSheetsService {
                 boolean isLong = InstrumentMode.LONG.equals(instrument.getMode());
                 String symbol = user.getSymbolByLabelAndAccType(instrument.getLabel());
                 Mt5ServiceImpl.InfoTick infoTick = mt5Service.getInfoTick(user, symbol);
-                BigDecimal currentUsdCadRate = isLong
+                BigDecimal currentRate = isLong
                         ? BigDecimal.valueOf(infoTick.getBid()).setScale(5, RoundingMode.HALF_DOWN)
                         : BigDecimal.valueOf(infoTick.getAsk()).setScale(5, RoundingMode.HALF_DOWN);
 
-                BigDecimal oldUsdCadRate = lastReportingRow.getRate();
-                BigDecimal inPosition = lastReportingRow.getInPosition();
-                BigDecimal unrealizedPnl;
-                if (isLong) {
-                    unrealizedPnl = inPosition.multiply(
-                            BigDecimal.ONE.divide(currentUsdCadRate, 8, RoundingMode.HALF_DOWN)
-                                    .subtract(BigDecimal.ONE.divide(oldUsdCadRate, 8, RoundingMode.HALF_DOWN)));
-                } else {
-                    unrealizedPnl = inPosition.multiply(currentUsdCadRate.subtract(oldUsdCadRate));
-                }
+                BigDecimal unrealizedPnl = unrealizedPnlCalculator.calculate(userInstrument.getId(), currentRate).getResult();
 
                 // unrealized PnL
                 RowData data1 = new RowData()
@@ -256,11 +250,10 @@ public class GoogleSheetsService {
                                         ),
                                 new CellData()
                                         .setUserEnteredValue(
-                                                new ExtendedValue().setNumberValue(oldUsdCadRate.setScale(5, RoundingMode.HALF_DOWN).doubleValue())
+                                                new ExtendedValue().setNumberValue(currentRate.setScale(5, RoundingMode.HALF_DOWN).doubleValue())
                                         )
                         ));
-                googleSheetsApiService.updateCells(
-                        user.getGoogleSheetId(),
+                updateRequests.add(
                         new UpdateCellsRequest()
                                 .setFields("*")
                                 .setStart(new GridCoordinate()
@@ -283,8 +276,7 @@ public class GoogleSheetsService {
                                         new ExtendedValue().setNumberValue(sumOfAllActionsByUser.setScale(2, RoundingMode.HALF_DOWN).doubleValue())
                                 )
                 ));
-        googleSheetsApiService.updateCells(
-                user.getGoogleSheetId(),
+        updateRequests.add(
                 new UpdateCellsRequest()
                         .setFields("*")
                         .setStart(new GridCoordinate()
@@ -302,8 +294,7 @@ public class GoogleSheetsService {
                                         new ExtendedValue().setStringValue("Депозиты/Выводы")
                                 )
                 ));
-        googleSheetsApiService.updateCells(
-                user.getGoogleSheetId(),
+        updateRequests.add(
                 new UpdateCellsRequest()
                         .setFields("*")
                         .setStart(new GridCoordinate()
@@ -312,6 +303,8 @@ public class GoogleSheetsService {
                                 .setColumnIndex(0))
                         .setRows(List.of(depositsHeader))
         );
+
+        googleSheetsApiService.updateCells(user.getGoogleSheetId(), updateRequests);
 
         int batchSize = 50;
         nextRowIndex++;

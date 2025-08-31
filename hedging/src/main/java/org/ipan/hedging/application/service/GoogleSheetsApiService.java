@@ -70,6 +70,18 @@ public class GoogleSheetsApiService {
     }
 
     @Retryable
+    public void updateCells(String sheetId, List<UpdateCellsRequest> requests) throws IOException {
+        sheets.spreadsheets().batchUpdate(
+                sheetId,
+                new BatchUpdateSpreadsheetRequest()
+                        .setRequests(
+                                requests.stream().map(r -> new Request().setUpdateCells(r)).toList()
+                        )
+        ).execute();
+    }
+
+
+    @Retryable
     public void clearSheet(String googleSheetId, int sheetId) throws IOException {
         sheets.spreadsheets().batchUpdate(
                 googleSheetId,

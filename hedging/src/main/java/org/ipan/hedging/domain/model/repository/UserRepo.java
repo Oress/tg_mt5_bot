@@ -23,6 +23,9 @@ public interface UserRepo extends JpaRepository<AppUser, Long> {
     @Query("select u from AppUser u left join fetch u.availableInstruments ui left join fetch ui.instrument where u.telegramId = :userId")
     AppUser findByIdWithInstruments(Long userId);
 
+    @Query("select u from AppUser u join fetch u.availableInstruments ui join fetch ui.instrument")
+    List<AppUser> findForCommonSheetSync();
+
     List<AppUser> findByMt5AccNumber(Integer mt5AccNumber);
 
     @Query(nativeQuery = true,

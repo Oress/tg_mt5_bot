@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class CronJobConfig {
     private final TelegramAuditJob telegramAuditJob;
+    private final RefreshCommonSheetsJob refreshCommonSheetsJob;
 
 //    @Scheduled(fixedDelayString = "${app.cron.telegram-audit.fixed-rate:30}", timeUnit = TimeUnit.SECONDS)
     public void persistTelegramAudit() {
@@ -23,6 +24,15 @@ public class CronJobConfig {
             }
         } catch (Exception e) {
             log.error("Error while persisting Telegram audit messages", e);
+        }
+    }
+
+    @Scheduled(fixedDelay = 30, timeUnit = TimeUnit.MINUTES)
+    public void refesh() {
+        try {
+            refreshCommonSheetsJob.run();
+        } catch (Exception e) {
+            log.error("Error while refreshing common sheets", e);
         }
     }
 }
