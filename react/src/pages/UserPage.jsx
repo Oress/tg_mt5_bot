@@ -28,6 +28,7 @@ import {UserInfoSection} from "./components/UserInfoSection.jsx";
 import {Mt5DataSection} from "./components/Mt5DataSection.jsx";
 import {formatCurrency} from "../utils.js";
 import {DepositsWithdrawalsSection} from "./components/DepositsWithdrawalsSection.jsx";
+import {CommissionWithdrawalsSection} from "./components/ComissionWithdrawalsSection.jsx";
 
 
 const getColorByOrderType = (orderType) => {
@@ -957,6 +958,10 @@ function UserPage({}) {
         <UserInfoSection user={user} />
 
         <Mt5DataSection userId={userId} refreshTrigger={refreshCounter}/>
+
+        <Card style={{ marginBottom: '24px' }}>
+          <CommissionWithdrawalsSection userId={userId} refreshTrigger={refreshCounter} />
+        </Card>
 
         <UserDepositsAndWithdrawals userId={userId} refreshTrigger={refreshCounter}/>
 
