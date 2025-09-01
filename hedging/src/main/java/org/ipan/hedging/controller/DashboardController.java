@@ -6,7 +6,6 @@ import org.ipan.hedging.application.service.*;
 import org.ipan.hedging.controller.dto.*;
 import org.ipan.hedging.domain.AppConstants;
 import org.ipan.hedging.domain.exception.InvalidAccountCredentialsException;
-import org.ipan.hedging.domain.exception.UserIsDisabledException;
 import org.ipan.hedging.domain.exception.UserWithSameAccountNumberAlreadyExists;
 import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.repository.*;
@@ -14,7 +13,6 @@ import org.ipan.hedging.domain.service.OrderService;
 import org.ipan.hedging.domain.service.UnrealizedPnl;
 import org.ipan.hedging.domain.service.UnrealizedPnlCalculator;
 import org.ipan.hedging.domain.service.UserService;
-import org.ipan.hedging.telegram.state.UserEdit;
 import org.ipan.hedging.telegram.utils.FormattingTools;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
@@ -49,6 +47,8 @@ public class DashboardController {
     private final HousePositionConsumptionRepository housePositionConsumptionRepository;
     private final OrderOrchestrator orderOrchestrator;
     private final GoogleSheetsService googleSheetsService;
+    private final CommissionWithdrawalRepository commissionWithdrawalRepository;
+    private final CommissionWithdrawalService commissionWithdrawalService;
 
     public DashboardController(UserRepo userRepo,
                                OrderRepo orderRepo,
@@ -60,7 +60,7 @@ public class DashboardController {
                                Mt5Service mt5Service,
                                ReportingCalculationRepository reportingCalculationRepository,
                                UserBalanceService userBalanceService,
-                               UnrealizedPnlCalculator unrealizedPnlCalculator, HousePositionConsumptionRepository housePositionConsumptionRepository, OrderService orderService, OrderOrchestrator orderOrchestrator, GoogleSheetsService googleSheetsService) {
+                               UnrealizedPnlCalculator unrealizedPnlCalculator, HousePositionConsumptionRepository housePositionConsumptionRepository, OrderService orderService, OrderOrchestrator orderOrchestrator, GoogleSheetsService googleSheetsService, CommissionWithdrawalRepository commissionWithdrawalRepository, CommissionWithdrawalService commissionWithdrawalService) {
         this.userRepo = userRepo;
         this.orderRepo = orderRepo;
         this.userTelegramActivityRepo = userTelegramActivityRepo;
@@ -74,6 +74,8 @@ public class DashboardController {
         this.housePositionConsumptionRepository = housePositionConsumptionRepository;
         this.orderOrchestrator = orderOrchestrator;
         this.googleSheetsService = googleSheetsService;
+        this.commissionWithdrawalRepository = commissionWithdrawalRepository;
+        this.commissionWithdrawalService = commissionWithdrawalService;
     }
 
     @GetMapping("/users")
@@ -245,6 +247,24 @@ public class DashboardController {
                 .toList();
     }
 
+    @GetMapping("/users/{telegramId}/commission-withdrawals")
+    @Transactional(readOnly = true)
+    public ApiResponse<List<CommissionWithdrawalDto>> commissionWithdrawals(@PathVariable Long telegramId) {
+        List<CommissionWithdrawal> allByUserId = commissionWithdrawalRepository.findAllByUserInstrumentUserTelegramIdOrderByDateDesc(telegramId);
+        return ApiResponse
+                .success(allByUserId.stream()
+                .map(this::mapToDto)
+                .toList());
+    }
+
+    @PostMapping("/users/{telegramId}/commission-withdrawals")
+    public CommissionWithdrawalDto createCommissionWithdrawals(@PathVariable Long telegramId,
+                                                               @RequestBody CommissionWithdrawalDto payload) {
+        validateCommissionWithdrawal(payload);
+        CommissionWithdrawal newItem = commissionWithdrawalService.createCommissionWithdrawal(telegramId, payload.getInstrument(), payload.getAmount(), Instant.now());
+        return mapToDto(newItem);
+    }
+
     @PostMapping("/users/{telegramId}/balance-actions")
     public UserBalanceActionsDto createUserBalanceActions(@PathVariable Long telegramId,
                                                           @RequestBody UserBalanceActionsDto payload) {
@@ -288,6 +308,21 @@ public class DashboardController {
 
         return ApiResponse.success("Available instruments updated successfully");
     }
+
+    private void validateCommissionWithdrawal(CommissionWithdrawalDto payload) {
+        if (payload == null) {
+            throw new IllegalArgumentException("Payload cannot be null");
+        }
+
+        if (payload.getInstrument() == null || payload.getAmount() == null) {
+            throw new IllegalArgumentException("Payload type and amount cannot be null");
+        }
+
+        if (payload.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Amount must be greater than zero");
+        }
+    }
+
 
     private void validateUserBalanceAction(UserBalanceActionsDto payload) {
         if (payload == null) {
@@ -360,6 +395,16 @@ public class DashboardController {
         return ResponseEntity
                 .badRequest()
                 .body(ApiResponse.error("Неверные учетные данные аккаунта"));
+    }
+
+    private CommissionWithdrawalDto mapToDto(CommissionWithdrawal userBalanceAction) {
+        return CommissionWithdrawalDto.builder()
+                .id(userBalanceAction.getId())
+                .instrument(userBalanceAction.getUserInstrument().getInstrument().getLabel())
+                .amount(userBalanceAction.getAmount())
+                .date(userBalanceAction.getDate())
+                .createdAt(userBalanceAction.getCreatedAt())
+                .build();
     }
 
     private UserBalanceActionsDto mapToDto(UserBalanceAction userBalanceAction) {

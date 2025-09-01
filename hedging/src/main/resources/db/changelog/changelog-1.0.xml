@@ -533,4 +533,36 @@
         </addColumn>
     </changeSet>
 
+    <changeSet id="create hed_user_commission_withdrawals" author="oress">
+        <createSequence sequenceName="seq_hed_user_commission_withdrawals"
+                        dataType="int"
+                        incrementBy="1"
+                        startValue="1"/>
+
+        <createTable tableName="hed_user_commission_withdrawals">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_instrument_id" type="bigint" />
+            <column name="amount" type="decimal(20,8)" />
+            <column name="date" type="timestamp" />
+            <column name="created_at" type="timestamp" />
+        </createTable>
+    </changeSet>
+
+
+    <changeSet id="add fk_hed_user_commission_withdrawals_user_instrument_id" author="system">
+        <addForeignKeyConstraint constraintName="fk_hed_user_commission_withdrawals_user_instrument_id"
+                                 baseTableName="hed_user_commission_withdrawals"
+                                 baseColumnNames="user_instrument_id"
+                                 referencedTableName="hed_user_instruments"
+                                 referencedColumnNames="id"/>
+    </changeSet>
+
+    <changeSet id="add idx_hed_user_commission_withdrawals_user_instrument_id" author="system">
+        <createIndex tableName="hed_user_commission_withdrawals" indexName="idx_hed_user_commission_withdrawals_user_instrument_id">
+            <column name="user_instrument_id"/>
+        </createIndex>
+    </changeSet>
+
 </databaseChangeLog>
