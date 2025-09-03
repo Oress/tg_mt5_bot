@@ -104,6 +104,27 @@ class AccountBalance:
     commission_blocked: Decimal
 
 @dataclass
+class TradeDeal:
+    ticket: Decimal
+    order: Decimal
+    time: Decimal
+    time_msc: Decimal
+    type: Decimal
+    entry: Decimal
+    magic: Decimal
+    position_id: Decimal
+    reason: Decimal
+    volume: Decimal
+    price: Decimal
+    commission: Decimal
+    swap: Decimal
+    profit: Decimal
+    fee: Decimal
+    symbol: str
+    comment: str
+    external_id: str
+
+@dataclass
 class SymbolInfo:
     description: str
     volume_min: Decimal
@@ -128,6 +149,44 @@ class MT5Service:
         self.server = server
         self.host = host
         self.port = port
+
+    def history_deals(self, account_number: int, pwd: str, ticket: int) -> bool:
+        try:
+            with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
+                # history_items=session.history_deals_get(position=position_id)
+                history_items=session.history_deals_get(ticket=ticket)
+
+                result = []
+                for hi in history_items:
+                    result.append(TradeDeal(
+                        ticket=hi.ticket,
+                        order=hi.order,
+                        time=hi.time,
+                        time_msc=hi.time_msc,
+                        type=hi.type,
+                        entry=hi.entry,
+                        magic=hi.magic,
+                        position_id=hi.position_id,
+                        reason=hi.reason,
+                        volume=hi.volume,
+                        price=hi.price,
+                        commission=hi.commission,
+                        swap=hi.swap,
+                        profit=hi.profit,
+                        fee=hi.fee,
+                        symbol=hi.symbol,
+                        comment=hi.comment,
+                        external_id=hi.external_id
+                    ))
+                return result
+        except MT5InvalidCreds as e:
+            logger.error(f"[MT5|Invalid Creds], account_number: {account_number}, server: {self.server}, host: {self.host}, port: {self.port}")
+            print(f"Invalid credentials: {e}")
+        except Exception as e:
+            logger.error(f"[MT5|Unknown Exception]")
+            print(f"Exception caught: {e}")
+
+        return []
 
     def check_credentials(self, account_number: int, pwd: str) -> bool:
         try:

@@ -565,4 +565,12 @@
         </createIndex>
     </changeSet>
 
+    <changeSet id="add swap,commission,mt5profit to hed_orders" author="oress">
+        <addColumn tableName="hed_orders">
+            <column name="swap" type="decimal(20,8)" />
+            <column name="commission" type="decimal(20,8)" />
+            <column name="mt5profit" type="decimal(20,8)" />
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

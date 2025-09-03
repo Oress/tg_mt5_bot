@@ -227,6 +227,27 @@ public class Mt5ServiceImpl implements Mt5Service {
         }
     }
 
+    @Override
+    public List<TradeDeal> getOrderHistory(AppUser user, Long ticket) {
+        lock.lock();
+        try {
+            UriComponentsBuilder componentsBuilder = UriComponentsBuilder
+                    .fromUriString(pythonProxyConfig.getUrl())
+                    .path("/history-deals");
+
+            HistoryReq request = HistoryReq.builder()
+                    .account_number(user.getMt5AccNumber())
+                    .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
+                    .ticket(ticket)
+                    .build();
+            ResponseEntity<HistoryResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, HistoryResp.class);
+            log.info("getOrderHistory response {}", resp);
+            return resp.getBody().getHistory();
+        } finally {
+            lock.unlock();
+        }
+    }
+
     @SuperBuilder
     @Data
     private static class BaseCredsPayload {
@@ -240,7 +261,6 @@ public class Mt5ServiceImpl implements Mt5Service {
         private String symbol;
     }
 
-
     @SuperBuilder
     @Data
     private static class OrderReq extends GetSymbolReq {
@@ -252,6 +272,18 @@ public class Mt5ServiceImpl implements Mt5Service {
     public static class OrderResp {
         private OrderDetails order;
     }
+
+    @SuperBuilder
+    @Data
+    private static class HistoryReq extends GetSymbolReq {
+        private Long ticket;
+    }
+
+    @Data
+    public static class HistoryResp {
+        private List<TradeDeal> history;
+    }
+
 
     @Data
     public static class OrderDetails {
@@ -378,5 +410,27 @@ public class Mt5ServiceImpl implements Mt5Service {
         private Double volume_max;
         private Double volume_min;
         private Double volume_step;
+    }
+
+    @Data
+    public static class TradeDeal {
+        private Double ticket;
+        private Double order;
+        private Double time;
+        private Double time_msc;
+        private Double type;
+        private Double entry;
+        private Double magic;
+        private Double position_id;
+        private Double reason;
+        private Double volume;
+        private Double price;
+        private Double commission;
+        private Double swap;
+        private Double profit;
+        private Double fee;
+        private String symbol;
+        private String comment;
+        private String external_id;
     }
 }

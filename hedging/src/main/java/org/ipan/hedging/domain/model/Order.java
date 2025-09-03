@@ -93,6 +93,10 @@ public class Order {
     @Column(name = "client_base_amount_to")
     private BigDecimal clientBaseAmountTo = BigDecimal.ZERO;
 
+    private BigDecimal swap;
+    private BigDecimal commission;
+    private BigDecimal mt5Profit;
+
     private BigDecimal price;
     private BigDecimal bid;
     private BigDecimal ask;

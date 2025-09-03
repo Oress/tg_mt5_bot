@@ -25,6 +25,7 @@ public class OrderOrchestrator {
     private final VolumeCalculationService volumeCalculationService;
     private final ReportingCalculationService reportingCalculationService;
     private final AppUserInstrumentRepository appUserInstrumentRepository;
+    private final OrderMt5InfoFetcherService orderMt5InfoFetcherService;
 
     public PlaceOrderResponse placeOrder(PlaceOrderCommand command) {
         log.info("Placing order for user: {}, instrument: {}, amount: {}, buy: {}", command.getUserId(), command.getInstrumentLabel(), command.getUserAmount(), command.isBuy());
@@ -113,6 +114,7 @@ public class OrderOrchestrator {
                 // 3. update order status to COMPLETE and calculate balances of user and the house
                 order = orderService.completeOrder(order.getId(), orderDetails, actualVolumeCalculation);
                 reportingCalculationService.recalculateAllForUserInstrument(userInstrument.getId());
+                orderMt5InfoFetcherService.fetchInfoForOrder(order.getId());
                 successful = true;
             } catch (Exception e) {
                 successful = false;

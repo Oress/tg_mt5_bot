@@ -16,4 +16,5 @@ public interface Mt5Service {
     Mt5ServiceImpl.InfoTick getInfoTick(AppUser user, String symbol);
     Mt5ServiceImpl.OrderDetails placeLongOrder(AppUser user, Long ticket, String symbol, Double volume);
     Mt5ServiceImpl.OrderDetails placeShortOrder(AppUser user, Long ticket, String symbol, Double volume);
+    List<Mt5ServiceImpl.TradeDeal> getOrderHistory(AppUser user, Long ticket);
 }

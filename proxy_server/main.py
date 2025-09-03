@@ -16,6 +16,21 @@ mt5service = mt5service.MT5Service(server_env, host_env, int(port_env))
 
 app = Flask(__name__)
 
+@app.route('/history-deals', methods=['POST'])
+def history_deals():
+    data = request.get_json()
+    print(data)
+    positions = mt5service.history_deals(data['account_number'], data['password'], data['ticket'])
+    if hasattr(positions, '__dict__'):
+        positions_dict = positions.__dict__
+    # If positions is a list/tuple of positions, convert each one
+    elif isinstance(positions, (list, tuple)):
+        positions_dict = [pos.__dict__ if hasattr(pos, '__dict__') else pos for pos in positions]
+    else:
+        positions_dict = positions
+
+    return jsonify({"history": positions_dict})
+
 @app.route('/check-credentials', methods=['POST'])
 def check_credentials():
     data = request.get_json()
