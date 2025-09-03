@@ -18,6 +18,7 @@ public class UserInstrumentDto {
     private String mode;
     private String base;
     private String quote;
+    private BigDecimal swap = BigDecimal.ZERO;
     private BigDecimal balance = BigDecimal.ZERO;
     private BigDecimal clientOwnedBaseAmount = BigDecimal.ZERO;
     private BigDecimal houseOwnedBaseAmount = BigDecimal.ZERO;

@@ -21,6 +21,8 @@ public class OrderDto {
     private List<OrderConsumptionDto> consumptions = new ArrayList<>();
     private Long deal;
     private Long order;
+    private BigDecimal swap;
+    private BigDecimal commission;
     private String type; // OrderType
     private String systemType;
     private String status; // OrderStatus

@@ -1,10 +1,8 @@
 package org.ipan.hedging.application.service;
 
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.ipan.hedging.Config;
 import org.ipan.hedging.application.NoHistoryException;
-import org.ipan.hedging.domain.AppConstants;
 import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.model.Order;
 import org.ipan.hedging.domain.model.repository.OrderRepo;
@@ -33,7 +31,13 @@ public class OrderMt5InfoFetcherService {
     @Async
     @Transactional
     @Retryable(maxAttempts = 5)
-    public void fetchInfoForOrder(Long orderId) {
+    public void fetchInfoForOrderAsync(Long orderId) {
+        fetchInfoForOrderSync(orderId);
+    }
+
+    @Transactional
+    @Retryable(maxAttempts = 5)
+    public void fetchInfoForOrderSync(Long orderId) {
         Order order = orderRepo.findById(orderId).get();
         AppUser user = order.getUserInstrument().getUser();
         Long ticket = order.getDeal();
@@ -50,4 +54,5 @@ public class OrderMt5InfoFetcherService {
             throw new NoHistoryException();
         }
     }
+
 }

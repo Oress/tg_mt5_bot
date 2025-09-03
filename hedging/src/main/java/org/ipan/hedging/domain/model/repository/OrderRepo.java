@@ -1,12 +1,15 @@
 package org.ipan.hedging.domain.model.repository;
 
+import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.model.Order;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
@@ -34,4 +37,10 @@ public interface OrderRepo extends JpaRepository<Order, Long> {
 
     @Query("select o from Order o join o.userInstrument ui left join fetch o.consumptions where ui.id = :positionId and o.lifoPosition is not null and o.lifoPosition.remainingAmount > 0 order by o.createdAt desc")
     List<Order> findOpenPositions(Long positionId);
+
+    @Query("select sum(o.swap) from Order o where o.userInstrument.id = :userInstrumentId")
+    BigDecimal getSwapPerInstrument(Long userInstrumentId);
+
+    @Query("select o from Order o where o.swap is null")
+    List<Order> findOrdersWithEmptySwap();
 }

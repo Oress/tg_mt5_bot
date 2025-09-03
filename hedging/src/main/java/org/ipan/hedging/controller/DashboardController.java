@@ -100,8 +100,9 @@ public class DashboardController {
         List<UserInstrumentDto> result = new ArrayList<>();
         AppUser byId = userRepo.findById(telegramId).get();
         for (AppUserInstrument availableInstrument : byId.getAvailableInstruments().stream().filter(i -> i.getActive()).toList()) {
+            BigDecimal swapPerInstrument = orderRepo.getSwapPerInstrument(availableInstrument.getId());
             BigDecimal balanceForTheUserInstrument = reportingCalculationRepository.getBalanceForTheUserInstrument(availableInstrument.getId(), Limit.of(1));
-            UserInstrumentDto userInstrumentDto = mapToDto(availableInstrument, balanceForTheUserInstrument);
+            UserInstrumentDto userInstrumentDto = mapToDto(availableInstrument, balanceForTheUserInstrument, swapPerInstrument);
             result.add(userInstrumentDto);
         }
         return ApiResponse.success(result);
@@ -112,7 +113,8 @@ public class DashboardController {
     public ApiResponse<UserInstrumentDto> getUserInstruments(@PathVariable Long telegramId, @PathVariable Long userInstrumentId) {
         AppUserInstrument userInstrument = appUserInstrumentRepository.findById(userInstrumentId).get();
         BigDecimal balanceForTheUserInstrument = reportingCalculationRepository.getBalanceForTheUserInstrument(userInstrument.getId(), Limit.of(1));
-        UserInstrumentDto userInstrumentDto = mapToDto(userInstrument, balanceForTheUserInstrument);
+        BigDecimal swapPerInstrument = orderRepo.getSwapPerInstrument(userInstrument.getId());
+        UserInstrumentDto userInstrumentDto = mapToDto(userInstrument, balanceForTheUserInstrument, swapPerInstrument);
         return ApiResponse.success(userInstrumentDto);
     }
 
@@ -435,6 +437,8 @@ public class DashboardController {
                 .consumptions(order.getConsumptions().stream().map(this::mapToDto).toList())
                 .deal(order.getDeal())
                 .order(order.getOrder())
+                .swap(order.getSwap())
+                .commission(order.getCommission())
                 .type(order.getType().name())
                 .systemType(order.getSystemType() != null ? order.getSystemType().name() : null)
                 .status(order.getStatus().name())
@@ -476,7 +480,7 @@ public class DashboardController {
                 .build();
     }
 
-    private UserInstrumentDto mapToDto(AppUserInstrument userInstrument, BigDecimal balance) {
+    private UserInstrumentDto mapToDto(AppUserInstrument userInstrument, BigDecimal balance, BigDecimal swapPerInstrument) {
         return UserInstrumentDto.builder()
                 .id(userInstrument.getId())
                 .label(userInstrument.getInstrument().getLabel())
@@ -484,6 +488,7 @@ public class DashboardController {
                 .base(userInstrument.getInstrument().getBase())
                 .quote(userInstrument.getInstrument().getQuote())
                 .balance(balance)
+                .swap(swapPerInstrument)
                 .clientOwnedBaseAmount(userInstrument.getClientOwnedBaseAmount())
                 .houseOwnedBaseAmount(userInstrument.getHouseOwnedBaseAmount())
                 .clientOwnedQuoteAmount(userInstrument.getClientOwnedQuoteAmount())

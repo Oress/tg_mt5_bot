@@ -573,4 +573,11 @@
         </addColumn>
     </changeSet>
 
+    <changeSet id="create idx_hed_orders_swap" author="oress">
+        <createIndex indexName="idx_hed_orders_swap" tableName="hed_orders">
+            <column name="swap"/>
+        </createIndex>
+    </changeSet>
+
+
 </databaseChangeLog>
