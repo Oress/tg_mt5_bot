@@ -244,6 +244,18 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
       key: 'executedVolume',
     },
     {
+      title: 'Коммиссия',
+      dataIndex: 'commission',
+      key: 'commission',
+      render: (commission) => (formatCurrency(commission))
+    },
+    {
+      title: 'Swap',
+      dataIndex: 'swap',
+      key: 'swap',
+      render: (swap) => (formatCurrency(swap))
+    },
+    {
       title: 'Сумма ордера в базовой валюте',
       dataIndex: 'executedBaseAmount',
       key: 'executedBaseAmount',
@@ -297,6 +309,9 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
           </Descriptions.Item>
           <Descriptions.Item label="Баланс USD">
             {selectedInstrument.balance !== null ? formatCurrency(selectedInstrument.balance) : "Нет данных"}
+          </Descriptions.Item>
+          <Descriptions.Item label={`Swap`}>
+            {formatCurrency(selectedInstrument.swap)}
           </Descriptions.Item>
           <Descriptions.Item label="Текущий курс">
             {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? unrealizedPnL.rate : "Нет данных")}
@@ -382,6 +397,9 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
             </Descriptions.Item>
             <Descriptions.Item label={`${selectedInstrument.quote} Клиента`}>
               {formatCurrency(selectedInstrument.clientOwnedQuoteAmount, selectedInstrument.quote)}
+            </Descriptions.Item>
+            <Descriptions.Item label={`Swap`}>
+              {formatCurrency(selectedInstrument.swap)}
             </Descriptions.Item>
             <Descriptions.Item label="Нериализованный PnL Клиента">
               {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profit) : "Нет данных")}
@@ -585,6 +603,18 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
                   title: 'Лоты',
                   dataIndex: 'executedVolume',
                   key: 'executedVolume',
+                },
+                {
+                  title: 'Коммиссия',
+                  dataIndex: 'commission',
+                  key: 'commission',
+                  render: (commission) => (formatCurrency(commission))
+                },
+                {
+                  title: 'Swap',
+                  dataIndex: 'swap',
+                  key: 'swap',
+                  render: (swap) => (formatCurrency(swap))
                 },
                 {
                   title: 'Сумма ордера в базовой валюте',
