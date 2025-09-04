@@ -69,6 +69,7 @@ class OrderOrchestratorTest {
     private final UserRepo userRepo;
     private final OrderService orderService;
     private final AppUserInstrumentRepository userInstrumentRepository;
+    private final OrderMt5InfoFetcherService fetcherService;
     private final OrderRepo orderRepo;
     private final VolumeCalculationService volumeCalculationService;
     private final ReportingCalculationService reportingCalculationService;
@@ -84,6 +85,7 @@ class OrderOrchestratorTest {
     public OrderOrchestratorTest(UserService userService, UserRepo userRepo,
                                  OrderService orderService,
                                  AppUserInstrumentRepository appUserInstrumentRepository,
+                                 OrderMt5InfoFetcherService fetcherService,
                                  OrderRepo orderRepo,
                                  VolumeCalculationService volumeCalculationService,
                                  ReportingCalculationService reportingCalculationService,
@@ -93,6 +95,7 @@ class OrderOrchestratorTest {
         this.userService = userService;
         this.userRepo = userRepo;
         this.orderService = orderService;
+        this.fetcherService = fetcherService;
         this.userInstrumentRepository = appUserInstrumentRepository;
         this.orderRepo = orderRepo;
         this.volumeCalculationService = volumeCalculationService;
@@ -121,7 +124,8 @@ class OrderOrchestratorTest {
                 mt5Service,
                 volumeCalculationService,
                 reportingCalculationService,
-                userInstrumentRepository
+                userInstrumentRepository,
+                fetcherService
         );
 
         // clean orders for clean state every test.
