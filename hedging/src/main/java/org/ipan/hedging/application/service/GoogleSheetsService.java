@@ -395,8 +395,8 @@ public class GoogleSheetsService {
         String rateInnerPart = "IF(B:B<0,(%s*%s+B:B*C:C)/F:F,%s)".formatted(relCell(-1, -1), relCell(0, -1), relCell(0, -1));
         String rateOuterPart = "=%s".formatted(isFirstRow("C:C", rateInnerPart));
 
-        String depTotalInnerPart = "%s+H:H+%s".formatted(relCell(0, -1), relCell(+1, -1));
-        String depTotalOuterPart = "=%s".formatted(isFirstRow("H:H", depTotalInnerPart));
+        String depTotalInnerPart = "%s+I:I+%s".formatted(relCell(0, -1), relCell(+1, -1));
+        String depTotalOuterPart = "=%s".formatted(isFirstRow("I:I", depTotalInnerPart));
 
         CellFormat currencyFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("#,##0.00"));
         CellFormat numberFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("0.00000"));
@@ -443,25 +443,20 @@ public class GoogleSheetsService {
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue(rateOuterPart)
                                 ).setUserEnteredFormat(numberFormat),
+                        // PnL
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setFormulaValue("=IF(B:B>0,(C:C/G:G-1)*B:B/C:C,\"\")")
+                                ).setUserEnteredFormat(currencyFormat),
                         // Deposit
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue("=IF(B:B>0,-B:B*(C:C-G:G),-E:E)")
                                 ).setUserEnteredFormat(currencyFormat),
-                        // Deposit total
-                        new CellData()
-                                .setUserEnteredValue(
-                                        new ExtendedValue().setFormulaValue(depTotalOuterPart)
-                                ).setUserEnteredFormat(currencyFormat),
-                        // Payment deposit amount
-                        new CellData()
-                                .setUserEnteredValue(
-                                        new ExtendedValue().setStringValue("")
-                                ).setUserEnteredFormat(currencyFormat),
                         // Balance
                         new CellData()
                                 .setUserEnteredValue(
-                                        new ExtendedValue().setFormulaValue("=I:I+J:J")
+                                        new ExtendedValue().setFormulaValue(depTotalOuterPart)
                                 ).setUserEnteredFormat(currencyFormat)
                 ));
     }
@@ -803,9 +798,8 @@ public class GoogleSheetsService {
             new ColumnDefinition("Ком. 0.1%", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Захеджировано", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Ставка", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Реализ. курсовая", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Депозит", "COLUMN_TYPE_UNSPECIFIED"),
-            new ColumnDefinition("Депозит  всего", "COLUMN_TYPE_UNSPECIFIED"),
-            new ColumnDefinition("Сумма оплаты депозита", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Баланс", "COLUMN_TYPE_UNSPECIFIED")
     );
 
