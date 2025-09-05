@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import org.ipan.hedging.domain.AppConstants;
 import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.repository.*;
+import org.springframework.data.domain.Limit;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -88,6 +89,27 @@ public class ReportingCalculationService {
             return CompletableFuture.failedFuture(e);
         }
     }
+
+    @Transactional
+    public void calculateForOrder(Long orderId) {
+        try {
+            Order order = orderRepo.findById(orderId).get();
+            AppUserInstrument userInstrument = order.getUserInstrument();
+
+            ReportingCalculation lastRowForTheUserInstrument = reportingCalculationRepository.getLastRowForTheUserInstrument(userInstrument.getId(), Limit.of(1));
+
+            OperationCalculator operationCalculator = switch (userInstrument.getInstrument().getLabel()) {
+                case AppConstants.EUR_USD -> new EurUsdOperationCalculator();
+                case AppConstants.USD_CAD -> new UsdCadOperationCalculator();
+                default -> throw new IllegalArgumentException("Unsupported instrument: " + userInstrument.getInstrument().getLabel());
+            };
+            ReportingCalculation newRecord = operationCalculator.calculate(order, lastRowForTheUserInstrument);
+            reportingCalculationRepository.save(newRecord);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 
     private interface UserBalanceActionCalculator {
         ReportingCalculation calculate(UserBalanceAction balanceAction, ReportingCalculation prevRecord);

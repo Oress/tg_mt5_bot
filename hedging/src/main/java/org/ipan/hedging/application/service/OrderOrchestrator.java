@@ -115,7 +115,8 @@ public class OrderOrchestrator {
                 }
                 // 3. update order status to COMPLETE and calculate balances of user and the house
                 order = orderService.completeOrder(order.getId(), orderDetails, actualVolumeCalculation);
-                reportingCalculationService.recalculateAllForUserInstrument(userInstrument.getId());
+//                reportingCalculationService.recalculateAllForUserInstrument(userInstrument.getId());
+                reportingCalculationService.calculateForOrder(order.getId());
 
                 if (orderMt5InfoFetcherService.isPresent()) {
                     orderMt5InfoFetcherService.get().fetchInfoForOrderAsync(order.getId());

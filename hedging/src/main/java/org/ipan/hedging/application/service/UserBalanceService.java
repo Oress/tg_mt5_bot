@@ -29,7 +29,7 @@ public class UserBalanceService {
         AppUser user = userRepo.findById(userId).get();
         UserBalanceAction result = createUserBalanceAction(user, BalanceActionType.DEPOSIT, amount, date);
         result = userBalanceActionRepo.save(result);
-        reportingCalculationService.recalculateAllForUser(userId);
+        // reportingCalculationService.recalculateAllForUser(userId);
         googleSheetsService.ifPresent((srv) -> srv.syncUser(userId));
         return result;
     }
@@ -38,7 +38,7 @@ public class UserBalanceService {
         AppUser user = userRepo.findById(userId).get();
         UserBalanceAction result = createUserBalanceAction(user, BalanceActionType.WITHDRAWAL, amount, date);
         result = userBalanceActionRepo.save(result);
-        reportingCalculationService.recalculateAllForUserInstrument(userId);
+        // reportingCalculationService.recalculateAllForUserInstrument(userId);
         googleSheetsService.ifPresent((srv) -> srv.syncUser(userId));
         return result;
     }
