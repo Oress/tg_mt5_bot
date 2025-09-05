@@ -41,6 +41,6 @@ public interface OrderRepo extends JpaRepository<Order, Long> {
     @Query("select sum(o.swap) from Order o where o.userInstrument.id = :userInstrumentId")
     BigDecimal getSwapPerInstrument(Long userInstrumentId);
 
-    @Query("select o from Order o where o.swap is null")
+    @Query("select o from Order o where o.swap is null and o.deal is not null")
     List<Order> findOrdersWithEmptySwap();
 }

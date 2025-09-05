@@ -5,6 +5,7 @@ import org.ipan.hedging.Config;
 import org.ipan.hedging.application.NoHistoryException;
 import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.model.Order;
+import org.ipan.hedging.domain.model.OrderType;
 import org.ipan.hedging.domain.model.repository.OrderRepo;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
@@ -41,6 +42,12 @@ public class OrderMt5InfoFetcherService {
     @Retryable(maxAttempts = 5)
     public void fetchInfoForOrderSync(Long orderId) {
         Order order = orderRepo.findById(orderId).get();
+        if (OrderType.HOUSE_CLIENT_TRANSFER_SHORT.equals(order.getType())
+            || OrderType.HOUSE_CLIENT_TRANSFER_LONG.equals(order.getType())) {
+            log.info("Fake Order, cannot read Mt5 data for it, order id {}", orderId);
+            return;
+        }
+
         AppUser user = order.getUserInstrument().getUser();
         Long ticket = order.getDeal();
         List<Mt5ServiceImpl.TradeDeal> orderHistory = mt5Service.getOrderHistory(user, ticket);

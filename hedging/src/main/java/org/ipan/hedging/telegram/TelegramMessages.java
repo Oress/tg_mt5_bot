@@ -225,7 +225,7 @@ public class TelegramMessages {
 
     private String getMainMenuMessage(MainMenuPayload payload) {
         List<String> balances = new ArrayList<>();
-        balances.add("Общий баланс: \n%s".formatted(FormattingTools.formatPrice(payload.deposits)));
+        balances.add("Общий баланс: \n%s".formatted(FormattingTools.formatPrice(payload.getBalance())));
 
         if (payload.cadBalance != null) {
             balances.add("Баланс по USD/CAD: \n%s".formatted(FormattingTools.formatPrice(payload.cadBalance)));
@@ -373,5 +373,11 @@ public class TelegramMessages {
         private BigDecimal deposits = BigDecimal.ZERO;
         private BigDecimal cadBalance;
         private BigDecimal eurBalance;
+
+        public BigDecimal getBalance() {
+            return deposits
+                    .add(cadBalance != null ? cadBalance : BigDecimal.ZERO)
+                    .add(eurBalance != null ? eurBalance : BigDecimal.ZERO);
+        }
     }
 }
