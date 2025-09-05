@@ -156,7 +156,7 @@ function InstrumentToolbar({selectedInstrument, userId, user}) {
   );
 }
 
-function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unrealizedPnL, loadingUnrealizedPnL, user}) {
+function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unrealizedPnL, loadingUnrealizedPnL, servicePnL, loadingServicePnL}) {
   const [orderHistory, setOrderHistory] = useState([]);
 
   const fetchData = async () => {
@@ -244,7 +244,7 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
       key: 'executedVolume',
     },
     {
-      title: 'Коммиссия',
+      title: 'Коммиссия Герчик',
       dataIndex: 'commission',
       key: 'commission',
       render: (commission) => (formatCurrency(commission))
@@ -267,9 +267,31 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
       )
     },
     {
+      title: 'Сервис, До, Сумма в базовой валюте',
+      key: 'houseBaseAmountFrom',
+      dataIndex: 'houseBaseAmountFrom',
+      width: 160,
+      render: (amount) => (
+        <Typography.Text strong>
+          {formatCurrency(amount, selectedInstrument.base)}
+        </Typography.Text>
+      )
+    },
+    {
+      title: 'Сервис, После, Сумма в базовой валюте',
+      key: 'houseBaseAmountTo',
+      dataIndex: 'houseBaseAmountTo',
+      width: 160,
+      render: (amount) => (
+        <Typography.Text strong>
+          {formatCurrency(amount, selectedInstrument.base)}
+        </Typography.Text>
+      )
+    },
+    {
       title: 'Клиент, До, Сумма в базовой валюте',
-      dataIndex: 'clientBaseAmountFrom',
       key: 'clientBaseAmountFrom',
+      dataIndex: 'clientBaseAmountFrom',
       width: 160,
       render: (amount) => (
         <Typography.Text strong>
@@ -279,8 +301,8 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
     },
     {
       title: 'Клиент, После, Сумма в базовой валюте',
-      dataIndex: 'clientBaseAmountTo',
       key: 'clientBaseAmountTo',
+      dataIndex: 'clientBaseAmountTo',
       width: 160,
       render: (amount) => (
         <Typography.Text strong>
@@ -312,6 +334,12 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
           </Descriptions.Item>
           <Descriptions.Item label={`Swap`}>
             {formatCurrency(selectedInstrument.swap)}
+          </Descriptions.Item>
+          <Descriptions.Item label={`${selectedInstrument.base} Сервиса`}>
+            {formatCurrency(selectedInstrument.houseOwnedBaseAmount, selectedInstrument.base)}
+          </Descriptions.Item>
+          <Descriptions.Item label="PnL Сервиса">
+            {loadingServicePnL ? "Загрузка..." : (servicePnL !== null ? formatCurrency(servicePnL.profit) : "Нет данных")}
           </Descriptions.Item>
           <Descriptions.Item label="Текущий курс">
             {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? unrealizedPnL.rate : "Нет данных")}
@@ -392,11 +420,14 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
             title={<Typography.Title level={4}>Информация об инструменте</Typography.Title>}
             size="small"
           >
-            <Descriptions.Item label={`${selectedInstrument.base} Клиента`}>
-              {formatCurrency(selectedInstrument.clientOwnedBaseAmount, selectedInstrument.base)}
-            </Descriptions.Item>
             <Descriptions.Item label={`${selectedInstrument.quote} Клиента`}>
               {formatCurrency(selectedInstrument.clientOwnedQuoteAmount, selectedInstrument.quote)}
+            </Descriptions.Item>
+            <Descriptions.Item label="Баланс USD">
+              {selectedInstrument.balance !== null ? formatCurrency(selectedInstrument.balance) : "Нет данных"}
+            </Descriptions.Item>
+            <Descriptions.Item label={`${selectedInstrument.base} эквивалент Клиента`}>
+              {formatCurrency(selectedInstrument.clientOwnedBaseAmount, selectedInstrument.base)}
             </Descriptions.Item>
             <Descriptions.Item label={`Swap`}>
               {formatCurrency(selectedInstrument.swap)}
@@ -412,9 +443,6 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
             </Descriptions.Item>
             <Descriptions.Item label="Нериализованный PnL Сервиса">
               {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profitHouse) : "Нет данных")}
-            </Descriptions.Item>
-            <Descriptions.Item label="Баланс USD">
-              {selectedInstrument.balance !== null ? formatCurrency(selectedInstrument.balance) : "Нет данных"}
             </Descriptions.Item>
             <Descriptions.Item label="Текущий курс">
               {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? unrealizedPnL.rate : "Нет данных")}
@@ -605,7 +633,7 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
                   key: 'executedVolume',
                 },
                 {
-                  title: 'Коммиссия',
+                  title: 'Коммиссия Герчик',
                   dataIndex: 'commission',
                   key: 'commission',
                   render: (commission) => (formatCurrency(commission))
@@ -953,6 +981,7 @@ function UserPage({}) {
     case 'SHORT':
       detailsComponent = <RegularHedgeDetails user={user} selectedInstrument={selectedInstrument} userId={userId} refreshTrigger={refreshCounter}
                                               unrealizedPnL={unrealizedPnL} loadingUnrealizedPnL={loadingUnrealizedPnL}
+                                              servicePnL={servicePnL} loadingServicePnL={loadingServicePnL}
                                               />;
       break;
     case 'LONG':
