@@ -64,11 +64,12 @@ public class OrderService {
             }
 
         } else {
-            log.error("Unsupported instrument mode: {}", instrument.getMode());
-            throw new RuntimeException();
+            // effectively add and subtract work the same way for short mode
+            userInstrument.addUserAndHousePartsLongMode(volumeCalculation);
         }
 
-        if(!order.isHedgeOut()) {
+        // short mode orders do not need lifo positions
+        if (!order.isHedgeOut() && InstrumentMode.LONG.equals(instrument.getMode())) {
             order.createLifoPosition(order.getUserEnteredAmount().intValue());
         }
 
@@ -152,7 +153,8 @@ public class OrderService {
             log.error("Unsupported instrument mode: {}", instrument.getMode());
         }
 
-        if(!order.isHedgeOut()) {
+        // short mode orders do not need lifo positions
+        if(!order.isHedgeOut() && InstrumentMode.LONG.equals(instrument.getMode())) {
             order.createLifoPosition(order.getUserEnteredAmount().intValue());
         }
 

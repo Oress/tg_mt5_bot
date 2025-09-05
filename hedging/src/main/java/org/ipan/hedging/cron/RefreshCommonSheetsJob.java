@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.ipan.hedging.application.service.GoogleSheetsService;
 import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.model.repository.UserRepo;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +15,7 @@ import java.util.List;
 @Component
 @AllArgsConstructor
 @Slf4j
+@Profile("!test")
 public class RefreshCommonSheetsJob {
     private final UserRepo userRepo;
     private final GoogleSheetsService googleSheetsService;

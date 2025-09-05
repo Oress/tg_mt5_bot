@@ -77,7 +77,7 @@ import java.util.Optional;
 @Slf4j
 @Profile("!test")
 public class HedgingHandler {
-    public static final double STEP_AMOUNT = 10.0;
+    public static final double STEP_AMOUNT = 1.0;
     private final UserRepo userRepo;
     private final TelegramState telegramState;
     private final BalanceViews balanceViews;
@@ -239,7 +239,7 @@ public class HedgingHandler {
             Double minAmount = 0.0;
             Double maxAmount = symbolInfo.getVolume_max() * symbolInfo.getTrade_contract_size();  // usually 1_000_000 base units
 //            Double stepAmount = symbolInfo.getVolume_step() * symbolInfo.getTrade_contract_size(); // usually 1000 base units
-            Double stepAmount = STEP_AMOUNT;
+//            Double stepAmount = STEP_AMOUNT;
             if (amount <= minAmount) {
                 log.warn("User {} tried to hedge with amount less than minimum: {} < {}", userState.getTelegramId(), amount, minAmount);
                 hedgeViews.lessThanMinAmount(userState, minAmount);
@@ -248,11 +248,12 @@ public class HedgingHandler {
                 log.warn("User {} tried to hedge with amount greater than maximum: {} > {}", userState.getTelegramId(), amount, maxAmount);
                 hedgeViews.greaterThanMaxAvailable(userState, BigDecimal.valueOf(maxAmount));
                 return;
-            } else if (amount % stepAmount != 0) {
+            }
+            /*else if (amount % stepAmount != 0) {
                 log.warn("User {} tried to hedge with amount not divisible by step: {} % {} != 0", userState.getTelegramId(), amount, stepAmount);
                 hedgeViews.stepWarning(userState, stepAmount);
                 return;
-            }
+            }*/
 
             Double price = mt5Service.getPriceForShort(user, symbol);
             telegramState.updateHedgeOp(userState.getTelegramId(), hedgeOp.withUserAmount(amount));

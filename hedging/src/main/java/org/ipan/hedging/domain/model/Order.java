@@ -165,7 +165,7 @@ public class Order {
     public BigDecimal getUserEnteredAmount() {
         if (userInstrument != null && userInstrument.getInstrument() != null) {
             return userInstrument.getInstrument().getMode() == InstrumentMode.SHORT
-                    ? executedBaseAmount
+                    ? userBaseAmount
                     : userEnteredQuoteAmount;
         } else {
             log.warn("User instrument or instrument is null for order: {}", this);

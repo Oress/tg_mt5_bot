@@ -1,5 +1,6 @@
 package org.ipan.hedging.application.service;
 
+import org.ipan.hedging.application.OrderPlaceMt5ErrorException;
 import org.ipan.hedging.application.service.command.PlaceOrderCommand;
 import org.ipan.hedging.application.service.command.PlaceOrderResponse;
 import org.ipan.hedging.domain.model.*;
@@ -25,6 +26,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -69,7 +71,6 @@ class OrderOrchestratorTest {
     private final UserRepo userRepo;
     private final OrderService orderService;
     private final AppUserInstrumentRepository userInstrumentRepository;
-    private final OrderMt5InfoFetcherService fetcherService;
     private final OrderRepo orderRepo;
     private final VolumeCalculationService volumeCalculationService;
     private final ReportingCalculationService reportingCalculationService;
@@ -85,7 +86,6 @@ class OrderOrchestratorTest {
     public OrderOrchestratorTest(UserService userService, UserRepo userRepo,
                                  OrderService orderService,
                                  AppUserInstrumentRepository appUserInstrumentRepository,
-                                 OrderMt5InfoFetcherService fetcherService,
                                  OrderRepo orderRepo,
                                  VolumeCalculationService volumeCalculationService,
                                  ReportingCalculationService reportingCalculationService,
@@ -95,7 +95,6 @@ class OrderOrchestratorTest {
         this.userService = userService;
         this.userRepo = userRepo;
         this.orderService = orderService;
-        this.fetcherService = fetcherService;
         this.userInstrumentRepository = appUserInstrumentRepository;
         this.orderRepo = orderRepo;
         this.volumeCalculationService = volumeCalculationService;
@@ -125,7 +124,7 @@ class OrderOrchestratorTest {
                 volumeCalculationService,
                 reportingCalculationService,
                 userInstrumentRepository,
-                fetcherService
+                Optional.ofNullable(null)
         );
 
         // clean orders for clean state every test.
@@ -205,6 +204,7 @@ class OrderOrchestratorTest {
         assertThat(thirdElem.getBalance()).isEqualByComparingTo(BigDecimal.valueOf(-7.00525000));
     }
 
+    // TODO: reimplement. deposits no longer affect calculations
     @Test
     public void reportingCalculation_eurUsd_hedgeDepositHedge() {
         PlaceOrderResponse response = placeEurUsdOrderResponse(1000, false, 1.16758000);
@@ -316,7 +316,7 @@ class OrderOrchestratorTest {
         assertThat(userInstrument3.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(4000));
         assertThat(lifoPosition).isNull();
         List<LifoPositionConsumption> consumptions = order3.getConsumptions();
-        assertThat(consumptions).hasSize(1);
+        assertThat(consumptions).hasSize(0);
 
         PlaceOrderResponse response4 = placeUsdCadOrderResponse(1000, false, 1.37410);
         Order order4 = orderRepo.findOrderWithConsumptions(response4.getOrder().getId());
@@ -327,7 +327,7 @@ class OrderOrchestratorTest {
         assertThat(lifoPosition4).isNull();
         List<LifoPositionConsumption> consumptions4 = order4.getConsumptions();
         assertThat(consumptions4).hasSize(1);
-        assertThat(consumptions4.get(0).getId()).isEqualTo(order2.getLifoPosition().getId());
+        assertThat(consumptions4.get(0).getConsumedPosition().getId()).isEqualTo(order2.getLifoPosition().getId());
 
         order4 = orderRepo.findOrderWithHouseConsumptions(response4.getOrder().getId());
         List<HousePositionConsumption> houseConsumptions4 = order4.getHousePositionConsumptions();
@@ -342,9 +342,7 @@ class OrderOrchestratorTest {
 
     @Test
     public void placeOrder_simpleHedge_mt5NonAcceptableCode() {
-        PlaceOrderResponse placeOrderResponse = placeEurUsdOrderCanceledResponse(1000, false, 1.36);
-        Order order = placeOrderResponse.getOrder();
-        assertThat(order.getStatus()).isEqualByComparingTo(OrderStatus.ERROR);
+        Assertions.assertThrows(OrderPlaceMt5ErrorException.class, () -> placeEurUsdOrderCanceledResponse(1000, false, 1.36));
     }
 
     @Test
@@ -375,8 +373,76 @@ class OrderOrchestratorTest {
         assertThat(order1.getUserBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
 
         assertThat(order1.getUserEnteredQuoteAmount()).isNull();
-        assertThat(order1.getLifoPosition()).isNotNull();
+        assertThat(order1.getLifoPosition()).isNull();
     }
+
+    @Test
+    public void placeOrder_EurUsdpartialOrdering_OpenAndClose() {
+        PlaceOrderResponse response1 = placeEurUsdOrderResponse(1560, false, 1.36);
+        Order order1 = response1.getOrder();
+        AppUserInstrument userInstrument1 = order1.getUserInstrument();
+        assertThat(userInstrument1.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1560));
+        assertThat(userInstrument1.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(440));
+        assertThat(userInstrument1.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(2000));
+        assertThat(order1.getType()).isEqualByComparingTo(OrderType.MT5_SHORT);
+        assertThat(order1.getStatus()).isEqualByComparingTo(OrderStatus.COMPLETE);
+
+        assertThat(order1.getMt5AccNumber()).isNotNull();
+
+        assertThat(order1.getClientBaseAmountFrom()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(order1.getClientBaseAmountTo()).isEqualByComparingTo(BigDecimal.valueOf(1560));
+        assertThat(order1.getUserBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1560));
+
+        assertThat(order1.getUserEnteredQuoteAmount()).isNull();
+        assertThat(order1.getLifoPosition()).isNull();
+
+        PlaceOrderResponse response2 = placeEurUsdOrderResponse(1560, true, 1.36);
+        Order order2 = response2.getOrder();
+        AppUserInstrument userInstrument2 = order2.getUserInstrument();
+        assertThat(userInstrument2.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(0));
+        assertThat(userInstrument2.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(0));
+        assertThat(userInstrument2.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(0));
+        assertThat(order2.getType()).isEqualByComparingTo(OrderType.MT5_LONG);
+        assertThat(order2.getStatus()).isEqualByComparingTo(OrderStatus.COMPLETE);
+    }
+
+    @Test
+    public void placeOrder_EurUsdpartialOrdering_CloseIn2Steps() {
+        PlaceOrderResponse response1 = placeEurUsdOrderResponse(1560, false, 1.36);
+        Order order1 = response1.getOrder();
+        AppUserInstrument userInstrument1 = order1.getUserInstrument();
+        assertThat(userInstrument1.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1560));
+        assertThat(userInstrument1.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(440));
+        assertThat(userInstrument1.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(2000));
+        assertThat(order1.getType()).isEqualByComparingTo(OrderType.MT5_SHORT);
+        assertThat(order1.getStatus()).isEqualByComparingTo(OrderStatus.COMPLETE);
+
+        assertThat(order1.getMt5AccNumber()).isNotNull();
+
+        assertThat(order1.getClientBaseAmountFrom()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(order1.getClientBaseAmountTo()).isEqualByComparingTo(BigDecimal.valueOf(1560));
+        assertThat(order1.getUserBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1560));
+
+
+        PlaceOrderResponse response2 = placeEurUsdOrderResponse(1400, true, 1.36);
+        Order order2 = response2.getOrder();
+        AppUserInstrument userInstrument2 = order2.getUserInstrument();
+        assertThat(userInstrument2.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(160));
+        assertThat(userInstrument2.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(-160));
+        assertThat(userInstrument2.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(0));
+        assertThat(order2.getType()).isEqualByComparingTo(OrderType.MT5_LONG);
+        assertThat(order2.getStatus()).isEqualByComparingTo(OrderStatus.COMPLETE);
+
+        PlaceOrderResponse response3 = placeEurUsdOrderResponse(160, true, 1.36);
+        Order order3 = response3.getOrder();
+        AppUserInstrument userInstrument3 = order3.getUserInstrument();
+        assertThat(userInstrument3.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(0));
+        assertThat(userInstrument3.getHouseOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(0));
+        assertThat(userInstrument3.getTotalOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(0));
+        assertThat(order3.getType()).isEqualByComparingTo(OrderType.HOUSE_CLIENT_TRANSFER_LONG);
+        assertThat(order3.getStatus()).isEqualByComparingTo(OrderStatus.COMPLETE);
+    }
+
 
     @Test
     public void placeOrder_inverseHedge_orderFieldsCheck() {

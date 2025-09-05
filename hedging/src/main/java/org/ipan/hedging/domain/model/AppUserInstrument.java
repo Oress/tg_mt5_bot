@@ -74,6 +74,7 @@ public class AppUserInstrument {
     public void addVolumeShortMode(VolumeCalculation volumeCalculation) {
         if (volumeCalculation != null) {
             this.clientOwnedBaseAmount = volumeCalculation.getNewUserOwnedBase();
+            this.houseOwnedBaseAmount = volumeCalculation.getNewHouseOwnedBase();
         } else {
             log.warn("Attempt to add null total base amount for user instrument: {}", this);
         }
@@ -89,7 +90,7 @@ public class AppUserInstrument {
 
     public void subtractUserAndHousePartsShortMode(VolumeCalculation volumeCalculation) {
         this.clientOwnedBaseAmount = volumeCalculation.getNewUserOwnedBase();
-//        this.houseOwnedBaseAmount = volumeCalculation.getNewHouseOwnedBase();
+        this.houseOwnedBaseAmount = volumeCalculation.getNewHouseOwnedBase();
     }
 
 

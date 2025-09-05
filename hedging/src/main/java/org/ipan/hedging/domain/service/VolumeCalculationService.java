@@ -40,48 +40,44 @@ public class VolumeCalculationService {
         VolumeCalculation calculate(VolumeCalculationParams params);
     }
 
+    // Since it's easy to calculate volume from user amount. I don't need to use lifo stack.
+    // I need it for the house positions though.
     // 1 - EUR/USD - simple volume calculation: amount / symbolInfo.getTrade_contract_size(). e.g. 1000 / 100000 = 0.01 lot
     private class ShortVolumeCalculationStrategy implements CalculationStrategy {
         @Override
         public VolumeCalculation calculate(VolumeCalculationParams params) {
             log.info("Short volume calculation for params: {}", params);
-            BigDecimal executionBaseAmount = BigDecimal.valueOf(params.getUserAmount());
 
-            BigDecimal executionVolume = executionBaseAmount
-                    .divide(BigDecimal.valueOf(params.getTradeContractSize()), 8, RoundingMode.HALF_DOWN);
-
-            BigDecimal newUserOwnedBase = null;
-
-            List<PlannedLifoPositionConsumption> plannedLifoPositionConsumptions = new ArrayList<>();
+            List<PlannedHousePositionConsumption> plannedHousePositionConsumptions = new ArrayList<>();
+            CreateHousePosition createHousePosition = null;
+            BigDecimal tradeContractSize = BigDecimal.valueOf(params.getTradeContractSize());
+            BigDecimal currentTotal = params.getUserInstrument().getTotalOwnedBaseAmount();
+            BigDecimal newTotalBaseAmount = null;
             BigDecimal operationUserAmountBase = null;
             BigDecimal tempClientBaseAmount = null;
+            BigDecimal newUserOwnedBase = null;
+            Double price = null;
 
             // HEDGE IN
             if (!params.getIsBuy()) {
-                newUserOwnedBase = params.getUserInstrument().getClientOwnedBaseAmount().add(executionBaseAmount);
+                price = params.getTick().getAsk();
+                operationUserAmountBase = BigDecimal.valueOf(params.getUserAmount());
+
+                // e.g. 3600 or 1400
+                tempClientBaseAmount = params.getUserInstrument().getClientOwnedBaseAmount().add(operationUserAmountBase);
+
+                // e.g. 4000 or 1000
+                newTotalBaseAmount = tempClientBaseAmount.setScale(-3, RoundingMode.HALF_UP);
             } else {
-                // HEDGE OUT
-                if (params.getUserInstrument().getClientOwnedBaseAmount().compareTo(executionBaseAmount) < 0) {
-                    log.error("Insufficient client owned base amount: {} for execution base amount: {}", params.getUserInstrument().getClientOwnedBaseAmount(), executionBaseAmount);
+                operationUserAmountBase = BigDecimal.valueOf(params.getUserAmount());
+                if (params.getUserInstrument().getClientOwnedBaseAmount().compareTo(operationUserAmountBase) < 0) {
+                    log.error("Insufficient client owned BASE amount: {} for execution base amount: {}", params.getUserInstrument().getClientOwnedBaseAmount(), operationUserAmountBase);
                     throw new IllegalArgumentException("Insufficient client owned base amount for the operation");
                 }
-                operationUserAmountBase = BigDecimal.ZERO;
 
                 // HEDGE OUT
-                // find all open orders with non-closed positions (left to unhedge > 0)
-                // create 'consumption' records, i.e. which orders are used to unhedge and how much is used from each order.
-                List<LifoPosition> allForUnhedging = lifoPositionRepository.findAllForUnhendgingFifo(params.getUserInstrument().getId());
-                Integer amountLeft = params.getUserAmount();
-                for (int i = 0; amountLeft > 0; i++) {
-                    LifoPosition positionToConsume = allForUnhedging.get(i);
-                    BigDecimal consumptionAmount = positionToConsume.getRemainingAmount().min(BigDecimal.valueOf(amountLeft));
-                    amountLeft -= consumptionAmount.intValue();
+                price = params.getTick().getBid();
 
-                    operationUserAmountBase = operationUserAmountBase.add(consumptionAmount);
-                    plannedLifoPositionConsumptions.add(new PlannedLifoPositionConsumption(positionToConsume.getId(), consumptionAmount));
-                }
-
-                // should be >= 0
                 tempClientBaseAmount = BigDecimal.ZERO.max(params.getUserInstrument().getClientOwnedBaseAmount().subtract(operationUserAmountBase));
 
                 // due to the loss of precision, tempClientBaseAmount may be something like 1e-8
@@ -90,21 +86,65 @@ public class VolumeCalculationService {
                 }
 
                 // round to the nearest 1000
-                newUserOwnedBase = tempClientBaseAmount.setScale(-3, RoundingMode.HALF_UP);
+                newTotalBaseAmount = tempClientBaseAmount.setScale(-3, RoundingMode.HALF_UP);
+            }
+
+            BigDecimal executionBaseAmount = newTotalBaseAmount.subtract(currentTotal).abs();
+            BigDecimal executionVolume = executionBaseAmount.divide(tradeContractSize, 8, RoundingMode.HALF_DOWN).abs();
+            newUserOwnedBase = tempClientBaseAmount;
+            BigDecimal oldHouseOwnedBase = params.getUserInstrument().getHouseOwnedBaseAmount();
+            BigDecimal newHouseOwnedBase = newTotalBaseAmount.subtract(tempClientBaseAmount);
+
+            // close all positions
+            // 300 -> 0
+            // -300 -> 0
+            if (newHouseOwnedBase.compareTo(BigDecimal.ZERO) == 0) {
+                closeAllHousePositions(params, plannedHousePositionConsumptions);
+            }
+            // opposite amount -> close all positions and open a new one
+            // 300 -> -320
+            // -300 -> 320
+            else if (newHouseOwnedBase.multiply(oldHouseOwnedBase).compareTo(BigDecimal.ZERO) < 0) {
+                closeAllHousePositions(params, plannedHousePositionConsumptions);
+                createHousePosition = new CreateHousePosition(newHouseOwnedBase);
+            }
+            // increase in absolute value -> create position
+            // 300 -> 320
+            // -300 -> -320
+            else if (newHouseOwnedBase.abs().compareTo(oldHouseOwnedBase.abs()) > 0) {
+                createHousePosition = new CreateHousePosition(newHouseOwnedBase.subtract(oldHouseOwnedBase));
+            }
+            // decrease in absolute value -> close position partially
+            // 320 -> 300
+            // -320 -> -300
+            else if (newHouseOwnedBase.abs().compareTo(oldHouseOwnedBase.abs()) < 0) {
+                // e.g. 20
+                BigDecimal amountLeft = newHouseOwnedBase.subtract(oldHouseOwnedBase).abs();
+                List<HouseOwnedPosition> allForClosing = houseOwnedPositionRepository.findAllForClosingFifo(params.getUserInstrument().getId());
+                for (int i = 0; amountLeft.compareTo(BigDecimal.ZERO) > 0; i++) {
+                    HouseOwnedPosition positionToConsume = allForClosing.get(i);
+                    BigDecimal consumptionAmount = positionToConsume.getRemainingAmount().min(amountLeft);
+                    amountLeft = amountLeft.subtract(consumptionAmount);
+                    plannedHousePositionConsumptions.add(new PlannedHousePositionConsumption(positionToConsume.getId(), consumptionAmount));
+                }
+            } else  {
+                // ????
+                log.error("Unexpected case for newHouseOwnedBase: {}, oldHouseOwnedBase: {}", newHouseOwnedBase, oldHouseOwnedBase);
             }
 
             return VolumeCalculation.builder()
                     .oldUserOwnedBase(params.getUserInstrument().getClientOwnedBaseAmount())
-                    .oldHouseOwnedBase(params.getUserInstrument().getHouseOwnedBaseAmount())
+                    .oldHouseOwnedBase(oldHouseOwnedBase)
                     .newUserOwnedBase(newUserOwnedBase)
-                    .newHouseOwnedBase(BigDecimal.ZERO)
+                    .newHouseOwnedBase(newHouseOwnedBase)
                     .originalAmount(params.getUserAmount())
-                    .executionUserOwnedBase(executionBaseAmount)
+                    .executionUserOwnedBase(operationUserAmountBase)
                     .executionVolume(executionVolume)
                     .executionBase(executionBaseAmount)
-                    .price(BigDecimal.valueOf(params.getIsBuy() ? params.getTick().getAsk() : params.getTick().getBid()))
-                    .housePositionsForConsumption(Collections.emptyList())
-                    .lifoPositionsForConsumption(plannedLifoPositionConsumptions)
+                    .price(BigDecimal.valueOf(price))
+                    .lifoPositionsForConsumption(Collections.emptyList())
+                    .housePositionsForConsumption(plannedHousePositionConsumptions)
+                    .createHousePosition(createHousePosition)
                     .build();
         }
     }
@@ -241,11 +281,12 @@ public class VolumeCalculationService {
                     .build();
         }
 
-        private void closeAllHousePositions(VolumeCalculationParams params, List<PlannedHousePositionConsumption> plannedHousePositionConsumptions) {
-            List<HouseOwnedPosition> allForClosing = houseOwnedPositionRepository.findAllForClosingFifo(params.getUserInstrument().getId());
-            for (HouseOwnedPosition houseOwnedPosition : allForClosing) {
-                plannedHousePositionConsumptions.add(new PlannedHousePositionConsumption(houseOwnedPosition.getId(), houseOwnedPosition.getRemainingAmount()));
-            }
+    }
+
+    private void closeAllHousePositions(VolumeCalculationParams params, List<PlannedHousePositionConsumption> plannedHousePositionConsumptions) {
+        List<HouseOwnedPosition> allForClosing = houseOwnedPositionRepository.findAllForClosingFifo(params.getUserInstrument().getId());
+        for (HouseOwnedPosition houseOwnedPosition : allForClosing) {
+            plannedHousePositionConsumptions.add(new PlannedHousePositionConsumption(houseOwnedPosition.getId(), houseOwnedPosition.getRemainingAmount()));
         }
     }
 }

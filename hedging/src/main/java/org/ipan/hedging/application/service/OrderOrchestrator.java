@@ -2,6 +2,7 @@ package org.ipan.hedging.application.service;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.ipan.hedging.application.OrderPlaceMt5ErrorException;
 import org.ipan.hedging.application.service.command.PlaceOrderCommand;
 import org.ipan.hedging.application.service.command.PlaceOrderResponse;
 import org.ipan.hedging.domain.model.*;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @AllArgsConstructor
@@ -25,7 +27,7 @@ public class OrderOrchestrator {
     private final VolumeCalculationService volumeCalculationService;
     private final ReportingCalculationService reportingCalculationService;
     private final AppUserInstrumentRepository appUserInstrumentRepository;
-    private final OrderMt5InfoFetcherService orderMt5InfoFetcherService;
+    private final Optional<OrderMt5InfoFetcherService> orderMt5InfoFetcherService;
 
     public PlaceOrderResponse placeOrder(PlaceOrderCommand command) {
         log.info("Placing order for user: {}, instrument: {}, amount: {}, buy: {}", command.getUserId(), command.getInstrumentLabel(), command.getUserAmount(), command.isBuy());
@@ -109,12 +111,15 @@ public class OrderOrchestrator {
                 } else if (!SUCCESS_CODES.contains(orderDetails.getRetcode())) {
                     log.error("RETURN CODE IS NOT SUCCESSFUL CLOSE order for user: {}, symbol: {}, userAmount: {}, {}", command.getUserId(), command.getInstrumentLabel(), command.getUserAmount(), orderDetails);
                     // TODO: for now runtime ex. but later replace it with custom exceptions
-                    throw new RuntimeException("Something went wrong while placing order");
+                    throw new OrderPlaceMt5ErrorException();
                 }
                 // 3. update order status to COMPLETE and calculate balances of user and the house
                 order = orderService.completeOrder(order.getId(), orderDetails, actualVolumeCalculation);
                 reportingCalculationService.recalculateAllForUserInstrument(userInstrument.getId());
-                orderMt5InfoFetcherService.fetchInfoForOrderAsync(order.getId());
+
+                if (orderMt5InfoFetcherService.isPresent()) {
+                    orderMt5InfoFetcherService.get().fetchInfoForOrderAsync(order.getId());
+                }
                 successful = true;
             } catch (Exception e) {
                 successful = false;

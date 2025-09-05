@@ -7,6 +7,7 @@ import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.model.Order;
 import org.ipan.hedging.domain.model.repository.OrderRepo;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Profile;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import java.util.List;
 
 @Service
 @Slf4j
+@Profile("!test")
 public class OrderMt5InfoFetcherService {
     private final OrderRepo orderRepo;
     private final Mt5Service mt5Service;

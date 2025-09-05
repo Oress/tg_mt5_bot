@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.ipan.hedging.application.service.OrderMt5InfoFetcherService;
 import org.ipan.hedging.domain.model.Order;
 import org.ipan.hedging.domain.model.repository.OrderRepo;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -13,6 +14,7 @@ import java.util.List;
 @Component
 @AllArgsConstructor
 @Slf4j
+@Profile("!test")
 public class FillOrderInfoFromMt5Job {
     private final OrderRepo orderRepo;
     private final OrderMt5InfoFetcherService fetcherService;

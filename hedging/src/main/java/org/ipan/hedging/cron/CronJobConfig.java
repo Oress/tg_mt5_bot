@@ -3,6 +3,7 @@ package org.ipan.hedging.cron;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
@@ -12,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 @EnableScheduling
 @AllArgsConstructor
 @Slf4j
+@Profile("!test")
 public class CronJobConfig {
     private final TelegramAuditJob telegramAuditJob;
     private final RefreshCommonSheetsJob refreshCommonSheetsJob;
