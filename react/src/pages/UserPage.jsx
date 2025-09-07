@@ -9,6 +9,7 @@ import {
   Divider,
   Dropdown,
   Flex,
+  InputNumber,
   message,
   Modal,
   notification,
@@ -70,6 +71,8 @@ function formatOrderType(type) {
 
 function InstrumentToolbar({selectedInstrument, userId, user}) {
   const [notificationApi, contextHolder] = notification.useNotification();
+  const [commissionPercentage, setCommissionPercentage] = useState(0.1);
+  const [isCommissionModalVisible, setIsCommissionModalVisible] = useState(false);
 
   const recalculateGoogleSheet = async () => {
     try {
@@ -112,12 +115,63 @@ function InstrumentToolbar({selectedInstrument, userId, user}) {
     }
   };
 
+  const handleCommissionChange = async (newPercentage) => {
+    try {
+      if (selectedInstrument && newPercentage >= 0 && newPercentage <= 100) {
+        // API call to update commission percentage for the instrument
+          const commissionResponse = await api.post(`/users/${userId}/instruments/${selectedInstrument.id}/commission`, {
+          percentage: newPercentage.toString()
+        });
+        if (commissionResponse.data.success) {
+          setCommissionPercentage(newPercentage);
+          notificationApi['success']({
+            message: 'Комиссия обновлена',
+            description: `Процент комиссии установлен на ${newPercentage}%`,
+          });
+        } else {
+          notificationApi['error']({
+            message: 'Ошибка',
+            description: 'Не удалось обновить процент комиссии.',
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error updating commission:', error);
+      notificationApi['error']({
+        message: 'Ошибка',
+        description: 'Что-то пошло не так при обновлении комиссии.',
+      });
+    }
+  };
+
+  const showCommissionModal = () => {
+    setCommissionPercentage(selectedInstrument.commissionPercentage);
+    setIsCommissionModalVisible(true);
+  };
+
+  const handleCommissionModalOk = () => {
+    handleCommissionChange(commissionPercentage);
+    setIsCommissionModalVisible(false);
+  };
+
+  const handleCommissionModalCancel = () => {
+    setIsCommissionModalVisible(false);
+  };
+
   const items = [
     {
       key: 'recalc_ggl_sheet',
       label: (
         <a onClick={recalculateGoogleSheet}>
           Пересоздать гугл лист для инструмента
+        </a>
+      ),
+    },
+    {
+      key: 'configure_commission',
+      label: (
+        <a onClick={showCommissionModal}>
+          Настроить процент комиссии
         </a>
       ),
     },
@@ -152,6 +206,28 @@ function InstrumentToolbar({selectedInstrument, userId, user}) {
           </Space>
         </a>
       </Dropdown>
+
+      <Modal
+        title="Настроить процент комиссии"
+        open={isCommissionModalVisible}
+        onOk={handleCommissionModalOk}
+        onCancel={handleCommissionModalCancel}
+        okText="Сохранить"
+        cancelText="Отмена"
+      >
+        <p>Текущий инструмент: {selectedInstrument?.label}</p>
+        <div style={{ marginTop: '16px' }}>
+          <label>Процент комиссии (%): </label>
+          <InputNumber
+            min={0}
+            max={100}
+            step={0.01}
+            value={commissionPercentage}
+            onChange={setCommissionPercentage}
+            style={{ width: '120px' }}
+          />
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -350,6 +426,9 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
           <Descriptions.Item label="Нериализованный PnL Сервиса">
             {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profitHouse) : "Нет данных")}
           </Descriptions.Item>
+          <Descriptions.Item label="Процент комиссии">
+            {selectedInstrument.commissionPercentage}%
+          </Descriptions.Item>
         </Descriptions>
       </Space>
 
@@ -446,6 +525,9 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
             </Descriptions.Item>
             <Descriptions.Item label="Текущий курс">
               {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? unrealizedPnL.rate : "Нет данных")}
+            </Descriptions.Item>
+            <Descriptions.Item label="Процент комиссии">
+              {selectedInstrument.commissionPercentage}%
             </Descriptions.Item>
           </Descriptions>
         </Space>
@@ -809,7 +891,7 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
   )
 }
 
-function UserPage({}) {
+function UserPage() {
   const { token } = theme.useToken();
   const { userId } = useParams();
   const [activeTab, setActiveTab] = useState('');
