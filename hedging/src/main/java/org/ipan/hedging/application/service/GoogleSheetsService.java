@@ -453,7 +453,7 @@ public class GoogleSheetsService {
                         // PnL
                         new CellData()
                                 .setUserEnteredValue(
-                                        new ExtendedValue().setFormulaValue("=IF(B:B>0,(C:C/H:H-1)*B:B/C:C,\"\")")
+                                        new ExtendedValue().setFormulaValue("=IF(B:B>0,-B:B*(C:C-H:H),\"\")")
                                 ).setUserEnteredFormat(currencyFormat),
                         // Deposit
                         new CellData()
@@ -809,7 +809,8 @@ public class GoogleSheetsService {
             new ColumnDefinition("Сумма", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Фикс", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("USDT", "COLUMN_TYPE_UNSPECIFIED"),
-            new ColumnDefinition("Ком. 0.1%", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Ком. процент", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Ком.", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Захеджировано", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Ставка", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Реализ. курсовая", "COLUMN_TYPE_UNSPECIFIED"),
