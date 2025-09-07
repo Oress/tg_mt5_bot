@@ -66,7 +66,7 @@ public class OrderService {
 
         } else {
             // effectively add and subtract work the same way for short mode
-            userInstrument.addUserAndHousePartsLongMode(volumeCalculation);
+            userInstrument.addVolumeShortMode(volumeCalculation);
         }
 
         // short mode orders do not need lifo positions
