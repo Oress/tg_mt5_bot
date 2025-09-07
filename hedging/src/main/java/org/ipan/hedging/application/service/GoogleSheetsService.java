@@ -429,9 +429,9 @@ public class GoogleSheetsService {
                         // Ком. процент
                         new CellData()
                                 .setUserEnteredValue(
-                                        new ExtendedValue().setNumberValue(order.getCommissionCoef().doubleValue())
+                                        new ExtendedValue().setNumberValue(order.getCommissionCoef().multiply(AppConstants.HUNDRED).doubleValue())
                                 ).setUserEnteredFormat(
-                                        currencyFormat
+                                        new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("#,##0.000"))
                                 ),
                         // Ком. 0,10
                         new CellData()
@@ -509,9 +509,9 @@ public class GoogleSheetsService {
                         // Ком. процент
                         new CellData()
                                 .setUserEnteredValue(
-                                        new ExtendedValue().setNumberValue(order.getCommissionCoef().doubleValue())
+                                        new ExtendedValue().setNumberValue(order.getCommissionCoef().multiply(AppConstants.HUNDRED).doubleValue())
                                 ).setUserEnteredFormat(
-                                        currencyFormat
+                                        new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("#,##0.000"))
                                 ),
                         // Ком. 0,10
                         new CellData()

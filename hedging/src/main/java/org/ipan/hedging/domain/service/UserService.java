@@ -4,6 +4,7 @@ import org.ipan.hedging.domain.model.AccountType;
 import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.model.AppUserInstrument;
 import org.ipan.hedging.domain.model.Instrument;
+import org.ipan.hedging.domain.model.repository.AppUserInstrumentRepository;
 import org.ipan.hedging.domain.model.repository.InstrumentRepo;
 import org.ipan.hedging.domain.model.repository.UserRepo;
 import org.ipan.hedging.domain.service.commands.users.CreateUserCommand;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.math.BigDecimal;
 import java.util.Set;
 
 @Service
@@ -22,6 +24,7 @@ public class UserService {
     private final UserRepo userRepo;
     private final InstrumentRepo instrumentRepo;
     private final PasswordService passwordService;
+    private final AppUserInstrumentRepository appUserInstrumentRepository;
 
     @Transactional
     public AppUser createUser(CreateUserCommand command) {
@@ -80,6 +83,25 @@ public class UserService {
         appUser.setMt5AccPwdEnc(passwordService.encrypt(accountPwd));
 
         return appUser;
+    }
+
+    @Transactional
+    public AppUserInstrument updateInstrumentCommission(Long userInstrumentId, BigDecimal newCommissionCoef) {
+        if (newCommissionCoef == null || newCommissionCoef.compareTo(BigDecimal.ZERO) <= 0) {
+            log.error("Percentage must be non null greater than 0, val: {}", newCommissionCoef);
+            throw new IllegalArgumentException("Percentage must be non null greater than 0");
+        }
+
+        AppUserInstrument userInstrument = appUserInstrumentRepository.findById(userInstrumentId).get();
+
+
+        if (userInstrument.getActive()) {
+            userInstrument.setCommissionCoef(newCommissionCoef);
+        } else {
+            throw new IllegalStateException("Instrument must be active to update commission");
+        }
+
+        return userInstrument;
     }
 
     @Transactional

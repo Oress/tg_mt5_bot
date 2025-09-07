@@ -289,6 +289,13 @@ public class DashboardController {
         return ApiResponse.success();
     }
 
+    @PostMapping("/users/{telegramId}/instruments/{userInstrumentId}/commission")
+    public ApiResponse<?> updateCommission(@PathVariable Long userInstrumentId,
+                                           @RequestBody UpdateInstrumentCommissionDto body) {
+        userService.updateInstrumentCommission(userInstrumentId, body.getPercentage().divide(AppConstants.HUNDRED, 5, RoundingMode.HALF_DOWN));
+        return ApiResponse.success();
+    }
+
     @PostMapping("/users/{telegramId}/instruments/{userInstrumentId}/recalculate-ggl-sheet")
     public ApiResponse<?> recalculateGoogleSheet(@PathVariable Long userInstrumentId) {
         AppUserInstrument userInstrument = appUserInstrumentRepository.findById(userInstrumentId).get();
