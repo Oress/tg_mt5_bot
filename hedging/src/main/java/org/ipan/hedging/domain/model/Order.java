@@ -57,6 +57,9 @@ public class Order {
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
 
+    @Column(name = "commission_percentage")
+    private BigDecimal commissionCoef;
+
     @Column(name = "acc_number")
     private Integer mt5AccNumber;
 
@@ -93,9 +96,10 @@ public class Order {
     @Column(name = "client_base_amount_to")
     private BigDecimal clientBaseAmountTo = BigDecimal.ZERO;
 
-    private BigDecimal swap;
-    private BigDecimal commission;
+    @Column(name = "commission")
+    private BigDecimal mt5Commission;
     private BigDecimal mt5Profit;
+    private BigDecimal swap;
 
     private BigDecimal price;
     private BigDecimal bid;

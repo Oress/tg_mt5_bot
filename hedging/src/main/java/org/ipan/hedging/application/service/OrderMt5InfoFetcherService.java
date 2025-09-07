@@ -55,7 +55,7 @@ public class OrderMt5InfoFetcherService {
         if (!orderHistory.isEmpty()) {
             Mt5ServiceImpl.TradeDeal deal = orderHistory.get(0);
             order.setSwap(BigDecimal.valueOf(deal.getSwap()));
-            order.setCommission(BigDecimal.valueOf(deal.getCommission()));
+            order.setMt5Commission(BigDecimal.valueOf(deal.getCommission()));
             order.setMt5Profit(BigDecimal.valueOf(deal.getProfit()));
             orderRepo.save(order);
         } else {

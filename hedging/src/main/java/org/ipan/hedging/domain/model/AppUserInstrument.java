@@ -34,6 +34,9 @@ public class AppUserInstrument {
 
     private Boolean active = Boolean.FALSE;
 
+    @Column(name = "commission_percentage")
+    private BigDecimal commissionCoef;
+
     @Column(name = "last_ggl_sheet_sync")
     private Instant lastGoogleSheetSync;
 

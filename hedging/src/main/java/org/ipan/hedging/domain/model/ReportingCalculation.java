@@ -38,6 +38,9 @@ public class ReportingCalculation {
 
     private BigDecimal usdt;
 
+    @Column(name = "commission_percentage")
+    private BigDecimal commissionPercentage;
+
     @Column(name = "commission")
     private BigDecimal commission;
 

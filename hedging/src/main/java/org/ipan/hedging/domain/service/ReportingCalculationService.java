@@ -19,8 +19,6 @@ import java.util.concurrent.CompletableFuture;
 @Service
 @AllArgsConstructor
 public class ReportingCalculationService {
-    private static final BigDecimal COMMISSION_01_PERCENT = new BigDecimal("0.001");
-
     private final AppUserInstrumentRepository appUserInstrumentRepository;
     private final OrderRepo orderRepo;
     private final ReportingCalculationRepository reportingCalculationRepository;
@@ -150,7 +148,8 @@ public class ReportingCalculationService {
 
             // calculated values
             record.setUsdt(calculateUsdt(order, record, prevRecord));
-            record.setCommission(COMMISSION_01_PERCENT.multiply(record.getUsdt()).negate());
+            record.setCommissionPercentage(order.getCommissionCoef().multiply(AppConstants.HUNDRED));
+            record.setCommission(order.getCommissionCoef().multiply(record.getUsdt()).negate());
 
             // in position
             if (prevRecord == null) {

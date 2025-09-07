@@ -579,5 +579,22 @@
         </createIndex>
     </changeSet>
 
+    <changeSet id="add commission_percentage to hed_reporting_calculations" author="oress">
+        <addColumn tableName="hed_reporting_calculations">
+            <column name="commission_percentage" type="decimal(20,8)" defaultValue="0.001" />
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="add commission_percentage to hed_orders" author="oress">
+        <addColumn tableName="hed_orders">
+            <column name="commission_percentage" type="decimal(20,8)" defaultValue="0.001" />
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="add commission_percentage to hed_user_instruments" author="oress">
+        <addColumn tableName="hed_user_instruments">
+            <column name="commission_percentage" type="decimal(20,8)" defaultValue="0.001" />
+        </addColumn>
+    </changeSet>
 
 </databaseChangeLog>

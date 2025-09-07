@@ -39,6 +39,7 @@ public class OrderService {
         order.setCorrelationId(UUID.randomUUID());
         order.setUserInstrument(userInstrument);
         order.setMt5AccNumber(user.getMt5AccNumber());
+        order.setCommissionCoef(userInstrument.getCommissionCoef());
         order.setType(command.isBuy() ? OrderType.HOUSE_CLIENT_TRANSFER_LONG : OrderType.HOUSE_CLIENT_TRANSFER_SHORT);
         order.setStatus(OrderStatus.COMPLETE);
 
@@ -90,6 +91,7 @@ public class OrderService {
         order.setCorrelationId(UUID.randomUUID());
         order.setUserInstrument(userInstrument);
         order.setMt5AccNumber(user.getMt5AccNumber());
+        order.setCommissionCoef(userInstrument.getCommissionCoef());
         order.setExecutedVolume(BigDecimal.valueOf(command.getVolume()));
         order.setStatus(OrderStatus.PENDING);
 

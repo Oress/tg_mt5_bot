@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.CreationTimestamp;
+import org.ipan.hedging.domain.AppConstants;
 
 import java.time.Instant;
 import java.util.HashSet;
@@ -144,6 +145,7 @@ public class AppUser {
         AppUserInstrument userInstrument = new AppUserInstrument();
         userInstrument.setInstrument(instrument);
         userInstrument.setUser(this);
+        userInstrument.setCommissionCoef(AppConstants.DEFAULT_COMMISSION_PERCENTAGE);
         userInstrument.setSheetId(instrument.getSheetId());
         userInstrument.setActive(true);
         availableInstruments.add(userInstrument);

@@ -392,11 +392,11 @@ public class GoogleSheetsService {
     private RowData createRowDataFromOrderEURUSDHedge(Order order) {
         BigDecimal euroAmount = order.getUserAmountForGoogleSheet();
 
-        String rateInnerPart = "IF(B:B<0,(%s*%s+B:B*C:C)/F:F,%s)".formatted(relCell(-1, -1), relCell(0, -1), relCell(0, -1));
+        String rateInnerPart = "IF(B:B<0,(%s*%s+B:B*C:C)/G:G,%s)".formatted(relCell(-1, -1), relCell(0, -1), relCell(0, -1));
         String rateOuterPart = "=%s".formatted(isFirstRow("C:C", rateInnerPart));
 
-        String depTotalInnerPart = "%s+I:I+%s".formatted(relCell(0, -1), relCell(+1, -1));
-        String depTotalOuterPart = "=%s".formatted(isFirstRow("I:I", depTotalInnerPart));
+        String depTotalInnerPart = "%s+J:J+%s".formatted(relCell(0, -1), relCell(+1, -1));
+        String depTotalOuterPart = "=%s".formatted(isFirstRow("J:J", depTotalInnerPart));
 
         CellFormat currencyFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("#,##0.00"));
         CellFormat numberFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("0.00000"));
@@ -426,14 +426,21 @@ public class GoogleSheetsService {
                                 ).setUserEnteredFormat(
                                         currencyFormat
                                 ),
-                        // Ком. 0,10
+                        // Ком. процент
                         new CellData()
                                 .setUserEnteredValue(
-                                        new ExtendedValue().setFormulaValue("=IF(D:D<0,D:D*-0.1%,\"\")")
+                                        new ExtendedValue().setNumberValue(order.getCommissionCoef().doubleValue())
                                 ).setUserEnteredFormat(
                                         currencyFormat
                                 ),
-                        // Захеджировано
+                        // Ком. 0,10
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setFormulaValue("=IF(D:D<0,D:D*-E:E%,\"\")")
+                                ).setUserEnteredFormat(
+                                        currencyFormat
+                                ),
+                        // В позиции
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue("=B:B+%s".formatted(isFirstRow("0", relCell(0, -1))))
@@ -446,12 +453,12 @@ public class GoogleSheetsService {
                         // PnL
                         new CellData()
                                 .setUserEnteredValue(
-                                        new ExtendedValue().setFormulaValue("=IF(B:B>0,(C:C/G:G-1)*B:B/C:C,\"\")")
+                                        new ExtendedValue().setFormulaValue("=IF(B:B>0,(C:C/H:H-1)*B:B/C:C,\"\")")
                                 ).setUserEnteredFormat(currencyFormat),
                         // Deposit
                         new CellData()
                                 .setUserEnteredValue(
-                                        new ExtendedValue().setFormulaValue("=IF(B:B>0,-B:B*(C:C-G:G),-E:E)")
+                                        new ExtendedValue().setFormulaValue("=IF(B:B>0,-B:B*(C:C-H:H),-F:F)")
                                 ).setUserEnteredFormat(currencyFormat),
                         // Balance
                         new CellData()
@@ -465,11 +472,11 @@ public class GoogleSheetsService {
         BigDecimal cadAmount = order.getUserAmountForGoogleSheet();
         BigDecimal usdtEquivalent = order.getBaseEquivalentForGoogleSheet();
 
-        String rateInnerPart = "IF(B:B<0,(%s*%s+B:B*C:C)/F:F,%s)".formatted(relCell(-1, -1), relCell(0, -1), relCell(0, -1));
+        String rateInnerPart = "IF(B:B<0,(%s*%s+B:B*C:C)/G:G,%s)".formatted(relCell(-1, -1), relCell(0, -1), relCell(0, -1));
         String rateOuterPart = "=%s".formatted(isFirstRow("C:C", rateInnerPart));
 
-        String depTotalInnerPart = "%s+I:I+%s".formatted(relCell(0, -1), relCell(+1, -1));
-        String depTotalOuterPart = "=%s".formatted(isFirstRow("I:I", depTotalInnerPart));
+        String depTotalInnerPart = "%s+J:J+%s".formatted(relCell(0, -1), relCell(+1, -1));
+        String depTotalOuterPart = "=%s".formatted(isFirstRow("J:J", depTotalInnerPart));
 
         CellFormat currencyFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("#,##0.00"));
         CellFormat numberFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("0.00000"));
@@ -499,10 +506,17 @@ public class GoogleSheetsService {
                                 ).setUserEnteredFormat(
                                         currencyFormat
                                 ),
+                        // Ком. процент
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setNumberValue(order.getCommissionCoef().doubleValue())
+                                ).setUserEnteredFormat(
+                                        currencyFormat
+                                ),
                         // Ком. 0,10
                         new CellData()
                                 .setUserEnteredValue(
-                                        new ExtendedValue().setFormulaValue("=IF(D:D<0,D:D*-0.1%,\"\")")
+                                        new ExtendedValue().setFormulaValue("=IF(D:D<0,D:D*-E:E%,\"\")")
                                 ).setUserEnteredFormat(
                                         currencyFormat
                                 ),
@@ -519,12 +533,12 @@ public class GoogleSheetsService {
                         // PnL
                         new CellData()
                                 .setUserEnteredValue(
-                                        new ExtendedValue().setFormulaValue("=IF(B:B>0,(C:C/G:G-1)*B:B/C:C,\"\")")
+                                        new ExtendedValue().setFormulaValue("=IF(B:B>0,(C:C/H:H-1)*B:B/C:C,\"\")")
                                 ).setUserEnteredFormat(currencyFormat),
                         // Deposit
                         new CellData()
                                 .setUserEnteredValue(
-                                        new ExtendedValue().setFormulaValue("=IF(B:B>0,-(C:C/G:G-1)*B:B/C:C,-E:E)")
+                                        new ExtendedValue().setFormulaValue("=IF(B:B>0,-(C:C/H:H-1)*B:B/C:C,-F:F)")
                                 ).setUserEnteredFormat(currencyFormat),
                         // Balance
                         new CellData()
@@ -808,7 +822,8 @@ public class GoogleSheetsService {
             new ColumnDefinition("Сумма CAD", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Фикс", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("USDT", "COLUMN_TYPE_UNSPECIFIED"),
-            new ColumnDefinition("Ком. 0.1%", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Ком. процент", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Ком.", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("В позиции", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Ставка", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Реализ. курсовая", "COLUMN_TYPE_UNSPECIFIED"),
