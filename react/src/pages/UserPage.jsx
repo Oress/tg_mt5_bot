@@ -291,6 +291,11 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
       key: 'price',
     },
     {
+      title: 'Реализ. курсовая',
+      dataIndex: 'pnlExcel',
+      key: 'pnlExcel',
+    },
+    {
       title: 'Дата',
       dataIndex: 'createdAt',
       key: 'createdAt',
@@ -673,6 +678,11 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
                   title: 'Цена',
                   dataIndex: 'price',
                   key: 'price',
+                },
+                {
+                  title: 'Реализ. курсовая',
+                  dataIndex: 'pnlExcel',
+                  key: 'pnlExcel',
                 },
                 {
                   title: 'Дата',
