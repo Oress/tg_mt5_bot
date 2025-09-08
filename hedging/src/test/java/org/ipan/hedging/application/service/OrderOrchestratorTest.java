@@ -30,8 +30,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 // TODO: unrealized PnL calculation
 // TODO: House PnL calculation !!!!
@@ -641,6 +640,18 @@ class OrderOrchestratorTest {
         PlaceOrderResponse response4 = placeUsdCadOrderResponse(2000, false, 1.36866);
         AppUserInstrument userInstrument4 = response4.getOrder().getUserInstrument();
         assertThat(userInstrument4.getClientOwnedBaseAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Test
+    void liquidate_hugeHedge_splitIntoMultipleOrders() {
+        PlaceOrderResponse response1 = placeEurUsdOrderResponse(1_000_000, false, 1.16);
+        PlaceOrderResponse response2 = placeEurUsdOrderResponse(1_000_000, false, 1.16);
+        PlaceOrderResponse response3 = placeEurUsdOrderResponse(1_000_000, false, 1.16);
+
+        AppUserInstrument userInstrument = response1.getOrder().getUserInstrument();
+        orderOrchestrator = spy(orderOrchestrator);
+        orderOrchestrator.liquidate(userInstrument.getId());
+        verify(orderOrchestrator, times(3)).placeOrder(any());
     }
 
     @Test

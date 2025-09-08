@@ -11,4 +11,6 @@ public class AppConstants {
 
     public static final BigDecimal DEFAULT_COMMISSION_PERCENTAGE = BigDecimal.valueOf(0.001);
     public static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
+    public static final BigDecimal MIL_DEC = BigDecimal.valueOf(1_000_000);
+    public static final int MIL = 1_000_000;
 }

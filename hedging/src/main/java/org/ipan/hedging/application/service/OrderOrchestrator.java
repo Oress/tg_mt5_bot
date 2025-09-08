@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.ipan.hedging.application.OrderPlaceMt5ErrorException;
 import org.ipan.hedging.application.service.command.PlaceOrderCommand;
 import org.ipan.hedging.application.service.command.PlaceOrderResponse;
+import org.ipan.hedging.domain.AppConstants;
 import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.repository.AppUserInstrumentRepository;
 import org.ipan.hedging.domain.model.repository.UserRepo;
@@ -12,6 +13,7 @@ import org.ipan.hedging.domain.service.*;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -141,7 +143,7 @@ public class OrderOrchestrator {
         return new PlaceOrderResponse(successful, order);
     }
 
-    public PlaceOrderResponse liquidate(Long userInstrumentId) {
+    public List<PlaceOrderResponse> liquidate(Long userInstrumentId) {
         AppUserInstrument userInstrument = appUserInstrumentRepository.findById(userInstrumentId).get();
         AppUser user = userInstrument.getUser();
         Instrument instrument = userInstrument.getInstrument();
@@ -152,22 +154,37 @@ public class OrderOrchestrator {
                 .instrumentLabel(instrument.getLabel())
                 .isLiquidation(true);
 
+        List<PlaceOrderResponse> result = new ArrayList<>();
         PlaceOrderCommand command;
         // e.g. USD/CAD
         if (InstrumentMode.LONG.equals(instrument.getMode())) {
-            command = builder
-                    .userAmount(userInstrument.getClientOwnedQuoteAmount().intValue())
-                    .isBuy(false)
-                    .build();
+            int remainingAmount = userInstrument.getClientOwnedQuoteAmount().intValue();
+            while (remainingAmount > 0) {
+                int orderAmount = Math.min(AppConstants.MIL, remainingAmount);
+                command = builder
+                        .userAmount(orderAmount)
+                        .isBuy(false)
+                        .build();
+                PlaceOrderResponse placeOrderResponse = placeOrder(command);
+                result.add(placeOrderResponse);
+                remainingAmount -= orderAmount;
+            }
         } else {
             // e.g. EUR/USD
-            // TODO: verify
-            command = builder
-                    .userAmount(userInstrument.getClientOwnedBaseAmount().intValue())
-                    .isBuy(true)
-                    .build();
+            int remainingAmount = userInstrument.getClientOwnedBaseAmount().intValue();
+            while (remainingAmount > 0) {
+                int orderAmount = Math.min(AppConstants.MIL, remainingAmount);
+                command = builder
+                        .userAmount(orderAmount)
+                        .isBuy(true)
+                        .build();
+
+                PlaceOrderResponse placeOrderResponse = placeOrder(command);
+                result.add(placeOrderResponse);
+                remainingAmount -= orderAmount;
+            }
         }
-        return placeOrder(command);
+        return result;
     }
 }
 
