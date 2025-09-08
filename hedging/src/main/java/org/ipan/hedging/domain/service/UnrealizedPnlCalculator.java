@@ -5,9 +5,12 @@ import org.ipan.hedging.domain.AppConstants;
 import org.ipan.hedging.domain.model.AppUserInstrument;
 import org.ipan.hedging.domain.model.HouseOwnedPosition;
 import org.ipan.hedging.domain.model.LifoPosition;
+import org.ipan.hedging.domain.model.ReportingCalculation;
 import org.ipan.hedging.domain.model.repository.AppUserInstrumentRepository;
 import org.ipan.hedging.domain.model.repository.HouseOwnedPositionRepository;
 import org.ipan.hedging.domain.model.repository.LifoPositionRepository;
+import org.ipan.hedging.domain.model.repository.ReportingCalculationRepository;
+import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -20,6 +23,7 @@ public class UnrealizedPnlCalculator {
     private final LifoPositionRepository lifoPositionRepository;
     private final HouseOwnedPositionRepository houseOwnedPositionRepository;
     private final AppUserInstrumentRepository userInstrumentRepository;
+    private final ReportingCalculationRepository reportingCalculationRepository;
 
     public UnrealizedPnl calculateHouse(Long userInstrumentId, BigDecimal currentRate) {
         AppUserInstrument userInstrument = userInstrumentRepository.findById(userInstrumentId).get();
@@ -65,19 +69,13 @@ public class UnrealizedPnlCalculator {
     }
 
     private UnrealizedPnl calculateEur(Long userInstrumentId, BigDecimal currentEurUsdRate) {
-        List<LifoPosition> openPositions = lifoPositionRepository.findAllForUnhendgingFifo(userInstrumentId);
+        AppUserInstrument userInstrument = userInstrumentRepository.findById(userInstrumentId).get();
+        ReportingCalculation lastRowForTheUserInstrument = reportingCalculationRepository.getLastRowForTheUserInstrument(userInstrumentId, Limit.of(1));
 
-        BigDecimal result = BigDecimal.ZERO;
-
-        for (LifoPosition openPosition : openPositions) {
-            BigDecimal eurUsdRate = openPosition.getOrder().getPrice();
-            BigDecimal eurAmount = openPosition.getRemainingAmount();
-
-            BigDecimal unrealizedPnlPerPosition = eurAmount.multiply(currentEurUsdRate.subtract(eurUsdRate));
-            result = result.add(unrealizedPnlPerPosition);
-        }
-
-        return new UnrealizedPnl(result);
+        BigDecimal eurUsdRate = lastRowForTheUserInstrument.getRate();
+        BigDecimal eurAmount = userInstrument.getClientOwnedBaseAmount();
+        BigDecimal unrealizedPnlPerPosition = eurAmount.multiply(currentEurUsdRate.subtract(eurUsdRate));
+        return new UnrealizedPnl(unrealizedPnlPerPosition);
     }
 
     private UnrealizedPnl calculateCadHouse(Long userInstrumentId, BigDecimal currentUsdCadRate) {
