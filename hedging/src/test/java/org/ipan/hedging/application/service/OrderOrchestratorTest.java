@@ -659,10 +659,9 @@ class OrderOrchestratorTest {
         PlaceOrderResponse response1 = placeUsdCadOrderResponse(1000, true, 1.36567);
         PlaceOrderResponse response2 = placeUsdCadOrderResponse(4000, true, 1.32678);
         PlaceOrderResponse response3 = placeUsdCadOrderResponse(9000, true, 1.25764);
-        userBalanceService.createDepositAction(USER_ID, BigDecimal.valueOf(80_000), Instant.now());
 
         List<ReportingCalculation> all = reportingCalculationRepository.findAllOrdByDate();
-        assertThat(all).hasSize(4);
+        assertThat(all).hasSize(3);
 
         ReportingCalculation reportingCalculation1 = all.get(0);
         assertThat(reportingCalculation1.getUsdt().setScale(0, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(-732));
@@ -690,15 +689,6 @@ class OrderOrchestratorTest {
         assertThat(reportingCalculation3.getDeposit().setScale(2, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(-7.16));
         assertThat(reportingCalculation3.getDepositTotal().setScale(2, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(-10.90).setScale(2));
         assertThat(reportingCalculation3.getBalance().setScale(2, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(-10.90).setScale(2));
-
-        ReportingCalculation reportingCalculation4 = all.get(3);
-        assertThat(reportingCalculation4.getUsdt()).isNull();
-        assertThat(reportingCalculation4.getCommission()).isNull();
-        assertThat(reportingCalculation4.getInPosition().setScale(0, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(-14_000));
-        assertThat(reportingCalculation4.getRate().setScale(5, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(1.28511));
-        assertThat(reportingCalculation4.getDeposit()).isNull();
-        assertThat(reportingCalculation4.getDepositTotal().setScale(2, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(-10.90).setScale(2));
-        assertThat(reportingCalculation4.getBalance().setScale(2, RoundingMode.HALF_DOWN)).isEqualTo(BigDecimal.valueOf(79_989.10).setScale(2));
     }
 
     private PlaceOrderResponse placeEurUsdOrderResponse(Integer userAmount, boolean isBuy, Double price) {

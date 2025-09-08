@@ -18,7 +18,7 @@ public class ReportingCalculation {
     @SequenceGenerator(name = "seq_hed_reporting_calculations", sequenceName = "seq_hed_reporting_calculations", allocationSize = 1)
     private Long id;
 
-    @ManyToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id")
     private Order order;
 
@@ -79,4 +79,7 @@ public class ReportingCalculation {
         return depositTotal == null ? BigDecimal.ZERO : depositTotal;
     }
 
+    public BigDecimal getPnL() {
+        return amount.compareTo(BigDecimal.ZERO) > 0 ? deposit : BigDecimal.ZERO;
+    }
 }

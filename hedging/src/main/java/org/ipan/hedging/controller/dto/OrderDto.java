@@ -28,6 +28,7 @@ public class OrderDto {
     private String status; // OrderStatus
     private Integer mt5AccNumber;
     private BigDecimal price;
+    private BigDecimal pnlExcel;
     private Instant createdAt;
 
     private BigDecimal userBaseAmount;

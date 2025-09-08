@@ -447,6 +447,7 @@ public class DashboardController {
                 .swap(order.getSwap())
                 .commission(order.getMt5Commission())
                 .type(order.getType().name())
+                .pnlExcel(order.getReportingCalculation().getPnL())
                 .systemType(order.getSystemType() != null ? order.getSystemType().name() : null)
                 .status(order.getStatus().name())
                 .mt5AccNumber(order.getMt5AccNumber())

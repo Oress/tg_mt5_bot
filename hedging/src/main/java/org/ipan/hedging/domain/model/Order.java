@@ -42,6 +42,9 @@ public class Order {
     @OneToMany(mappedBy = "parentOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<HousePositionConsumption> housePositionConsumptions = new ArrayList<>();
 
+    @OneToOne(mappedBy = "order")
+    private ReportingCalculation reportingCalculation;
+
     private Long deal;
 
     @Column(name = "mt5_order")
