@@ -254,22 +254,23 @@ public class TelegramMessages {
 
         List<String> balances = new ArrayList<>();
         BigDecimal commonBalance = user.getBalanceUsd();
+        BigDecimal coverage = BigDecimal.ZERO;
 
         if (payload.cadBalance != null) {
+            coverage = coverage.add(payload.cadUnrealizedPnl);
             commonBalance = commonBalance.add(payload.cadBalance);
             balances.add("Баланс по USD/CAD: \n*%s %s*".formatted(FormattingTools.formatPrice(payload.cadBalance), "USD"));
         }
 
         if (payload.eurBalance != null) {
+            coverage = coverage.add(payload.eurUnrealizedPnl);
             commonBalance = commonBalance.add(payload.eurBalance);
             balances.add("Баланс по EUR/USD: \n*%s %s*".formatted(FormattingTools.formatPrice(payload.eurBalance), "USD"));
         }
 
         balances.addFirst("Общий баланс: \n*%s %s*".formatted(FormattingTools.formatPrice(commonBalance), "USD"));
 
-        BigDecimal coverage = commonBalance
-                .add(payload.eurUnrealizedPnl)
-                .add(payload.cadUnrealizedPnl);
+        coverage = coverage.add(commonBalance);
         balances.addFirst("Средства(обеспечение): \n*%s %s*".formatted(FormattingTools.formatPrice(coverage), "USD"));
 
         String balancesStr = """
