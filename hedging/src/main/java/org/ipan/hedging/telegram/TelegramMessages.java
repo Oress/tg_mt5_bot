@@ -250,7 +250,7 @@ public class TelegramMessages {
                         *Статистика*
                         
                         %s
-                        """.formatted(positionsStr);
+                        """.formatted(positionsStr.isEmpty() ? "Нет доступных инструментов." : positionsStr);
 
         List<String> balances = new ArrayList<>();
         BigDecimal commonBalance = user.getBalanceUsd();
