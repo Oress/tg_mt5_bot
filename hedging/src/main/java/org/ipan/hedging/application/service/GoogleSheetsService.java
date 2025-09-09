@@ -42,6 +42,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 
 @Service
 @Slf4j
@@ -57,6 +58,8 @@ public class GoogleSheetsService {
     public static final Color LIGHT_YELLOW2 = new Color().setRed(1f).setGreen(0.8945f).setBlue(0.5976f);
     public static final Color LIGHT_ORANGE = new Color().setRed(0.9726f).setGreen(0.7929f).setBlue(0.6093f);
     public static final Color LIGHT_PURPLE = new Color().setRed(0.5546f).setGreen(0.4843f).setBlue(0.7617f);
+    public static final Color COLOR_BLACK = new Color().setRed(0f).setGreen(0f).setBlue(0f);
+    public static final int BORDER_WIDTH = 1;
 
     private final GoogleSheetsConfig config;
     private final UserRepo userRepo;
@@ -449,7 +452,7 @@ public class GoogleSheetsService {
         String depTotalInnerPart = "%s+J:J+%s".formatted(relCell(0, -1), relCell(+1, -1));
         String depTotalOuterPart = "=%s".formatted(isFirstRow("J:J", depTotalInnerPart));
 
-        CellFormat currencyFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("#,##0.00"));
+        CellFormat currencyFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("# ##0.00"));
         CellFormat numberFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("0.00000"));
         return new RowData()
                 .setValues(List.of(
@@ -462,6 +465,8 @@ public class GoogleSheetsService {
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setNumberValue(euroAmount.doubleValue())
+                                ).setUserEnteredFormat(
+                                        currencyFormat
                                 ),
                         // Фикс
                         new CellData()
@@ -495,7 +500,7 @@ public class GoogleSheetsService {
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue("=B:B+%s".formatted(isFirstRow("0", relCell(0, -1))))
-                                ),
+                                ).setUserEnteredFormat(currencyFormat),
                         // Rate
                         new CellData()
                                 .setUserEnteredValue(
@@ -529,7 +534,7 @@ public class GoogleSheetsService {
         String depTotalInnerPart = "%s+J:J+%s".formatted(relCell(0, -1), relCell(+1, -1));
         String depTotalOuterPart = "=%s".formatted(isFirstRow("J:J", depTotalInnerPart));
 
-        CellFormat currencyFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("#,##0.00"));
+        CellFormat currencyFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("# ##0.00"));
         CellFormat numberFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("0.00000"));
         return new RowData()
                 .setValues(List.of(
@@ -542,6 +547,8 @@ public class GoogleSheetsService {
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setNumberValue(cadAmount.doubleValue())
+                                ).setUserEnteredFormat(
+                                        currencyFormat
                                 ),
                         // Фикс
                         new CellData()
@@ -575,6 +582,8 @@ public class GoogleSheetsService {
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue("=B:B+%s".formatted(isFirstRow("0", relCell(0, -1))))
+                                ).setUserEnteredFormat(
+                                        currencyFormat
                                 ),
                         // Rate
                         new CellData()
@@ -690,10 +699,35 @@ public class GoogleSheetsService {
             ArrayMap<String, Object> addTableRequest = new ArrayMap<>();
             addTableRequest.put("table", getCreateTableRequestBasedOnTheInstrument(user, instrument, expectedId, sheetId));
 
+            Borders borders = new Borders()
+                    .setTop(new Border().setWidth(BORDER_WIDTH).setStyle("SOLID").setColor(COLOR_BLACK))
+                    .setBottom(new Border().setWidth(BORDER_WIDTH).setStyle("SOLID").setColor(COLOR_BLACK))
+                    .setLeft(new Border().setWidth(BORDER_WIDTH).setStyle("SOLID").setColor(COLOR_BLACK))
+                    .setRight(new Border().setWidth(BORDER_WIDTH).setStyle("SOLID").setColor(COLOR_BLACK));
+
+            var updateCells = new UpdateCellsRequest()
+                    .setStart(
+                            new GridCoordinate()
+                                    .setRowIndex(0)
+                                    .setSheetId(sheetId)
+                                    .setColumnIndex(0)
+                    )
+                    .setFields("userEnteredFormat")
+                    .setRows(
+                        List.of(
+                                new RowData().setValues(
+                                        IntStream.range(0,EUR_USD_COLUMNS.size())
+                                                .mapToObj(i -> new CellData().setUserEnteredFormat(new CellFormat().setHorizontalAlignment("RIGHT").setBorders(borders)))
+                                                .toList()
+                                )
+                        )
+            );
+
             BatchUpdateSpreadsheetResponse execute = sheets.spreadsheets().batchUpdate(user.getGoogleSheetId(),
                     new BatchUpdateSpreadsheetRequest().setRequests(
                             List.of(
-                                    new Request().set("addTable", addTableRequest)
+                                    new Request().set("addTable", addTableRequest),
+                                    new Request().setUpdateCells(updateCells)
                             )
                     )).execute();
             log.info("Table created for user {} with id {}, {}", user.getTelegramId(), expectedId, execute);
