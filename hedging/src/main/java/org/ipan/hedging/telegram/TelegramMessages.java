@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.ipan.hedging.domain.model.AppUser;
+import org.ipan.hedging.domain.model.Instrument;
+import org.ipan.hedging.domain.model.InstrumentMode;
 import org.ipan.hedging.domain.model.UserRole;
 import org.ipan.hedging.telegram.i18n.CommonLabels;
 import org.ipan.hedging.telegram.state.UserState;
@@ -27,8 +29,10 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 @Slf4j
@@ -142,7 +146,7 @@ public class TelegramMessages {
         SendMessage message = SendMessage
                 .builder()
                 .chatId(chatId)
-                .text(getMainMenuMessage(payload))
+                .text(getMainMenuMessage(user, payload))
                 .replyMarkup(getMainMenuReplyMarkup(false))
                 .linkPreviewOptions(LinkPreviewOptions.builder().isDisabled(true).build())
                 .parseMode("MARKDOWN")
@@ -157,7 +161,7 @@ public class TelegramMessages {
                 .builder()
                 .chatId(chatId)
                 .linkPreviewOptions(LinkPreviewOptions.builder().isDisabled(true).build())
-                .text(getMainMenuMessage(payload))
+                .text(getMainMenuMessage(user, payload))
                 .replyMarkup(getMainMenuReplyMarkup(true))
                 .parseMode("MARKDOWN")
                 .build();
@@ -201,7 +205,7 @@ public class TelegramMessages {
                 .builder()
                 .chatId(userState.getChatId())
                 .messageId(userState.getMenuMessageId())
-                .text(getMainMenuMessage(payload))
+                .text(getMainMenuMessage(user, payload))
                 .linkPreviewOptions(LinkPreviewOptions.builder().isDisabled(true).build())
                 .parseMode("MARKDOWN")
                 .replyMarkup(getMainMenuReplyMarkup(false))
@@ -215,7 +219,7 @@ public class TelegramMessages {
                 .builder()
                 .chatId(userState.getChatId())
                 .messageId(userState.getMenuMessageId())
-                .text(getMainMenuMessage(payload))
+                .text(getMainMenuMessage(user, payload))
                 .parseMode("MARKDOWN")
                 .linkPreviewOptions(LinkPreviewOptions.builder().isDisabled(true).build())
                 .replyMarkup(getMainMenuReplyMarkup(true))
@@ -223,21 +227,63 @@ public class TelegramMessages {
         tgClient.execute(message);
     }
 
-    private String getMainMenuMessage(MainMenuPayload payload) {
+    private String getMainMenuMessage(AppUser user, MainMenuPayload payload) {
+        String positionsStr = user.getAvailableInstruments().stream().filter(i -> i.getActive()).map(userInstrument -> {
+            Instrument instrument = userInstrument.getInstrument();
+
+            BigDecimal hedgedAmount = null;
+            if (InstrumentMode.LONG.equals(instrument.getMode())) {
+                hedgedAmount = userInstrument.getClientOwnedQuoteAmount();
+            } else if (InstrumentMode.SHORT.equals(instrument.getMode())) {
+                hedgedAmount = userInstrument.getClientOwnedBaseAmount();
+            }
+            hedgedAmount = hedgedAmount.setScale(0, RoundingMode.HALF_DOWN);
+
+            return """
+                    Инструмент: %s
+                    Захеджировано: *%s %s*
+                    """
+                    .formatted(instrument.getLabel(), FormattingTools.formatPrice(hedgedAmount), instrument.getSymbolByMode());
+        }).collect(Collectors.joining("\n"));
+
+        String statsStr = """
+                        *Статистика*
+                        
+                        %s
+                        """.formatted(positionsStr);
+
         List<String> balances = new ArrayList<>();
-        balances.add("Общий баланс: \n%s".formatted(FormattingTools.formatPrice(payload.getBalance())));
+        BigDecimal commonBalance = user.getBalanceUsd();
 
         if (payload.cadBalance != null) {
-            balances.add("Баланс по USD/CAD: \n%s".formatted(FormattingTools.formatPrice(payload.cadBalance)));
+            commonBalance = commonBalance.add(payload.cadBalance);
+            balances.add("Баланс по USD/CAD: \n*%s %s*".formatted(FormattingTools.formatPrice(payload.cadBalance), "USD"));
         }
 
         if (payload.eurBalance != null) {
-            balances.add("Баланс по EUR/USD: \n%s".formatted(FormattingTools.formatPrice(payload.eurBalance)));
+            commonBalance = commonBalance.add(payload.eurBalance);
+            balances.add("Баланс по EUR/USD: \n*%s %s*".formatted(FormattingTools.formatPrice(payload.eurBalance), "USD"));
         }
 
-        String balancesStr = String.join("\n\n", balances);
+        balances.addFirst("Общий баланс: \n*%s %s*".formatted(FormattingTools.formatPrice(commonBalance), "USD"));
 
-        return commonLabels.getMainWelcome(balancesStr);
+        BigDecimal coverage = commonBalance
+                .add(payload.eurUnrealizedPnl)
+                .add(payload.cadUnrealizedPnl);
+        balances.addFirst("Средства(обеспечение): \n*%s %s*".formatted(FormattingTools.formatPrice(coverage), "USD"));
+
+        String balancesStr = """
+                        *Балансы*
+                        
+                        %s
+                        """.formatted(String.join("\n\n", balances));
+
+        String menuMessageStr = """
+                %s
+                %s
+                """.formatted(statsStr, balancesStr);
+
+        return commonLabels.getMainWelcome(menuMessageStr);
     }
 
     private InlineKeyboardMarkup getLanguageNotficationMarkup() {
@@ -370,14 +416,11 @@ public class TelegramMessages {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class MainMenuPayload {
-        private BigDecimal deposits = BigDecimal.ZERO;
         private BigDecimal cadBalance;
         private BigDecimal eurBalance;
 
-        public BigDecimal getBalance() {
-            return deposits
-                    .add(cadBalance != null ? cadBalance : BigDecimal.ZERO)
-                    .add(eurBalance != null ? eurBalance : BigDecimal.ZERO);
-        }
+        private BigDecimal eurUnrealizedPnl;
+        private BigDecimal cadUnrealizedPnl;
+
     }
 }

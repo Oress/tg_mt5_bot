@@ -597,4 +597,10 @@
         </addColumn>
     </changeSet>
 
+    <changeSet id="add balance_usd to hed_users" author="oress">
+        <addColumn tableName="hed_users">
+            <column name="balance_usd" type="decimal(20,8)" defaultValue="0" />
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

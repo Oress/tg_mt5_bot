@@ -6,7 +6,9 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.CreationTimestamp;
 import org.ipan.hedging.domain.AppConstants;
+import org.ipan.hedging.domain.exception.NegativeBalanceException;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
@@ -24,6 +26,9 @@ public class AppUser {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<AppUserInstrument> availableInstruments = new HashSet<>();
+
+    @Column(name = "balance_usd")
+    private BigDecimal balanceUsd;
 
     @Column(name = "dashboard_pwd")
     private String dashboardPwd;
@@ -157,5 +162,23 @@ public class AppUser {
                 .filter(ui -> ui.getInstrument().getLabel().equals(instrumentLabel))
                 .findFirst()
                 .orElse(null);
+    }
+
+    public void addBalanceUsd(BigDecimal amount) {
+        if (balanceUsd == null) {
+            balanceUsd = BigDecimal.ZERO;
+        }
+        balanceUsd = balanceUsd.add(amount);
+    }
+
+    public void subtractBalanceUsd(BigDecimal amount) {
+        if (balanceUsd == null) {
+            balanceUsd = BigDecimal.ZERO;
+        }
+        balanceUsd = balanceUsd.subtract(amount);
+        if (balanceUsd.compareTo(BigDecimal.ZERO) < 0) {
+            log.warn("User {} balance is negative: {}", telegramId, balanceUsd);
+            throw new NegativeBalanceException();
+        }
     }
 }

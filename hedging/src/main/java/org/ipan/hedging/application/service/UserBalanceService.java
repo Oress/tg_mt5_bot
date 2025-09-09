@@ -11,6 +11,7 @@ import org.ipan.hedging.domain.model.repository.UserBalanceActionRepo;
 import org.ipan.hedging.domain.model.repository.UserRepo;
 import org.ipan.hedging.domain.service.ReportingCalculationService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -25,6 +26,7 @@ public class UserBalanceService {
     private final UserRepo userRepo;
     private final UserBalanceActionRepo userBalanceActionRepo;
 
+    @Transactional
     public UserBalanceAction createDepositAction(Long userId, BigDecimal amount, Instant date) {
         AppUser user = userRepo.findById(userId).get();
         UserBalanceAction result = createUserBalanceAction(user, BalanceActionType.DEPOSIT, amount, date);
@@ -34,6 +36,7 @@ public class UserBalanceService {
         return result;
     }
 
+    @Transactional
     public UserBalanceAction createWithdrawAction(Long userId, BigDecimal amount, Instant date) {
         AppUser user = userRepo.findById(userId).get();
         UserBalanceAction result = createUserBalanceAction(user, BalanceActionType.WITHDRAWAL, amount, date);
@@ -49,6 +52,14 @@ public class UserBalanceService {
         userBalanceAction.setDate(date);
         userBalanceAction.setAmount(amount);
         userBalanceAction.setUser(user);
+
+        if (type == BalanceActionType.DEPOSIT) {
+            user.addBalanceUsd(amount);
+        } else if (type == BalanceActionType.WITHDRAWAL) {
+            user.subtractBalanceUsd(amount);
+        } else {
+            throw new IllegalArgumentException("Unsupported balance action type: " + type);
+        }
 
         return userBalanceAction;
     }
