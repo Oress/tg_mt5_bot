@@ -246,12 +246,6 @@ public class TelegramMessages {
                     .formatted(instrument.getLabel(), FormattingTools.formatPrice(hedgedAmount), instrument.getSymbolByMode());
         }).collect(Collectors.joining("\n"));
 
-        String statsStr = """
-                        *Статистика*
-                        
-                        %s
-                        """.formatted(positionsStr.isEmpty() ? "Нет доступных инструментов." : positionsStr);
-
         List<String> balances = new ArrayList<>();
         BigDecimal commonBalance = user.getBalanceUsd();
         BigDecimal coverage = BigDecimal.ZERO;
@@ -259,13 +253,13 @@ public class TelegramMessages {
         if (payload.cadBalance != null) {
             coverage = coverage.add(payload.cadUnrealizedPnl);
             commonBalance = commonBalance.add(payload.cadBalance);
-            balances.add("Баланс по USD/CAD: \n*%s %s*".formatted(FormattingTools.formatPrice(payload.cadBalance), "USD"));
+//            balances.add("Баланс по USD/CAD: \n*%s %s*".formatted(FormattingTools.formatPrice(payload.cadBalance), "USD"));
         }
 
         if (payload.eurBalance != null) {
             coverage = coverage.add(payload.eurUnrealizedPnl);
             commonBalance = commonBalance.add(payload.eurBalance);
-            balances.add("Баланс по EUR/USD: \n*%s %s*".formatted(FormattingTools.formatPrice(payload.eurBalance), "USD"));
+//            balances.add("Баланс по EUR/USD: \n*%s %s*".formatted(FormattingTools.formatPrice(payload.eurBalance), "USD"));
         }
 
         balances.addFirst("Общий баланс: \n*%s %s*".formatted(FormattingTools.formatPrice(commonBalance), "USD"));
@@ -273,18 +267,13 @@ public class TelegramMessages {
         coverage = coverage.add(commonBalance);
         balances.addFirst("Средства(обеспечение): \n*%s %s*".formatted(FormattingTools.formatPrice(coverage), "USD"));
 
-        String balancesStr = """
-                        *Балансы*
-                        
+        String resultStr = """
                         %s
-                        """.formatted(String.join("\n\n", balances));
 
-        String menuMessageStr = """
-                %s
-                %s
-                """.formatted(statsStr, balancesStr);
+                        %s
+                        """.formatted(String.join("\n\n", balances), positionsStr);
 
-        return commonLabels.getMainWelcome(menuMessageStr);
+        return commonLabels.getMainWelcome(resultStr);
     }
 
     private InlineKeyboardMarkup getLanguageNotficationMarkup() {
