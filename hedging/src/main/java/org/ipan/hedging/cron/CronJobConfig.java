@@ -30,7 +30,7 @@ public class CronJobConfig {
         }
     }
 
-    @Scheduled(fixedDelay = 30, timeUnit = TimeUnit.MINUTES)
+    @Scheduled(fixedDelay = 10, timeUnit = TimeUnit.MINUTES)
     public void refeshCommonSheet() {
         try {
             refreshCommonSheetsJob.run();

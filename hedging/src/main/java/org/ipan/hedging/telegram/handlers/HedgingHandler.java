@@ -341,6 +341,8 @@ public class HedgingHandler {
             hedgeViews.orderFailed(userState);
         }
 
+        // reread user so that we have updated positions and balances
+        user = userRepo.findByIdWithInstruments(userState.getTelegramId());
         Message newMenuMsg = telegramMessages.sendUserMainMenuBasedOnRole(userState, userState.getChatId(), user, mainMenuStatsService.createPayload(user));
         telegramState.updateUserState(userState.getTelegramId(), userState
                 .withState(States.MAIN_MENU)

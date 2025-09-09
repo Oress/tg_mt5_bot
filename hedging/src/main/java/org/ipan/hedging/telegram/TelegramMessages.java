@@ -377,13 +377,14 @@ public class TelegramMessages {
                                         .text(commonLabels.menuBalance())
                                         .callbackData(InlineMenuCallbacks.MENU_SHOW_BALANCE)
                                         .build()))
-                .keyboardRow(
+/*                .keyboardRow(
                         new InlineKeyboardRow(
                                 InlineKeyboardButton
                                         .builder()
                                         .text(commonLabels.menuInformation())
                                         .callbackData(InlineMenuCallbacks.MENU_SHOW_INFO)
-                                        .build()));
+                                        .build()))*/
+                ;
 
         if (isAdmin) {
             builder.keyboardRow(
