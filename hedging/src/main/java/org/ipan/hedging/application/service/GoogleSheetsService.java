@@ -64,6 +64,7 @@ public class GoogleSheetsService {
     public static final Color COLOR_BLACK = new Color().setRed(0f).setGreen(0f).setBlue(0f);
     public static final int BORDER_WIDTH = 1;
     public static final CellFormat CURRENCY_FORMAT = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("#,##0.00"));
+    public static final CellFormat CURRENCY_FORMAT_INT = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("#,##0"));
 
     private final GoogleSheetsConfig config;
     private final UserRepo userRepo;
@@ -487,7 +488,7 @@ public class GoogleSheetsService {
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setNumberValue(euroAmount.doubleValue())
-                                ).setUserEnteredFormat(CURRENCY_FORMAT),
+                                ).setUserEnteredFormat(CURRENCY_FORMAT_INT),
                         // Фикс
                         new CellData()
                                 .setUserEnteredValue(
@@ -516,7 +517,7 @@ public class GoogleSheetsService {
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue("=B:B+%s".formatted(isFirstRow("0", relCell(0, -1))))
-                                ).setUserEnteredFormat(CURRENCY_FORMAT),
+                                ).setUserEnteredFormat(CURRENCY_FORMAT_INT),
                         // Rate
                         new CellData()
                                 .setUserEnteredValue(
@@ -562,7 +563,7 @@ public class GoogleSheetsService {
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setNumberValue(cadAmount.doubleValue())
-                                ).setUserEnteredFormat(CURRENCY_FORMAT),
+                                ).setUserEnteredFormat(CURRENCY_FORMAT_INT),
                         // Фикс
                         new CellData()
                                 .setUserEnteredValue(
@@ -591,7 +592,7 @@ public class GoogleSheetsService {
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue("=B:B+%s".formatted(isFirstRow("0", relCell(0, -1))))
-                                ).setUserEnteredFormat(CURRENCY_FORMAT),
+                                ).setUserEnteredFormat(CURRENCY_FORMAT_INT),
                         // Rate
                         new CellData()
                                 .setUserEnteredValue(
