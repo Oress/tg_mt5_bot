@@ -434,6 +434,9 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
           <Descriptions.Item label="Процент комиссии">
             {selectedInstrument.commissionPercentage}%
           </Descriptions.Item>
+          <Descriptions.Item label="Разница с МТ5">
+            {formatCurrency(selectedInstrument.diffWithMt5)}
+          </Descriptions.Item>
         </Descriptions>
       </Space>
 
@@ -533,6 +536,9 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
             </Descriptions.Item>
             <Descriptions.Item label="Процент комиссии">
               {selectedInstrument.commissionPercentage}%
+            </Descriptions.Item>
+            <Descriptions.Item label="Разница с МТ5">
+              {formatCurrency(selectedInstrument.diffWithMt5)}
             </Descriptions.Item>
           </Descriptions>
         </Space>
