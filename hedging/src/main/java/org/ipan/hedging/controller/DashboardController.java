@@ -100,9 +100,10 @@ public class DashboardController {
         List<UserInstrumentDto> result = new ArrayList<>();
         AppUser byId = userRepo.findById(telegramId).get();
         for (AppUserInstrument availableInstrument : byId.getAvailableInstruments().stream().filter(i -> i.getActive()).toList()) {
+            BigDecimal mt5Diff = orderRepo.getMt5DiffPerInstrument(availableInstrument.getId());
             BigDecimal swapPerInstrument = orderRepo.getSwapPerInstrument(availableInstrument.getId());
             BigDecimal balanceForTheUserInstrument = reportingCalculationRepository.getBalanceForTheUserInstrument(availableInstrument.getId(), Limit.of(1));
-            UserInstrumentDto userInstrumentDto = mapToDto(availableInstrument, balanceForTheUserInstrument, swapPerInstrument);
+            UserInstrumentDto userInstrumentDto = mapToDto(availableInstrument, balanceForTheUserInstrument, swapPerInstrument, mt5Diff);
             result.add(userInstrumentDto);
         }
         return ApiResponse.success(result);
@@ -114,7 +115,8 @@ public class DashboardController {
         AppUserInstrument userInstrument = appUserInstrumentRepository.findById(userInstrumentId).get();
         BigDecimal balanceForTheUserInstrument = reportingCalculationRepository.getBalanceForTheUserInstrument(userInstrument.getId(), Limit.of(1));
         BigDecimal swapPerInstrument = orderRepo.getSwapPerInstrument(userInstrument.getId());
-        UserInstrumentDto userInstrumentDto = mapToDto(userInstrument, balanceForTheUserInstrument, swapPerInstrument);
+        BigDecimal mt5Diff = orderRepo.getMt5DiffPerInstrument(userInstrument.getId());
+        UserInstrumentDto userInstrumentDto = mapToDto(userInstrument, balanceForTheUserInstrument, swapPerInstrument, mt5Diff);
         return ApiResponse.success(userInstrumentDto);
     }
 
@@ -488,7 +490,7 @@ public class DashboardController {
                 .build();
     }
 
-    private UserInstrumentDto mapToDto(AppUserInstrument userInstrument, BigDecimal balance, BigDecimal swapPerInstrument) {
+    private UserInstrumentDto mapToDto(AppUserInstrument userInstrument, BigDecimal balance, BigDecimal swapPerInstrument, BigDecimal mt5Diff) {
         return UserInstrumentDto.builder()
                 .id(userInstrument.getId())
                 .label(userInstrument.getInstrument().getLabel())
@@ -498,6 +500,7 @@ public class DashboardController {
                 .balance(balance)
                 .commissionPercentage(userInstrument.getCommissionCoef().multiply(AppConstants.HUNDRED))
                 .swap(swapPerInstrument)
+                .diffWithMt5(mt5Diff)
                 .clientOwnedBaseAmount(userInstrument.getClientOwnedBaseAmount())
                 .houseOwnedBaseAmount(userInstrument.getHouseOwnedBaseAmount())
                 .clientOwnedQuoteAmount(userInstrument.getClientOwnedQuoteAmount())

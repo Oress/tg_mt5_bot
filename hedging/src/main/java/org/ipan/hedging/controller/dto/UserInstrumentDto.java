@@ -24,4 +24,5 @@ public class UserInstrumentDto {
     private BigDecimal clientOwnedBaseAmount = BigDecimal.ZERO;
     private BigDecimal houseOwnedBaseAmount = BigDecimal.ZERO;
     private BigDecimal clientOwnedQuoteAmount = BigDecimal.ZERO;
+    private BigDecimal diffWithMt5 = BigDecimal.ZERO;
 }

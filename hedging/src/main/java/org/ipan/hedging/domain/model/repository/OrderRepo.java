@@ -43,4 +43,20 @@ public interface OrderRepo extends JpaRepository<Order, Long> {
 
     @Query("select o from Order o where o.swap is null and o.deal is not null")
     List<Order> findOrdersWithEmptySwap();
+
+    @Query(nativeQuery = true, value = """
+            select sum(t.mt5profit - t.deposit - t.house_pnl) from
+            (select o.id,
+                  o.mt5profit,
+                  case when rp.amount > 0 then rp.deposit else 0 end as deposit,
+                  (select sum(hopc.pnl)
+                   from hed_house_owned_position_consumptions hopc
+                   where hopc.parent_order_id = o.id) as house_pnl
+            from hed_orders o
+                    join hed_reporting_calculations rp on o.id = rp.order_id
+            where o.user_instrument_id = :userInstrumentId
+            ) t
+        """)
+    BigDecimal getMt5DiffPerInstrument(Long userInstrumentId);
+
 }
