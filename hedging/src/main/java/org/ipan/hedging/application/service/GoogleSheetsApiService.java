@@ -111,4 +111,13 @@ public class GoogleSheetsApiService {
         ).execute();
     }
 
+    @Retryable
+    public void updateProps(String googleSheetId, UpdateSpreadsheetPropertiesRequest newProps) throws IOException {
+        BatchUpdateSpreadsheetResponse execute = sheets.spreadsheets()
+                .batchUpdate(googleSheetId,
+                        new BatchUpdateSpreadsheetRequest().setRequests(
+                                List.of(new Request().setUpdateSpreadsheetProperties(newProps))
+                        )
+                ).execute();
+    }
 }
