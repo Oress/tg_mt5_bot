@@ -998,7 +998,7 @@ function UserPage() {
     fetchUnrealizedPnL(userId, selectedInstrument.id);
     const id = setInterval(() => {
       fetchUnrealizedPnL(userId, selectedInstrument.id);
-    }, 5000);
+    }, 15000);
 
     return () => clearInterval(id);
   }, [userId, selectedInstrument]);
