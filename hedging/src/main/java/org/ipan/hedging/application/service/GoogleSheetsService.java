@@ -52,6 +52,11 @@ public class GoogleSheetsService {
     private static final List<String> SCOPES = List.of(SheetsScopes.SPREADSHEETS, DriveScopes.DRIVE, DriveScopes.DRIVE_FILE);
     public static final String EUR_USD = "EUR/USD";
     public static final String USD_CAD = "USD/CAD";
+    public static final Color LIGHT_GREEN = new Color().setRed(0.5742f).setGreen(0.7656f).setBlue(0.4882f);
+    public static final Color LIGHT_CYAN = new Color().setRed(0.4609f).setGreen(0.6445f).setBlue(0.6835f);
+    public static final Color LIGHT_YELLOW2 = new Color().setRed(1f).setGreen(0.8945f).setBlue(0.5976f);
+    public static final Color LIGHT_ORANGE = new Color().setRed(0.9726f).setGreen(0.7929f).setBlue(0.6093f);
+    public static final Color LIGHT_PURPLE = new Color().setRed(0.5546f).setGreen(0.4843f).setBlue(0.7617f);
 
     private final GoogleSheetsConfig config;
     private final UserRepo userRepo;
@@ -186,29 +191,39 @@ public class GoogleSheetsService {
         googleSheetsApiService.clearSheet(user.getGoogleSheetId(), commonSheetId);
 
         List<UserBalanceAction> allForSyncByUser = userBalanceActionRepo.findAllForSyncByUser(Instant.EPOCH, user.getTelegramId());
-        BigDecimal sumOfAllActionsByUser = BigDecimal.valueOf(calculateSum(allForSyncByUser));
+        BigDecimal balanceUsd = user.getBalanceUsd();
+        BigDecimal balanceWithCoverageUsd = BigDecimal.ZERO;
 
         List<UpdateCellsRequest> updateRequests = new ArrayList<>();
 
-        int nextRowIndex = 1;
+        int nextRowIndex = 4;
         List<AppUserInstrument> sorted = user.getAvailableInstruments().stream().sorted(Comparator.comparing(k -> k.getInstrument().getLabel())).toList();
         for (AppUserInstrument userInstrument : sorted) {
             ReportingCalculation lastReportingRow = reportingCalculationRepository.getLastRowForTheUserInstrument(userInstrument.getId(), Limit.of(1));
             if (lastReportingRow != null) {
                 BigDecimal balanceForTheUserInstrument = lastReportingRow.getBalance();
                 nextRowIndex+=3;
-                sumOfAllActionsByUser = sumOfAllActionsByUser.add(balanceForTheUserInstrument);
+                balanceUsd = balanceUsd.add(balanceForTheUserInstrument);
 
+                Color color = switch (userInstrument.getInstrument().getLabel()) {
+                    case AppConstants.EUR_USD -> LIGHT_YELLOW2;
+                    case AppConstants.USD_CAD -> LIGHT_ORANGE;
+                    default -> LIGHT_CYAN;
+                };
                 Instrument instrument = userInstrument.getInstrument();
                 RowData data = new RowData()
                         .setValues(List.of(
                                 new CellData()
                                         .setUserEnteredValue(
                                                 new ExtendedValue().setStringValue("Баланс по %s".formatted(instrument.getLabel()))
+                                        ).setUserEnteredFormat(
+                                                new CellFormat().setBackgroundColor(color)
                                         ),
                                 new CellData()
                                         .setUserEnteredValue(
                                                 new ExtendedValue().setNumberValue(balanceForTheUserInstrument.setScale(2, RoundingMode.HALF_DOWN).doubleValue())
+                                        ).setUserEnteredFormat(
+                                                new CellFormat().setBackgroundColor(color).setTextFormat(new TextFormat().setBold(true).setFontSize(12))
                                         )
                         ));
                 updateRequests.add(
@@ -229,6 +244,7 @@ public class GoogleSheetsService {
                         : BigDecimal.valueOf(infoTick.getAsk()).setScale(5, RoundingMode.HALF_DOWN);
 
                 BigDecimal unrealizedPnl = unrealizedPnlCalculator.calculate(userInstrument.getId(), currentRate).getResult();
+                balanceWithCoverageUsd = balanceWithCoverageUsd.add(unrealizedPnl);
 
                 // unrealized PnL
                 RowData data1 = new RowData()
@@ -236,10 +252,14 @@ public class GoogleSheetsService {
                                 new CellData()
                                         .setUserEnteredValue(
                                                 new ExtendedValue().setStringValue("Нереализованная курсовая разница %s".formatted(instrument.getLabel()))
+                                        ).setUserEnteredFormat(
+                                                new CellFormat().setBackgroundColor(color)
                                         ),
                                 new CellData()
                                         .setUserEnteredValue(
                                                 new ExtendedValue().setNumberValue(unrealizedPnl.setScale(2, RoundingMode.HALF_DOWN).doubleValue())
+                                        ).setUserEnteredFormat(
+                                                new CellFormat().setBackgroundColor(color).setTextFormat(new TextFormat().setBold(true).setFontSize(12))
                                         )
                         ));
                 RowData data2 = new RowData()
@@ -269,11 +289,32 @@ public class GoogleSheetsService {
                 .setValues(List.of(
                         new CellData()
                                 .setUserEnteredValue(
-                                        new ExtendedValue().setStringValue("Общий баланс обеспечения")
+                                        new ExtendedValue().setStringValue("Баланс")
+                                ).setUserEnteredFormat(
+                                        new CellFormat().setBackgroundColor(LIGHT_GREEN)
                                 ),
                         new CellData()
                                 .setUserEnteredValue(
-                                        new ExtendedValue().setNumberValue(sumOfAllActionsByUser.setScale(2, RoundingMode.HALF_DOWN).doubleValue())
+                                        new ExtendedValue().setNumberValue(balanceUsd.setScale(2, RoundingMode.HALF_DOWN).doubleValue())
+                                ).setUserEnteredFormat(
+                                        new CellFormat().setBackgroundColor(LIGHT_GREEN).setTextFormat(new TextFormat().setBold(true).setFontSize(12))
+                                )
+                ));
+
+        balanceWithCoverageUsd = balanceWithCoverageUsd.add(balanceUsd);
+        RowData coverageBalanceRow = new RowData()
+                .setValues(List.of(
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setStringValue("Средства (обеспечение):")
+                                ).setUserEnteredFormat(
+                                        new CellFormat().setBackgroundColor(LIGHT_CYAN).setTextFormat(new TextFormat().setFontSize(12))
+                                ),
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setNumberValue(balanceWithCoverageUsd.setScale(2, RoundingMode.HALF_DOWN).doubleValue())
+                                ).setUserEnteredFormat(
+                                        new CellFormat().setBackgroundColor(LIGHT_CYAN).setTextFormat(new TextFormat().setBold(true).setFontSize(12))
                                 )
                 ));
         updateRequests.add(
@@ -283,7 +324,7 @@ public class GoogleSheetsService {
                                 .setRowIndex(1)
                                 .setSheetId(commonSheetId)
                                 .setColumnIndex(0))
-                        .setRows(List.of(commonBalanceRow))
+                        .setRows(List.of(coverageBalanceRow, new RowData(), new RowData(), commonBalanceRow))
         );
 
         nextRowIndex+=3;
@@ -292,6 +333,14 @@ public class GoogleSheetsService {
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setStringValue("Депозиты/Выводы")
+                                ).setUserEnteredFormat(
+                                        new CellFormat().setBackgroundColor(LIGHT_PURPLE)
+                                ),
+                        new CellData()
+                                .setUserEnteredValue(
+                                        new ExtendedValue().setStringValue("")
+                                ).setUserEnteredFormat(
+                                        new CellFormat().setBackgroundColor(LIGHT_PURPLE)
                                 )
                 ));
         updateRequests.add(
@@ -322,6 +371,8 @@ public class GoogleSheetsService {
                                 new CellData()
                                         .setUserEnteredValue(
                                                 new ExtendedValue().setNumberValue(userBalanceAction.getAmountForGoogleSheet().setScale(2, RoundingMode.HALF_DOWN).doubleValue())
+                                        ).setUserEnteredFormat(
+                                                new CellFormat().setTextFormat(new TextFormat().setBold(true).setFontSize(12))
                                         )
                         ))).toList();
                 googleSheetsApiService.updateCells(
