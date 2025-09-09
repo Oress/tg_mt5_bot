@@ -55,8 +55,8 @@ public class HedgeLabels {
                 
                 Операция: %s
                 Инструмент: %s
-                Сколько: %s %s
-                Приблизительный курс: %s
+                Сколько: *%s %s*
+                Приблизительный курс: *%s*
                 """.formatted(
                 operation,
                 instrument,

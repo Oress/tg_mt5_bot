@@ -59,8 +59,8 @@ public class UnrealizedPnlCalculator {
             BigDecimal cadAmount = openPosition.getRemainingAmount();
 
             BigDecimal unrealizedPnlPerPosition = cadAmount.multiply(
-                    BigDecimal.ONE.divide(currentUsdCadRate, 8, RoundingMode.HALF_DOWN)
-                            .subtract(BigDecimal.ONE.divide(usdCadRate, 8, RoundingMode.HALF_DOWN)));
+                    BigDecimal.ONE.divide(usdCadRate, 8, RoundingMode.HALF_DOWN)
+                            .subtract(BigDecimal.ONE.divide(currentUsdCadRate, 8, RoundingMode.HALF_DOWN)));
 
             result = result.add(unrealizedPnlPerPosition);
         }

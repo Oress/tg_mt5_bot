@@ -120,6 +120,7 @@ public class HedgeViews {
                         unit,
                         price == null ? "N/A" : BigDecimal.valueOf(price).setScale(5, RoundingMode.HALF_DOWN).toString())
                 )
+                .parseMode("MARKDOWN")
                 .replyMarkup(orderPreviewMarkup())
                 .build();
         tgClient.execute(message);
