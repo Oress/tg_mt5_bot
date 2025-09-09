@@ -60,6 +60,7 @@ public class GoogleSheetsService {
     public static final Color LIGHT_PURPLE = new Color().setRed(0.5546f).setGreen(0.4843f).setBlue(0.7617f);
     public static final Color COLOR_BLACK = new Color().setRed(0f).setGreen(0f).setBlue(0f);
     public static final int BORDER_WIDTH = 1;
+    public static final CellFormat CURRENCY_FORMAT = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("#,##0.00"));
 
     private final GoogleSheetsConfig config;
     private final UserRepo userRepo;
@@ -452,7 +453,6 @@ public class GoogleSheetsService {
         String depTotalInnerPart = "%s+J:J+%s".formatted(relCell(0, -1), relCell(+1, -1));
         String depTotalOuterPart = "=%s".formatted(isFirstRow("J:J", depTotalInnerPart));
 
-        CellFormat currencyFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("# ##0.00"));
         CellFormat numberFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("0.00000"));
         return new RowData()
                 .setValues(List.of(
@@ -465,9 +465,7 @@ public class GoogleSheetsService {
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setNumberValue(euroAmount.doubleValue())
-                                ).setUserEnteredFormat(
-                                        currencyFormat
-                                ),
+                                ).setUserEnteredFormat(CURRENCY_FORMAT),
                         // Фикс
                         new CellData()
                                 .setUserEnteredValue(
@@ -479,9 +477,7 @@ public class GoogleSheetsService {
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue("=IF(B:B<>0,B:B*C:C,\"\")")
-                                ).setUserEnteredFormat(
-                                        currencyFormat
-                                ),
+                                ).setUserEnteredFormat(CURRENCY_FORMAT),
                         // Ком. процент
                         new CellData()
                                 .setUserEnteredValue(
@@ -493,14 +489,12 @@ public class GoogleSheetsService {
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue("=IF(D:D<0,D:D*-E:E%,\"\")")
-                                ).setUserEnteredFormat(
-                                        currencyFormat
-                                ),
+                                ).setUserEnteredFormat(CURRENCY_FORMAT),
                         // В позиции
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue("=B:B+%s".formatted(isFirstRow("0", relCell(0, -1))))
-                                ).setUserEnteredFormat(currencyFormat),
+                                ).setUserEnteredFormat(CURRENCY_FORMAT),
                         // Rate
                         new CellData()
                                 .setUserEnteredValue(
@@ -510,17 +504,17 @@ public class GoogleSheetsService {
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue("=IF(B:B>0,-B:B*(C:C-H:H),\"\")")
-                                ).setUserEnteredFormat(currencyFormat),
+                                ).setUserEnteredFormat(CURRENCY_FORMAT),
                         // Deposit
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue("=IF(B:B>0,-B:B*(C:C-H:H),-F:F)")
-                                ).setUserEnteredFormat(currencyFormat),
+                                ).setUserEnteredFormat(CURRENCY_FORMAT),
                         // Balance
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue(depTotalOuterPart)
-                                ).setUserEnteredFormat(currencyFormat)
+                                ).setUserEnteredFormat(CURRENCY_FORMAT)
                 ));
     }
 
@@ -534,7 +528,6 @@ public class GoogleSheetsService {
         String depTotalInnerPart = "%s+J:J+%s".formatted(relCell(0, -1), relCell(+1, -1));
         String depTotalOuterPart = "=%s".formatted(isFirstRow("J:J", depTotalInnerPart));
 
-        CellFormat currencyFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("# ##0.00"));
         CellFormat numberFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("0.00000"));
         return new RowData()
                 .setValues(List.of(
@@ -547,9 +540,7 @@ public class GoogleSheetsService {
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setNumberValue(cadAmount.doubleValue())
-                                ).setUserEnteredFormat(
-                                        currencyFormat
-                                ),
+                                ).setUserEnteredFormat(CURRENCY_FORMAT),
                         // Фикс
                         new CellData()
                                 .setUserEnteredValue(
@@ -561,9 +552,7 @@ public class GoogleSheetsService {
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue("=IF(B:B<>0,B:B/C:C,\"\")")
-                                ).setUserEnteredFormat(
-                                        currencyFormat
-                                ),
+                                ).setUserEnteredFormat(CURRENCY_FORMAT),
                         // Ком. процент
                         new CellData()
                                 .setUserEnteredValue(
@@ -575,16 +564,12 @@ public class GoogleSheetsService {
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue("=IF(D:D<0,D:D*-E:E%,\"\")")
-                                ).setUserEnteredFormat(
-                                        currencyFormat
-                                ),
+                                ).setUserEnteredFormat(CURRENCY_FORMAT),
                         // Захеджировано
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue("=B:B+%s".formatted(isFirstRow("0", relCell(0, -1))))
-                                ).setUserEnteredFormat(
-                                        currencyFormat
-                                ),
+                                ).setUserEnteredFormat(CURRENCY_FORMAT),
                         // Rate
                         new CellData()
                                 .setUserEnteredValue(
@@ -594,17 +579,17 @@ public class GoogleSheetsService {
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue("=IF(B:B>0,(C:C/H:H-1)*B:B/C:C,\"\")")
-                                ).setUserEnteredFormat(currencyFormat),
+                                ).setUserEnteredFormat(CURRENCY_FORMAT),
                         // Deposit
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue("=IF(B:B>0,(C:C/H:H-1)*B:B/C:C,-F:F)")
-                                ).setUserEnteredFormat(currencyFormat),
+                                ).setUserEnteredFormat(CURRENCY_FORMAT),
                         // Balance
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue(depTotalOuterPart)
-                                ).setUserEnteredFormat(currencyFormat)
+                                ).setUserEnteredFormat(CURRENCY_FORMAT)
                 ));
     }
 
