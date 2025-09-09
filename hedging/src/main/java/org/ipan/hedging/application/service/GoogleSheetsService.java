@@ -65,6 +65,9 @@ public class GoogleSheetsService {
     public static final int BORDER_WIDTH = 1;
     public static final CellFormat CURRENCY_FORMAT = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("#,##0.00"));
     public static final CellFormat CURRENCY_FORMAT_INT = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("#,##0"));
+    public static final CellFormat NUMBER_FORMAT_5DIGITS = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("0.00000"));
+    public static final CellFormat NUMBER_FORMAT_7DIGITS = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("0.0000000"));
+
 
     private final GoogleSheetsConfig config;
     private final UserRepo userRepo;
@@ -476,7 +479,6 @@ public class GoogleSheetsService {
         String depTotalInnerPart = "%s+J:J+%s".formatted(relCell(0, -1), relCell(+1, -1));
         String depTotalOuterPart = "=%s".formatted(isFirstRow("J:J", depTotalInnerPart));
 
-        CellFormat numberFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("0.00000"));
         return new RowData()
                 .setValues(List.of(
                         // Дата
@@ -494,7 +496,7 @@ public class GoogleSheetsService {
                                 .setUserEnteredValue(
                                         new ExtendedValue().setNumberValue(order.getPrice().doubleValue())
                                 ).setUserEnteredFormat(
-                                        numberFormat
+                                        NUMBER_FORMAT_5DIGITS
                                 ),
                         // USDT
                         new CellData()
@@ -522,7 +524,7 @@ public class GoogleSheetsService {
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue(rateOuterPart)
-                                ).setUserEnteredFormat(numberFormat),
+                                ).setUserEnteredFormat(NUMBER_FORMAT_7DIGITS),
                         // PnL
                         new CellData()
                                 .setUserEnteredValue(
@@ -551,7 +553,6 @@ public class GoogleSheetsService {
         String depTotalInnerPart = "%s+J:J+%s".formatted(relCell(0, -1), relCell(+1, -1));
         String depTotalOuterPart = "=%s".formatted(isFirstRow("J:J", depTotalInnerPart));
 
-        CellFormat numberFormat = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("0.00000"));
         return new RowData()
                 .setValues(List.of(
                         // Дата
@@ -568,9 +569,7 @@ public class GoogleSheetsService {
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setNumberValue(order.getPrice().doubleValue())
-                                ).setUserEnteredFormat(
-                                        numberFormat
-                                ),
+                                ).setUserEnteredFormat(NUMBER_FORMAT_5DIGITS),
                         // USDT
                         new CellData()
                                 .setUserEnteredValue(
@@ -597,7 +596,7 @@ public class GoogleSheetsService {
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setFormulaValue(rateOuterPart)
-                                ).setUserEnteredFormat(numberFormat),
+                                ).setUserEnteredFormat(NUMBER_FORMAT_7DIGITS),
                         // PnL
                         new CellData()
                                 .setUserEnteredValue(
