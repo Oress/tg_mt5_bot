@@ -806,7 +806,7 @@ public class GoogleSheetsService {
 
     private static final List<ColumnDefinition> EUR_USD_COLUMNS = List.of(
             new ColumnDefinition("Дата (UTC)", "COLUMN_TYPE_UNSPECIFIED"),
-            new ColumnDefinition("Сумма", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Сумма EUR", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Фикс", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("USDT", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Ком. процент", "COLUMN_TYPE_UNSPECIFIED"),
@@ -825,7 +825,7 @@ public class GoogleSheetsService {
             new ColumnDefinition("USDT", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Ком. процент", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Ком.", "COLUMN_TYPE_UNSPECIFIED"),
-            new ColumnDefinition("В позиции", "COLUMN_TYPE_UNSPECIFIED"),
+            new ColumnDefinition("Захеджировано", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Ставка", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Реализ. курсовая", "COLUMN_TYPE_UNSPECIFIED"),
             new ColumnDefinition("Депозит", "COLUMN_TYPE_UNSPECIFIED"),
