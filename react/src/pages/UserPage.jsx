@@ -403,7 +403,8 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
     <div>
       {/* Ownership Info */}
       <Space size="small" style={{ marginBottom: '24px' }}>
-        <Descriptions
+        {/*Mobile version*/}
+        <Descriptions className="sm:hidden"
           title={<Typography.Title level={4}>Информация об инструменте</Typography.Title>}
           size="small"
         >
@@ -413,11 +414,56 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
           <Descriptions.Item label="Баланс USD">
             {selectedInstrument.balance !== null ? formatCurrency(selectedInstrument.balance) : "Нет данных"}
           </Descriptions.Item>
+          <Descriptions.Item label="Нериализованный PnL Клиента">
+            {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profit) : "Нет данных")}
+          </Descriptions.Item>
+
+          <Divider />
+
           <Descriptions.Item label={`Swap`}>
             {formatCurrency(selectedInstrument.swap)}
           </Descriptions.Item>
+          <Descriptions.Item label="PnL Сервиса">
+            {loadingServicePnL ? "Загрузка..." : (servicePnL !== null ? formatCurrency(servicePnL.profit) : "Нет данных")}
+          </Descriptions.Item>
+          <Descriptions.Item label="Нериализованный PnL Сервиса">
+            {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profitHouse) : "Нет данных")}
+          </Descriptions.Item>
           <Descriptions.Item label={`${selectedInstrument.base} Сервиса`}>
             {formatCurrency(selectedInstrument.houseOwnedBaseAmount, selectedInstrument.base)}
+          </Descriptions.Item>
+
+          <Divider />
+
+          <Descriptions.Item label="Процент комиссии">
+            {selectedInstrument.commissionPercentage}%
+          </Descriptions.Item>
+          <Descriptions.Item label="Текущий курс">
+            {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? unrealizedPnL.rate : "Нет данных")}
+          </Descriptions.Item>
+          <Descriptions.Item label="Разница с МТ5">
+            {formatCurrency(selectedInstrument.diffWithMt5)}
+          </Descriptions.Item>
+        </Descriptions>
+
+        {/*Desktop version*/}
+        <Descriptions className="hidden sm:block"
+          title={<Typography.Title level={4}>Информация об инструменте</Typography.Title>}
+          size="small"
+        >
+          <Descriptions.Item label={`${selectedInstrument.base} Клиента`}>
+            {formatCurrency(selectedInstrument.clientOwnedBaseAmount, selectedInstrument.base)}
+          </Descriptions.Item>
+          <Descriptions.Item label={`Swap`}>
+            {formatCurrency(selectedInstrument.swap)}
+          </Descriptions.Item>
+          <Descriptions.Item label="Процент комиссии">
+            {selectedInstrument.commissionPercentage}%
+          </Descriptions.Item>
+
+
+          <Descriptions.Item label="Баланс USD">
+            {selectedInstrument.balance !== null ? formatCurrency(selectedInstrument.balance) : "Нет данных"}
           </Descriptions.Item>
           <Descriptions.Item label="PnL Сервиса">
             {loadingServicePnL ? "Загрузка..." : (servicePnL !== null ? formatCurrency(servicePnL.profit) : "Нет данных")}
@@ -425,17 +471,21 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
           <Descriptions.Item label="Текущий курс">
             {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? unrealizedPnL.rate : "Нет данных")}
           </Descriptions.Item>
+
+
           <Descriptions.Item label="Нериализованный PnL Клиента">
             {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profit) : "Нет данных")}
           </Descriptions.Item>
           <Descriptions.Item label="Нериализованный PnL Сервиса">
             {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profitHouse) : "Нет данных")}
           </Descriptions.Item>
-          <Descriptions.Item label="Процент комиссии">
-            {selectedInstrument.commissionPercentage}%
-          </Descriptions.Item>
           <Descriptions.Item label="Разница с МТ5">
             {formatCurrency(selectedInstrument.diffWithMt5)}
+          </Descriptions.Item>
+
+          <Descriptions.Item label=""></Descriptions.Item>
+          <Descriptions.Item label={`${selectedInstrument.base} Сервиса`}>
+            {formatCurrency(selectedInstrument.houseOwnedBaseAmount, selectedInstrument.base)}
           </Descriptions.Item>
         </Descriptions>
       </Space>
@@ -503,27 +553,29 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
       <div>
         {/* Ownership Info */}
         <Space size="small" style={{ marginBottom: '24px' }}>
-          <Descriptions
-            title={<Typography.Title level={4}>Информация об инструменте</Typography.Title>}
-            size="small"
+
+          {/* Mobile version */}
+          <Descriptions className="sm:hidden"
+                        title={<Typography.Title level={4}>Информация об инструменте</Typography.Title>}
+                        size="small"
           >
             <Descriptions.Item label={`${selectedInstrument.quote} Клиента`}>
               {formatCurrency(selectedInstrument.clientOwnedQuoteAmount, selectedInstrument.quote)}
             </Descriptions.Item>
-            <Descriptions.Item label="Баланс USD">
-              {selectedInstrument.balance !== null ? formatCurrency(selectedInstrument.balance) : "Нет данных"}
-            </Descriptions.Item>
             <Descriptions.Item label={`${selectedInstrument.base} эквивалент Клиента`}>
               {formatCurrency(selectedInstrument.clientOwnedBaseAmount, selectedInstrument.base)}
             </Descriptions.Item>
-            <Descriptions.Item label={`Swap`}>
-              {formatCurrency(selectedInstrument.swap)}
+            <Descriptions.Item label="Баланс USD">
+              {selectedInstrument.balance !== null ? formatCurrency(selectedInstrument.balance) : "Нет данных"}
             </Descriptions.Item>
             <Descriptions.Item label="Нериализованный PnL Клиента">
               {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profit) : "Нет данных")}
             </Descriptions.Item>
-            <Descriptions.Item label={`${selectedInstrument.base} Сервиса`}>
-              {formatCurrency(selectedInstrument.houseOwnedBaseAmount, selectedInstrument.base)}
+
+            <Divider />
+
+            <Descriptions.Item label={`Swap`}>
+              {formatCurrency(selectedInstrument.swap)}
             </Descriptions.Item>
             <Descriptions.Item label="PnL Сервиса">
               {loadingServicePnL ? "Загрузка..." : (servicePnL !== null ? formatCurrency(servicePnL.profit) : "Нет данных")}
@@ -531,14 +583,65 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
             <Descriptions.Item label="Нериализованный PnL Сервиса">
               {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profitHouse) : "Нет данных")}
             </Descriptions.Item>
+            <Descriptions.Item label={`${selectedInstrument.base} Сервиса`}>
+              {formatCurrency(selectedInstrument.houseOwnedBaseAmount, selectedInstrument.base)}
+            </Descriptions.Item>
+
+            <Divider />
+
+            <Descriptions.Item label="Процент комиссии">
+              {selectedInstrument.commissionPercentage}%
+            </Descriptions.Item>
             <Descriptions.Item label="Текущий курс">
               {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? unrealizedPnL.rate : "Нет данных")}
+            </Descriptions.Item>
+            <Descriptions.Item label="Разница с МТ5">
+              {formatCurrency(selectedInstrument.diffWithMt5)}
+            </Descriptions.Item>
+          </Descriptions>
+
+          {/* Desktop version */}
+          <Descriptions className="hidden sm:block"
+            title={<Typography.Title level={4}>Информация об инструменте</Typography.Title>}
+            size="small"
+          >
+            <Descriptions.Item label={`${selectedInstrument.quote} Клиента`}>
+              {formatCurrency(selectedInstrument.clientOwnedQuoteAmount, selectedInstrument.quote)}
+            </Descriptions.Item>
+            <Descriptions.Item label={`Swap`}>
+              {formatCurrency(selectedInstrument.swap)}
             </Descriptions.Item>
             <Descriptions.Item label="Процент комиссии">
               {selectedInstrument.commissionPercentage}%
             </Descriptions.Item>
+
+            <Descriptions.Item label={`${selectedInstrument.base} эквивалент Клиента`}>
+              {formatCurrency(selectedInstrument.clientOwnedBaseAmount, selectedInstrument.base)}
+            </Descriptions.Item>
+            <Descriptions.Item label="PnL Сервиса">
+              {loadingServicePnL ? "Загрузка..." : (servicePnL !== null ? formatCurrency(servicePnL.profit) : "Нет данных")}
+            </Descriptions.Item>
+            <Descriptions.Item label="Текущий курс">
+              {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? unrealizedPnL.rate : "Нет данных")}
+            </Descriptions.Item>
+
+            
+            <Descriptions.Item label="Баланс USD">
+              {selectedInstrument.balance !== null ? formatCurrency(selectedInstrument.balance) : "Нет данных"}
+            </Descriptions.Item>
+            <Descriptions.Item label="Нериализованный PnL Сервиса">
+              {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profitHouse) : "Нет данных")}
+            </Descriptions.Item>
             <Descriptions.Item label="Разница с МТ5">
               {formatCurrency(selectedInstrument.diffWithMt5)}
+            </Descriptions.Item>
+
+
+            <Descriptions.Item label="Нериализованный PnL Клиента">
+              {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profit) : "Нет данных")}
+            </Descriptions.Item>
+            <Descriptions.Item label={`${selectedInstrument.base} Сервиса`}>
+              {formatCurrency(selectedInstrument.houseOwnedBaseAmount, selectedInstrument.base)}
             </Descriptions.Item>
           </Descriptions>
         </Space>
