@@ -79,11 +79,11 @@ public class HedgeLabels {
     }
 
     public String sell() {
-        return "\uD83D\uDD3D Продать";
+        return "\uD83D\uDCC8 Продать";
     }
 
     public String buy() {
-        return "\uD83D\uDD3C Купить";
+        return "\uD83D\uDCC9  Купить";
     }
 
     public String minAmountWarning(Double minAmount) {
