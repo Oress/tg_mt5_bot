@@ -200,6 +200,19 @@ public class HedgeViews {
     }
 
     @SneakyThrows
+    public void admin_as_client_noInstruments(UserState adminUserState, AppUser user) {
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(adminUserState.getChatId())
+                .messageId(adminUserState.getMenuMessageId())
+                .text("⚠️ У данного пользователя нет доступных инструментов для хеджирования.")
+                .replyMarkup(commonViews.getToMainMenuMarkup())
+                .build();
+        tgClient.execute(message);
+    }
+
+
+    @SneakyThrows
     public void orderFailed(UserState userState) {
         EditMessageText message = EditMessageText
                 .builder()
@@ -240,6 +253,43 @@ public class HedgeViews {
                         price,
                         FormattingTools.formatPrice(totalHedged),
                         unit
+                        )
+                )
+                .build();
+        tgClient.execute(message);
+    }
+
+    @SneakyThrows
+    public void admin_as_client_successOrder(UserState userState, String orderId, String date, String operation,
+                                             String instrument, BigDecimal userAmount, String price, BigDecimal totalHedged,
+                                             String unit, String targetUser) {
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(userState.getChatId())
+                .messageId(userState.getMenuMessageId())
+                .parseMode("MARKDOWN")
+                .text("""
+                                ✅Ордер размещен (Админ от лица %s)
+                                
+                                %s
+                                Статус: *исполнен*
+                                Дата: %s
+                                Операция: %s
+                                Инструмент: %s
+                                
+                                Сумма: *%s*
+                                Цена: *%s*
+                                Захеджировано всего: *%s %s*
+                                """.formatted(
+                                targetUser,
+                                orderId,
+                                date,
+                                ParseUtils.escapeMarkdown(operation),
+                                instrument,
+                                FormattingTools.formatPrice(userAmount),
+                                price,
+                                FormattingTools.formatPrice(totalHedged),
+                                unit
                         )
                 )
                 .build();
@@ -354,5 +404,4 @@ public class HedgeViews {
                                         .build()))
                 .build();
     }
-
 }

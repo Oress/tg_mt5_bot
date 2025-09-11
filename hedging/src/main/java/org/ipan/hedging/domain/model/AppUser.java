@@ -28,7 +28,7 @@ public class AppUser {
     private Set<AppUserInstrument> availableInstruments = new HashSet<>();
 
     @Column(name = "balance_usd")
-    private BigDecimal balanceUsd;
+    private BigDecimal balanceUsd = BigDecimal.ZERO;
 
     @Column(name = "dashboard_pwd")
     private String dashboardPwd;

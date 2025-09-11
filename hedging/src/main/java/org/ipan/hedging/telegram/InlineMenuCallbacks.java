@@ -37,6 +37,7 @@ public class InlineMenuCallbacks {
     public static final String MANAGE_USER_ACTION_CHANGE_GERCHIK_CREDS = "manage_user_action_change_gerchik_creds";
     public static final String SYNC_WITH_GOOGLE_SHEET = "sync_with_google_sheet";
     public static final String GENERATE_DASHBOARD_PWD = "generate_dashboard_pwd";
+    public static final String EXECUTE_ORDER_AS_CLIENT = "execute_order_as_client";
 
     // menu actions
     public static final String MENU_SHOW_INFO = "menu_show_info";

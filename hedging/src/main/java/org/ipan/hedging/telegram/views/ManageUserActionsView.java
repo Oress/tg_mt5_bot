@@ -274,6 +274,13 @@ public class ManageUserActionsView {
                             new InlineKeyboardRow(
                                     InlineKeyboardButton
                                             .builder()
+                                            .text("Выполнить ордер от лица пользователя")
+                                            .callbackData(InlineMenuCallbacks.EXECUTE_ORDER_AS_CLIENT)
+                                            .build()))
+                    .keyboardRow(
+                            new InlineKeyboardRow(
+                                    InlineKeyboardButton
+                                            .builder()
                                             .text("🔑 Сгенерировать новый пароль для дашборда")
                                             .callbackData(InlineMenuCallbacks.GENERATE_DASHBOARD_PWD)
                                             .build()))

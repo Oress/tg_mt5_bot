@@ -247,7 +247,7 @@ public class TelegramMessages {
         }).collect(Collectors.joining("\n"));
 
         List<String> balances = new ArrayList<>();
-        BigDecimal commonBalance = user.getBalanceUsd();
+        BigDecimal commonBalance = user.getBalanceUsd() != null ? user.getBalanceUsd() : BigDecimal.ZERO;
         BigDecimal coverage = BigDecimal.ZERO;
 
         if (payload.cadBalance != null) {

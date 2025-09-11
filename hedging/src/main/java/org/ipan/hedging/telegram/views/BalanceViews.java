@@ -44,6 +44,18 @@ public class BalanceViews {
     }
 
     @SneakyThrows
+    public void admin_as_client_noAccount(UserState adminUserState, AppUser user) {
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(adminUserState.getChatId())
+                .messageId(adminUserState.getMenuMessageId())
+                .text("У данного пользователя нет доступа.")
+                .replyMarkup(commonViews.getToMainMenuMarkup())
+                .build();
+        tgClient.execute(message);
+    }
+
+    @SneakyThrows
     public void showBalance(UserState userState, AppUser user) {
         String positionsStr = user.getAvailableInstruments().stream().filter(i -> i.getActive()).map(userInstrument -> {
 //            Mt5ServiceImpl.SymbolInfo symbolInfo = mt5Service.symbolInfo(user, tp.getSymbol());
@@ -92,4 +104,5 @@ public class BalanceViews {
                 .build();
         tgClient.execute(message);
     }
+
 }
