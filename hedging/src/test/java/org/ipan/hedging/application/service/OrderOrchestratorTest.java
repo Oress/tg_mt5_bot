@@ -708,8 +708,8 @@ class OrderOrchestratorTest {
         Mt5ServiceImpl.OrderDetails orderDetails1 = createMockOrderDetails(price, volume1);
 
         when(mt5Service.getInfoTick(any(), any())).thenReturn(infoTick);
-        when(mt5Service.placeLongOrder(any(),any(),any(), any())).thenReturn(orderDetails1);
-        when(mt5Service.placeShortOrder(any(),any(), any(), any())).thenReturn(orderDetails1);
+        when(mt5Service.placeLongOrder(any(),any(),any(), any(), any())).thenReturn(orderDetails1);
+        when(mt5Service.placeShortOrder(any(),any(), any(), any(), any())).thenReturn(orderDetails1);
         return orderOrchestrator.placeOrder(command);
     }
 
@@ -730,8 +730,8 @@ class OrderOrchestratorTest {
         Mt5ServiceImpl.OrderDetails orderDetails1 = createMockFailedOrderDetails(price, volume1);
 
         when(mt5Service.getInfoTick(any(), any())).thenReturn(infoTick);
-        when(mt5Service.placeLongOrder(any(),any(),any(), any())).thenReturn(orderDetails1);
-        when(mt5Service.placeShortOrder(any(),any(), any(), any())).thenReturn(orderDetails1);
+        when(mt5Service.placeLongOrder(any(), any(),any(),any(), any())).thenReturn(orderDetails1);
+        when(mt5Service.placeShortOrder(any(), any(),any(), any(), any())).thenReturn(orderDetails1);
         return orderOrchestrator.placeOrder(command);
     }
 
@@ -752,8 +752,8 @@ class OrderOrchestratorTest {
         Mt5ServiceImpl.OrderDetails orderDetails1 = createMockOrderDetails(price, volume1);
 
         when(mt5Service.getInfoTick(any(), any())).thenReturn(infoTick);
-        when(mt5Service.placeLongOrder(any(),any(),any(), any())).thenReturn(orderDetails1);
-        when(mt5Service.placeShortOrder(any(),any(), any(), any())).thenReturn(orderDetails1);
+        when(mt5Service.placeLongOrder(any(), any(),any(),any(), any())).thenReturn(orderDetails1);
+        when(mt5Service.placeShortOrder(any(), any(),any(), any(), any())).thenReturn(orderDetails1);
         return orderOrchestrator.placeOrder(command);
     }
 
