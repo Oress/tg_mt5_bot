@@ -32,6 +32,9 @@ public class AppUserInstrument {
     @Column(name = "sheet_id")
     private Integer sheetId;
 
+    @Column(name = "mt_last_order_id")
+    private Long mt5LastOrderId;
+
     private Boolean active = Boolean.FALSE;
 
     @Column(name = "commission_percentage")

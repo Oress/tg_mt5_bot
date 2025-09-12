@@ -92,7 +92,9 @@ public class BalanceViews {
                         %s
                         
                         """.formatted(
-                            user.getGoogleSheetId() != null ? "https://docs.google.com/spreadsheets/d/" + user.getGoogleSheetId() : null,
+                            user.getGoogleSheetId() != null
+                                    ? "[https://docs.google.com/spreadsheets/d/%s](Link)".formatted(user.getGoogleSheetId())
+                                    : "-",
                             positionsStr))
                 .replyMarkup(commonViews.getToMainMenuMarkup())
                 .build();

@@ -82,30 +82,10 @@ public class OrderOrchestrator {
 
             try {
                 if (command.isBuy()) {
-                    orderDetails = mt5Service.placeLongOrder(user, command.getTicket(), symbol, volumeDouble);
+                    orderDetails = mt5Service.placeLongOrder(user, command.getTicket(), symbol, volumeDouble, order.getMt5CorrelationId());
                 } else {
-                    orderDetails = mt5Service.placeShortOrder(user, command.getTicket(), symbol, volumeDouble);
+                    orderDetails = mt5Service.placeShortOrder(user, command.getTicket(), symbol, volumeDouble, order.getMt5CorrelationId());
                 }
-
-            Mt5ServiceImpl.InfoTick actualPrice = new Mt5ServiceImpl.InfoTick();
-            actualPrice.setAsk(orderDetails.getPrice());
-            actualPrice.setBid(orderDetails.getPrice());
-
-            // TODO: compare actual and estimated volumes.
-            // Assuming that rate cannot change drastically during the order placement, it should be fine.
-            // We should get the same volume as estimated, with possibly slightly different base amounts(in case of Long mode).
-
-            VolumeCalculation actualVolumeCalculation = volumeCalculationService.calculate(
-                VolumeCalculationParams.builder()
-                        .isBuy(command.isBuy())
-                        .userId(command.getUserId())
-                        .instrument(instrument)
-                        .userInstrument(userInstrument)
-                        .userAmount(command.getUserAmount())
-                        .tradeContractSize(symbolInfo.getTrade_contract_size())
-                        .tick(actualPrice)
-                        .build()
-                );
 
                 if (orderDetails == null) {
                     log.error("Failed to CLOSE short order for user: {}, symbol: {}, userAmount: {}", command.getUserId(), command.getInstrumentLabel(), command.getUserAmount());
@@ -115,14 +95,57 @@ public class OrderOrchestrator {
                     // TODO: for now runtime ex. but later replace it with custom exceptions
                     throw new OrderPlaceMt5ErrorException();
                 }
+
+                // Position can be null if we terminate it, so we need to save it somewhere and use it as a backup.
+                Mt5ServiceImpl.TradePos tradePos = mt5Service.positionsGet(user, symbol);
+                Long activeOrder;
+
+                if (tradePos != null) {
+                    activeOrder = tradePos.getTicket();
+                    userInstrument.setMt5LastOrderId(tradePos.getTicket());
+                    appUserInstrumentRepository.save(userInstrument);
+                } else {
+                    // most likely the position was closed so we need to get the last position from the history
+                    activeOrder = userInstrument.getMt5LastOrderId();
+                }
+
+                List<Mt5ServiceImpl.TradeDeal> orderHistory = mt5Service.getOrderHistory(user, null, activeOrder);
+                String correlationId = order.getMt5CorrelationId();
+                Mt5ServiceImpl.TradeDeal tradeDeal = orderHistory.stream().filter(td -> correlationId.equals(td.getComment())).findFirst().orElse(null);
+
+                if (tradeDeal == null) {
+                    log.error("Cannot find trade deal for user: {}, symbol: {}, userAmount: {}, orderHistory: {}", command.getUserId(), command.getInstrumentLabel(), command.getUserAmount(), orderHistory);
+                }
+
+                Mt5ServiceImpl.InfoTick actualPrice = new Mt5ServiceImpl.InfoTick();
+                actualPrice.setAsk(tradeDeal.getPrice());
+                actualPrice.setBid(tradeDeal.getPrice());
+
+                // TODO: compare actual and estimated volumes.
+                // Assuming that rate cannot change drastically during the order placement, it should be fine.
+                // We should get the same volume as estimated, with possibly slightly different base amounts(in case of Long mode).
+                VolumeCalculation actualVolumeCalculation = volumeCalculationService.calculate(
+                        VolumeCalculationParams.builder()
+                                .isBuy(command.isBuy())
+                                .userId(command.getUserId())
+                                .instrument(instrument)
+                                .userInstrument(userInstrument)
+                                .userAmount(command.getUserAmount())
+                                .tradeContractSize(symbolInfo.getTrade_contract_size())
+                                .tick(actualPrice)
+                                .build()
+                );
+
                 // 3. update order status to COMPLETE and calculate balances of user and the house
-                order = orderService.completeOrder(order.getId(), orderDetails, actualVolumeCalculation);
+                order = orderService.completeOrder(order.getId(), orderDetails, tradeDeal, actualVolumeCalculation);
 //                reportingCalculationService.recalculateAllForUserInstrument(userInstrument.getId());
                 reportingCalculationService.calculateForOrder(order.getId());
 
+/*
                 if (orderMt5InfoFetcherService.isPresent()) {
                     orderMt5InfoFetcherService.get().fetchInfoForOrderAsync(order.getId());
                 }
+*/
                 successful = true;
             } catch (Exception e) {
                 successful = false;

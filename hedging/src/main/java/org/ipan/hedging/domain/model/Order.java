@@ -26,6 +26,9 @@ public class Order {
 
     private UUID correlationId;
 
+    @Column(name = "mt5_correlation_id")
+    private String mt5CorrelationId;
+
     @ManyToOne
     @JoinColumn(name = "user_instrument_id")
     private AppUserInstrument userInstrument;

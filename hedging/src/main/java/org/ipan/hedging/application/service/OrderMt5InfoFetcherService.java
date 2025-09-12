@@ -50,7 +50,7 @@ public class OrderMt5InfoFetcherService {
 
         AppUser user = order.getUserInstrument().getUser();
         Long ticket = order.getDeal();
-        List<Mt5ServiceImpl.TradeDeal> orderHistory = mt5Service.getOrderHistory(user, ticket);
+        List<Mt5ServiceImpl.TradeDeal> orderHistory = mt5Service.getOrderHistory(user, ticket, order.getDeal());
 
         if (!orderHistory.isEmpty()) {
             Mt5ServiceImpl.TradeDeal deal = orderHistory.get(0);

@@ -43,8 +43,8 @@ public class OrderService {
         order.setType(command.isBuy() ? OrderType.HOUSE_CLIENT_TRANSFER_LONG : OrderType.HOUSE_CLIENT_TRANSFER_SHORT);
         order.setStatus(OrderStatus.COMPLETE);
 
-        order.setAsk(volumeCalculation.getPrice());
-        order.setBid(volumeCalculation.getPrice());
+//        order.setAsk(volumeCalculation.getPrice());
+//        order.setBid(volumeCalculation.getPrice());
         order.setPrice(volumeCalculation.getPrice());
 
         order.setUserEnteredQuoteAmount(BigDecimal.valueOf(command.getUserAmount()));
@@ -89,6 +89,7 @@ public class OrderService {
 
         Order order = new Order();
         order.setCorrelationId(UUID.randomUUID());
+        order.setMt5CorrelationId(Long.toString(System.currentTimeMillis(), 36));
         order.setUserInstrument(userInstrument);
         order.setMt5AccNumber(user.getMt5AccNumber());
         order.setCommissionCoef(userInstrument.getCommissionCoef());
@@ -113,17 +114,26 @@ public class OrderService {
     }
 
     @Transactional
-    public Order completeOrder(Long id, Mt5ServiceImpl.OrderDetails orderDetails, VolumeCalculation volumeCalculation) {
+    public Order completeOrder(Long id, Mt5ServiceImpl.OrderDetails orderDetails, Mt5ServiceImpl.TradeDeal tradeDeal, VolumeCalculation volumeCalculation) {
         Order order = orderRepo.findById(id).get();
-        order.setDeal(orderDetails.getDeal());
-        order.setOrder(orderDetails.getOrder());
-        order.setAsk(BigDecimal.valueOf(orderDetails.getAsk()));
-        order.setBid(BigDecimal.valueOf(orderDetails.getBid()));
-        order.setPrice(BigDecimal.valueOf(orderDetails.getPrice()).setScale(8, RoundingMode.HALF_DOWN));
-        order.setExecutedVolume(BigDecimal.valueOf(orderDetails.getVolume()));
+//        order.setAsk(BigDecimal.valueOf(orderDetails.getAsk()));
+//        order.setBid(BigDecimal.valueOf(orderDetails.getBid()));
+
         order.setMt5RespCode(orderDetails.getRetcode());
         order.setMt5RespComment(orderDetails.getRetcode());
         order.setStatus(OrderStatus.COMPLETE);
+
+        if (!(OrderType.HOUSE_CLIENT_TRANSFER_SHORT.equals(order.getType())
+                || OrderType.HOUSE_CLIENT_TRANSFER_LONG.equals(order.getType()))) {
+            log.info("Fake Order, cannot read Mt5 data for it, order id {}", id);
+            order.setSwap(BigDecimal.valueOf(tradeDeal.getSwap()));
+            order.setMt5Commission(BigDecimal.valueOf(tradeDeal.getCommission()));
+            order.setMt5Profit(BigDecimal.valueOf(tradeDeal.getProfit()));
+            order.setDeal(tradeDeal.getTicket());
+            order.setOrder(tradeDeal.getOrder());
+            order.setPrice(BigDecimal.valueOf(tradeDeal.getPrice()).setScale(8, RoundingMode.HALF_DOWN));
+            order.setExecutedVolume(BigDecimal.valueOf(tradeDeal.getVolume()));
+        }
 
         order.setHouseBaseAmountFrom(volumeCalculation.getOldHouseOwnedBase());
         order.setHouseBaseAmountTo(volumeCalculation.getNewHouseOwnedBase());

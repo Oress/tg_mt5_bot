@@ -182,7 +182,7 @@ public class Mt5ServiceImpl implements Mt5Service {
         }
     }
 
-    public OrderDetails placeLongOrder(AppUser user, Long ticket, String symbol, Double volume) {
+    public OrderDetails placeLongOrder(AppUser user, Long ticket, String symbol, Double volume, String correlationId) {
         lock.lock();
         try {
             UriComponentsBuilder componentsBuilder = UriComponentsBuilder
@@ -195,6 +195,7 @@ public class Mt5ServiceImpl implements Mt5Service {
                     .symbol(symbol)
                     .position_id(ticket)
                     .volume(volume)
+                    .comment(correlationId)
                     .build();
             ResponseEntity<OrderResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, OrderResp.class);
             log.info("placeLongOrder response {}", resp);
@@ -205,7 +206,7 @@ public class Mt5ServiceImpl implements Mt5Service {
         }
     }
 
-    public OrderDetails placeShortOrder(AppUser user, Long ticket, String symbol, Double volume) {
+    public OrderDetails placeShortOrder(AppUser user, Long ticket, String symbol, Double volume, String correlationId) {
         lock.lock();
         try {
             UriComponentsBuilder componentsBuilder = UriComponentsBuilder
@@ -218,6 +219,7 @@ public class Mt5ServiceImpl implements Mt5Service {
                     .symbol(symbol)
                     .position_id(ticket)
                     .volume(volume)
+                    .comment(correlationId)
                     .build();
             ResponseEntity<OrderResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, OrderResp.class);
             log.info("placeShortOrder response {}", resp);
@@ -228,7 +230,7 @@ public class Mt5ServiceImpl implements Mt5Service {
     }
 
     @Override
-    public List<TradeDeal> getOrderHistory(AppUser user, Long ticket) {
+    public List<TradeDeal> getOrderHistory(AppUser user, Long ticket, Long positionId) {
         lock.lock();
         try {
             UriComponentsBuilder componentsBuilder = UriComponentsBuilder
@@ -239,6 +241,8 @@ public class Mt5ServiceImpl implements Mt5Service {
                     .account_number(user.getMt5AccNumber())
                     .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
                     .ticket(ticket)
+                    .position_id(positionId)
+                    .group(null)
                     .build();
             ResponseEntity<HistoryResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, HistoryResp.class);
             log.info("getOrderHistory response {}", resp);
@@ -266,6 +270,7 @@ public class Mt5ServiceImpl implements Mt5Service {
     private static class OrderReq extends GetSymbolReq {
         private Long position_id;
         private Double volume;
+        private String comment; // Comment field is used as correlation Id
     }
 
     @Data
@@ -277,6 +282,8 @@ public class Mt5ServiceImpl implements Mt5Service {
     @Data
     private static class HistoryReq extends GetSymbolReq {
         private Long ticket;
+        private Long position_id;
+        private String group;
     }
 
     @Data
@@ -414,11 +421,11 @@ public class Mt5ServiceImpl implements Mt5Service {
 
     @Data
     public static class TradeDeal {
-        private Double ticket;
-        private Double order;
-        private Double time;
-        private Double time_msc;
-        private Double type;
+        private Long ticket;
+        private Long order;
+        private Long time;
+        private Long time_msc;
+        private Integer type;
         private Double entry;
         private Double magic;
         private Double position_id;

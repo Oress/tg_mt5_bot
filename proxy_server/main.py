@@ -20,7 +20,7 @@ app = Flask(__name__)
 def history_deals():
     data = request.get_json()
     print(data)
-    positions = mt5service.history_deals(data['account_number'], data['password'], data['ticket'])
+    positions = mt5service.history_deals(data['account_number'], data['password'], data['ticket'], data['position_id'], data['group'])
     if hasattr(positions, '__dict__'):
         positions_dict = positions.__dict__
     # If positions is a list/tuple of positions, convert each one
@@ -104,7 +104,7 @@ def positions_get_all():
 def place_short_order():
     data = request.get_json()
     print(data)
-    order_result = mt5service.place_short_order(data['account_number'], data['password'], data['position_id'], data['symbol'], data['volume'])
+    order_result = mt5service.place_short_order(data['account_number'], data['password'], data['position_id'], data['symbol'], data['volume'], data['comment'])
     order_result_dict={}
     if hasattr(order_result, '__dict__'):
         order_result_dict = order_result.__dict__
@@ -119,7 +119,7 @@ def place_short_order():
 def close_short_order():
     data = request.get_json()
     print(data)
-    order_result = mt5service.close_short_order(data['account_number'], data['password'], data['position_id'], data['symbol'], data['volume'])
+    order_result = mt5service.close_short_order(data['account_number'], data['password'], data['position_id'], data['symbol'], data['volume'], data['comment'])
     order_result_dict={}
     if hasattr(order_result, '__dict__'):
         order_result_dict = order_result.__dict__

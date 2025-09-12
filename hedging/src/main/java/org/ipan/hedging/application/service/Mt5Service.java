@@ -14,7 +14,7 @@ public interface Mt5Service {
     List<Mt5ServiceImpl.TradePos> positionsGetAll(AppUser user);
     Double getPriceForShort(AppUser user, String symbol);
     Mt5ServiceImpl.InfoTick getInfoTick(AppUser user, String symbol);
-    Mt5ServiceImpl.OrderDetails placeLongOrder(AppUser user, Long ticket, String symbol, Double volume);
-    Mt5ServiceImpl.OrderDetails placeShortOrder(AppUser user, Long ticket, String symbol, Double volume);
-    List<Mt5ServiceImpl.TradeDeal> getOrderHistory(AppUser user, Long ticket);
+    Mt5ServiceImpl.OrderDetails placeLongOrder(AppUser user, Long ticket, String symbol, Double volume, String correlationId);
+    Mt5ServiceImpl.OrderDetails placeShortOrder(AppUser user, Long ticket, String symbol, Double volume, String correlationId);
+    List<Mt5ServiceImpl.TradeDeal> getOrderHistory(AppUser user, Long ticket, Long positionId);
 }

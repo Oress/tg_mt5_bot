@@ -3,6 +3,8 @@ import os
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import List
+import time
+import datetime
 
 from mt5linux import MetaTrader5
 from AccountType import AccountType
@@ -150,12 +152,19 @@ class MT5Service:
         self.host = host
         self.port = port
 
-    def history_deals(self, account_number: int, pwd: str, ticket: int) -> bool:
+    def history_deals(self, account_number: int, pwd: str, ticket: int, position_id: int, group: str) -> bool:
         try:
+            print('history_deals', ticket, position_id, group)
             with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
-                # history_items=session.history_deals_get(position=position_id)
-                history_items=session.history_deals_get(ticket=ticket)
 
+                if group is not None:
+                    history_items=session.history_deals_get(datetime.datetime.now(), datetime.datetime.now(),group=group)
+                elif ticket is not None:
+                    history_items=session.history_deals_get(ticket=ticket)
+                else:
+                    history_items=session.history_deals_get(position=position_id)
+
+                print(history_items)
                 result = []
                 for hi in history_items:
                     result.append(TradeDeal(
@@ -320,7 +329,7 @@ class MT5Service:
 
         return selected
 
-    def place_short_order(self, account_number: int, pwd: str, position_id: int, symbol: str, volume: Decimal):
+    def place_short_order(self, account_number: int, pwd: str, position_id: int, symbol: str, volume: Decimal, comment: str):
         logger.info(f"[MT5|place_short_order] account_number: {account_number}, symbol: {symbol}, volume: {volume}")
         try:
             with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
@@ -332,7 +341,7 @@ class MT5Service:
                     "symbol": symbol,
                     "volume": float(volume),
                     "type": MetaTrader5.ORDER_TYPE_SELL,
-                    "comment": f"TGBot place short",
+                    "comment": comment,
                     "price": info_tick.bid,
                     # "deviation": deviation,
                     # "type_time": MetaTrader5.ORDER_TIME_GTC,
@@ -388,7 +397,7 @@ class MT5Service:
 
         return None
 
-    def close_short_order(self, account_number: int, pwd: str, position_id: int, symbol: str, volume: Decimal):
+    def close_short_order(self, account_number: int, pwd: str, position_id: int, symbol: str, volume: Decimal, comment: str):
         logger.info(f"[MT5|close_short_order] account_number: {account_number}, symbol: {symbol}, volume: {volume}")
         try:
             with MT5Session(self.host, self.port, account_number, pwd, self.server) as session:
@@ -403,7 +412,7 @@ class MT5Service:
                     "price": info_tick.ask,
                     # "deviation": deviation,
                     # "magic": ea_magic_number,
-                    "comment": "TGBot place long",
+                    "comment": comment,
                     "type_time": MetaTrader5.ORDER_TIME_GTC,
                     "type_filling": MetaTrader5.ORDER_FILLING_FOK,
                 }

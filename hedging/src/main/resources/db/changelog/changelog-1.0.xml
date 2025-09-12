@@ -603,4 +603,16 @@
         </addColumn>
     </changeSet>
 
+    <changeSet id="add mt5_correlation_id to hed_orders" author="oress">
+        <addColumn tableName="hed_orders">
+            <column name="mt5_correlation_id" type="text" />
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="add mt_last_order_id to hed_user_instruments" author="oress">
+        <addColumn tableName="hed_user_instruments">
+            <column name="mt_last_order_id" type="text" />
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>
