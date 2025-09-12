@@ -74,6 +74,31 @@ function InstrumentToolbar({selectedInstrument, userId, user}) {
   const [commissionPercentage, setCommissionPercentage] = useState(0.1);
   const [isCommissionModalVisible, setIsCommissionModalVisible] = useState(false);
 
+  const recalculateInnerGoogleSheet = async () => {
+    try {
+      if (selectedInstrument) {
+        // Fetch order history for the selected instrument
+        const recalculateResponse = await api.post(`/users/${userId}/instruments/${selectedInstrument.id}/recalculate-inner-ggl-sheet`);
+        if (recalculateResponse.data.success) {
+          notificationApi['success']({
+            message: 'Внутрение расчеты отправлены на обновление.',
+            description:
+              'Внутрение расчеты отправлены на обновление. Пожалуйста, подождите.',
+          });
+        } else {
+          notificationApi['error']({
+            message: 'Ошибка',
+            description:
+              'Что-то пошло не так. Пожалуйста, попробуйте позже.',
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      // You might want to set an error state here to display to the user
+    }
+  };
+
   const recalculateGoogleSheet = async () => {
     try {
       if (selectedInstrument) {
@@ -164,6 +189,14 @@ function InstrumentToolbar({selectedInstrument, userId, user}) {
       label: (
         <a onClick={recalculateGoogleSheet}>
           Пересоздать гугл лист для инструмента
+        </a>
+      ),
+    },
+    {
+      key: 'recalc_inner_ggl_sheet',
+      label: (
+        <a onClick={recalculateInnerGoogleSheet}>
+          Выполнить пересчет внутренней таблицы
         </a>
       ),
     },
