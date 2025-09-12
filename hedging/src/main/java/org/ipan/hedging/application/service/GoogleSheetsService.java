@@ -218,6 +218,8 @@ public class GoogleSheetsService {
     public void syncCommonSheet(AppUser user) throws IOException {
         Integer commonSheetId = AppConstants.COMMON_SHEET_ID;
 
+        if (user.getGoogleSheetId() == null) return;
+
         googleSheetsApiService.clearSheet(user.getGoogleSheetId(), commonSheetId);
 
         List<UserBalanceAction> allForSyncByUser = userBalanceActionRepo.findAllForSyncByUser(Instant.EPOCH, user.getTelegramId());
@@ -865,6 +867,14 @@ public class GoogleSheetsService {
                             .setEmailAddress(email)
             ).setSendNotificationEmail(true).execute();
         }
+
+        drive.permissions().create(spreadsheet.getSpreadsheetId(),
+                new Permission()
+                        .setType("anyone")
+                        .setRole("reader")
+                        .setAllowFileDiscovery(false)
+        ).execute();
+
         user.setGoogleSheetId(spreadsheet.getSpreadsheetId());
     }
 

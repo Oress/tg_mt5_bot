@@ -16,6 +16,7 @@ import org.ipan.hedging.telegram.utils.FormattingTools;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.objects.LinkPreviewOptions;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import lombok.AllArgsConstructor;
@@ -82,12 +83,17 @@ public class BalanceViews {
                 .chatId(userState.getChatId())
                 .messageId(userState.getMenuMessageId())
                 .parseMode("MARKDOWN")
+                .linkPreviewOptions(LinkPreviewOptions.builder().isDisabled(true).build())
                 .text("""
                         *Баланс*
                         
+                        Google Sheets: %s
+                        
                         %s
                         
-                        """.formatted(positionsStr))
+                        """.formatted(
+                            user.getGoogleSheetId() != null ? "https://docs.google.com/spreadsheets/d/" + user.getGoogleSheetId() : null,
+                            positionsStr))
                 .replyMarkup(commonViews.getToMainMenuMarkup())
                 .build();
         tgClient.execute(message);

@@ -67,6 +67,10 @@ public class AppUser {
     @Column(name = "created_at")
     private Instant createdAt;
 
+    public BigDecimal getBalanceUsd() {
+        return balanceUsd == null ? BigDecimal.ZERO : balanceUsd;
+    }
+
     public List<Instrument> getInstruments() {
         return availableInstruments.stream()
                 .map(AppUserInstrument::getInstrument)
