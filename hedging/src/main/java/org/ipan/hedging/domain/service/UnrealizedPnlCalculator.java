@@ -72,6 +72,10 @@ public class UnrealizedPnlCalculator {
         AppUserInstrument userInstrument = userInstrumentRepository.findById(userInstrumentId).get();
         ReportingCalculation lastRowForTheUserInstrument = reportingCalculationRepository.getLastRowForTheUserInstrument(userInstrumentId, Limit.of(1));
 
+        if (lastRowForTheUserInstrument == null) {
+            return new UnrealizedPnl(BigDecimal.ZERO);
+        }
+
         BigDecimal eurUsdRate = lastRowForTheUserInstrument.getRate();
         BigDecimal eurAmount = userInstrument.getClientOwnedBaseAmount();
         BigDecimal unrealizedPnlPerPosition = eurAmount.multiply(currentEurUsdRate.subtract(eurUsdRate));
