@@ -9,10 +9,7 @@ import org.ipan.hedging.domain.exception.InvalidAccountCredentialsException;
 import org.ipan.hedging.domain.exception.UserWithSameAccountNumberAlreadyExists;
 import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.repository.*;
-import org.ipan.hedging.domain.service.OrderService;
-import org.ipan.hedging.domain.service.UnrealizedPnl;
-import org.ipan.hedging.domain.service.UnrealizedPnlCalculator;
-import org.ipan.hedging.domain.service.UserService;
+import org.ipan.hedging.domain.service.*;
 import org.ipan.hedging.telegram.utils.FormattingTools;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
@@ -47,6 +44,7 @@ public class DashboardController {
     private final HousePositionConsumptionRepository housePositionConsumptionRepository;
     private final OrderOrchestrator orderOrchestrator;
     private final GoogleSheetsService googleSheetsService;
+    private final ReportingCalculationService reportingCalculationService;
     private final CommissionWithdrawalRepository commissionWithdrawalRepository;
     private final CommissionWithdrawalService commissionWithdrawalService;
 
@@ -60,7 +58,7 @@ public class DashboardController {
                                Mt5Service mt5Service,
                                ReportingCalculationRepository reportingCalculationRepository,
                                UserBalanceService userBalanceService,
-                               UnrealizedPnlCalculator unrealizedPnlCalculator, HousePositionConsumptionRepository housePositionConsumptionRepository, OrderService orderService, OrderOrchestrator orderOrchestrator, GoogleSheetsService googleSheetsService, CommissionWithdrawalRepository commissionWithdrawalRepository, CommissionWithdrawalService commissionWithdrawalService) {
+                               UnrealizedPnlCalculator unrealizedPnlCalculator, HousePositionConsumptionRepository housePositionConsumptionRepository, OrderService orderService, OrderOrchestrator orderOrchestrator, GoogleSheetsService googleSheetsService, ReportingCalculationService reportingCalculationService, CommissionWithdrawalRepository commissionWithdrawalRepository, CommissionWithdrawalService commissionWithdrawalService) {
         this.userRepo = userRepo;
         this.orderRepo = orderRepo;
         this.userTelegramActivityRepo = userTelegramActivityRepo;
@@ -74,6 +72,7 @@ public class DashboardController {
         this.housePositionConsumptionRepository = housePositionConsumptionRepository;
         this.orderOrchestrator = orderOrchestrator;
         this.googleSheetsService = googleSheetsService;
+        this.reportingCalculationService = reportingCalculationService;
         this.commissionWithdrawalRepository = commissionWithdrawalRepository;
         this.commissionWithdrawalService = commissionWithdrawalService;
     }
@@ -307,6 +306,18 @@ public class DashboardController {
 
         googleSheetsService.removeSheetForAnInstrument(userInstrumentId);
         googleSheetsService.syncUser(user.getTelegramId());
+
+        return ApiResponse.success();
+    }
+
+    @PostMapping("/users/{telegramId}/instruments/{userInstrumentId}/recalculate-inner-ggl-sheet")
+    public ApiResponse<?> recalculateReporting(@PathVariable Long userInstrumentId) {
+        AppUserInstrument userInstrument = appUserInstrumentRepository.findById(userInstrumentId).get();
+        AppUser user = userInstrument.getUser();
+        userInstrument.setLastGoogleSheetSync(null);
+        appUserInstrumentRepository.save(userInstrument);
+
+        reportingCalculationService.recalculateAllForUserInstrument(userInstrumentId);
 
         return ApiResponse.success();
     }

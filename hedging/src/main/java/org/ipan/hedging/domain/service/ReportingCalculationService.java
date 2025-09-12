@@ -48,7 +48,7 @@ public class ReportingCalculationService {
 
             // remove all
             reportingCalculationRepository.deleteAllOperationsByInstrumentId(userInstrumentId);
-            reportingCalculationRepository.deleteAllDepositsByUserId(userInstrument.getUser().getTelegramId());
+//            reportingCalculationRepository.deleteAllDepositsByUserId(userInstrument.getUser().getTelegramId());
 
             UserBalanceActionCalculator userBalanceActionCalculator = new DepositOperationCalculator();
             OperationCalculator operationCalculator = switch (userInstrument.getInstrument().getLabel()) {
