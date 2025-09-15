@@ -240,7 +240,7 @@ public class TelegramMessages {
             hedgedAmount = hedgedAmount.setScale(0, RoundingMode.HALF_DOWN);
 
             return """
-                    Инструмент: %s
+                    🔹 Инструмент: %s
                     Захеджировано: *%s %s*
                     """
                     .formatted(instrument.getLabel(), FormattingTools.formatPrice(hedgedAmount), instrument.getSymbolByMode());
@@ -262,10 +262,10 @@ public class TelegramMessages {
 //            balances.add("Баланс по EUR/USD: \n*%s %s*".formatted(FormattingTools.formatPrice(payload.eurBalance), "USD"));
         }
 
-        balances.addFirst("Общий баланс: \n*%s %s*".formatted(FormattingTools.formatPrice(commonBalance), "USD"));
+        balances.addFirst("\uD83D\uDCB5 Общий баланс: \n*%s %s*".formatted(FormattingTools.formatPrice(commonBalance), "USD"));
 
         coverage = coverage.add(commonBalance);
-        balances.addFirst("Средства(обеспечение): \n*%s %s*".formatted(FormattingTools.formatPrice(coverage), "USD"));
+        balances.addFirst("\uD83D\uDCB0 Средства (обеспечение): \n*%s %s*".formatted(FormattingTools.formatPrice(coverage), "USD"));
 
         String resultStr = """
                         %s
