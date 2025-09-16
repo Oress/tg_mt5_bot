@@ -326,7 +326,7 @@ public class GoogleSheetsService {
                                 .setStart(new GridCoordinate()
                                         .setRowIndex(nextRowIndex)
                                         .setSheetId(commonSheetId)
-                                        .setColumnIndex(4))
+                                        .setColumnIndex(3))
                                 .setRows(List.of(data1, data2))
                 );
             }
@@ -470,8 +470,8 @@ public class GoogleSheetsService {
                                         new DimensionRange()
                                                 .setDimension("COLUMNS")
                                                 .setSheetId(commonSheetId)
-                                                .setStartIndex(4)
-                                                .setEndIndex(5)
+                                                .setStartIndex(3)
+                                                .setEndIndex(4)
                                 )
                                 .setProperties(new DimensionProperties().setPixelSize(460))
                                 .setFields("*")
