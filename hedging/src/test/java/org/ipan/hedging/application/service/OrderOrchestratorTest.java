@@ -6,10 +6,7 @@ import org.ipan.hedging.application.service.command.PlaceOrderResponse;
 import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.Order;
 import org.ipan.hedging.domain.model.repository.*;
-import org.ipan.hedging.domain.service.OrderService;
-import org.ipan.hedging.domain.service.ReportingCalculationService;
-import org.ipan.hedging.domain.service.UserService;
-import org.ipan.hedging.domain.service.VolumeCalculationService;
+import org.ipan.hedging.domain.service.*;
 import org.ipan.hedging.domain.service.commands.users.CreateUserCommand;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,6 +73,7 @@ class OrderOrchestratorTest {
     private final UserBalanceService userBalanceService;
     private final ReportingCalculationRepository reportingCalculationRepository;
     private final UserBalanceActionRepo userBalanceActionRepo;
+    private final CoverageService coverageService;
 
 
     private OrderOrchestrator orderOrchestrator;
@@ -90,7 +88,7 @@ class OrderOrchestratorTest {
                                  ReportingCalculationService reportingCalculationService,
                                  ReportingCalculationRepository reportingCalculationRepository,
                                  UserBalanceActionRepo userBalanceActionRepo,
-                                 UserBalanceService userBalanceService) {
+                                 UserBalanceService userBalanceService, CoverageService coverageService) {
         this.userService = userService;
         this.userRepo = userRepo;
         this.orderService = orderService;
@@ -101,6 +99,7 @@ class OrderOrchestratorTest {
         this.reportingCalculationRepository = reportingCalculationRepository;
         this.userBalanceActionRepo = userBalanceActionRepo;
         this.userBalanceService = userBalanceService;
+        this.coverageService = coverageService;
     }
 
     @BeforeAll
@@ -123,7 +122,7 @@ class OrderOrchestratorTest {
                 volumeCalculationService,
                 reportingCalculationService,
                 userInstrumentRepository,
-                Optional.ofNullable(null)
+                coverageService
         );
 
         // clean orders for clean state every test.
