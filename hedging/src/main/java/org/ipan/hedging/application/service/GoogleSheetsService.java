@@ -72,6 +72,8 @@ public class GoogleSheetsService {
     public static final CellFormat CURRENCY_FORMAT_INT = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("#,##0"));
     public static final CellFormat NUMBER_FORMAT_5DIGITS = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("0.00000"));
     public static final CellFormat NUMBER_FORMAT_7DIGITS = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("0.0000000"));
+    public static final int FONT_SIZE = 14;
+    public static final String HELVETICA_NEUE = "Helvetica Neue";
 
 
     private final GoogleSheetsConfig config;
@@ -258,13 +260,13 @@ public class GoogleSheetsService {
                                         .setUserEnteredValue(
                                                 new ExtendedValue().setStringValue("Баланс по %s".formatted(instrument.getLabel()))
                                         ).setUserEnteredFormat(
-                                                new CellFormat().setBackgroundColor(color).setTextFormat(new TextFormat().setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
+                                                new CellFormat().setBackgroundColor(color).setTextFormat(new TextFormat().setFontFamily(HELVETICA_NEUE).setFontSize(FONT_SIZE)).setBorders(ALL_BLACK_BORDERS)
                                         ),
                                 new CellData()
                                         .setUserEnteredValue(
                                                 new ExtendedValue().setNumberValue(balanceForTheUserInstrument.setScale(2, RoundingMode.HALF_DOWN).doubleValue())
                                         ).setUserEnteredFormat(
-                                                new CellFormat().setBackgroundColor(color).setTextFormat(new TextFormat().setBold(true).setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
+                                                new CellFormat().setBackgroundColor(color).setTextFormat(new TextFormat().setFontFamily(HELVETICA_NEUE).setBold(true).setFontSize(FONT_SIZE)).setBorders(ALL_BLACK_BORDERS)
                                         )
                         ));
                 updateRequests.add(
@@ -294,13 +296,13 @@ public class GoogleSheetsService {
                                         .setUserEnteredValue(
                                                 new ExtendedValue().setStringValue("Нереализованная курсовая разница %s".formatted(instrument.getLabel()))
                                         ).setUserEnteredFormat(
-                                                new CellFormat().setBackgroundColor(color).setTextFormat(new TextFormat().setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
+                                                new CellFormat().setBackgroundColor(color).setTextFormat(new TextFormat().setFontFamily(HELVETICA_NEUE).setFontSize(FONT_SIZE)).setBorders(ALL_BLACK_BORDERS)
                                         ),
                                 new CellData()
                                         .setUserEnteredValue(
                                                 new ExtendedValue().setNumberValue(unrealizedPnl.setScale(2, RoundingMode.HALF_DOWN).doubleValue())
                                         ).setUserEnteredFormat(
-                                                new CellFormat().setBackgroundColor(color).setTextFormat(new TextFormat().setBold(true).setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
+                                                new CellFormat().setBackgroundColor(color).setTextFormat(new TextFormat().setFontFamily(HELVETICA_NEUE).setBold(true).setFontSize(FONT_SIZE)).setBorders(ALL_BLACK_BORDERS)
                                         )
                         ));
                 RowData data2 = new RowData()
@@ -336,13 +338,13 @@ public class GoogleSheetsService {
                                 .setUserEnteredValue(
                                         new ExtendedValue().setStringValue("Баланс")
                                 ).setUserEnteredFormat(
-                                        new CellFormat().setBackgroundColor(LIGHT_GREEN).setTextFormat(new TextFormat().setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
+                                        new CellFormat().setBackgroundColor(LIGHT_GREEN).setTextFormat(new TextFormat().setFontFamily(HELVETICA_NEUE).setFontSize(FONT_SIZE)).setBorders(ALL_BLACK_BORDERS)
                                 ),
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setNumberValue(balanceUsd.setScale(2, RoundingMode.HALF_DOWN).doubleValue())
                                 ).setUserEnteredFormat(
-                                        new CellFormat().setBackgroundColor(LIGHT_GREEN).setTextFormat(new TextFormat().setBold(true).setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
+                                        new CellFormat().setBackgroundColor(LIGHT_GREEN).setTextFormat(new TextFormat().setFontFamily(HELVETICA_NEUE).setBold(true).setFontSize(FONT_SIZE)).setBorders(ALL_BLACK_BORDERS)
                                 )
                 ));
 
@@ -353,13 +355,13 @@ public class GoogleSheetsService {
                                 .setUserEnteredValue(
                                         new ExtendedValue().setStringValue("Средства (обеспечение):")
                                 ).setUserEnteredFormat(
-                                        new CellFormat().setBackgroundColor(LIGHT_CYAN).setTextFormat(new TextFormat().setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
+                                        new CellFormat().setBackgroundColor(LIGHT_CYAN).setTextFormat(new TextFormat().setFontFamily(HELVETICA_NEUE).setFontSize(FONT_SIZE)).setBorders(ALL_BLACK_BORDERS)
                                 ),
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setNumberValue(balanceWithCoverageUsd.setScale(2, RoundingMode.HALF_DOWN).doubleValue())
                                 ).setUserEnteredFormat(
-                                        new CellFormat().setBackgroundColor(LIGHT_CYAN).setTextFormat(new TextFormat().setBold(true).setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
+                                        new CellFormat().setBackgroundColor(LIGHT_CYAN).setTextFormat(new TextFormat().setBold(true).setFontFamily(HELVETICA_NEUE).setFontSize(FONT_SIZE)).setBorders(ALL_BLACK_BORDERS)
                                 )
                 ));
         updateRequests.add(
@@ -379,13 +381,14 @@ public class GoogleSheetsService {
                                 .setUserEnteredValue(
                                         new ExtendedValue().setStringValue("Депозиты/Выводы")
                                 ).setUserEnteredFormat(
-                                        new CellFormat().setBackgroundColor(LIGHT_PURPLE).setTextFormat(new TextFormat().setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
+                                        new CellFormat().setBackgroundColor(LIGHT_PURPLE).setHorizontalAlignment("CENTER")
+                                                .setTextFormat(new TextFormat().setFontSize(FONT_SIZE)).setBorders(ALL_BLACK_BORDERS)
                                 ),
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setStringValue("")
                                 ).setUserEnteredFormat(
-                                        new CellFormat().setBackgroundColor(LIGHT_PURPLE).setTextFormat(new TextFormat().setBold(true).setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
+                                        new CellFormat().setBackgroundColor(LIGHT_PURPLE).setTextFormat(new TextFormat().setBold(true).setFontSize(FONT_SIZE)).setBorders(ALL_BLACK_BORDERS)
                                 )
                 ));
         updateRequests.add(
@@ -394,11 +397,23 @@ public class GoogleSheetsService {
                         .setStart(new GridCoordinate()
                                 .setRowIndex(nextRowIndex)
                                 .setSheetId(commonSheetId)
-                                .setColumnIndex(0))
+                                .setColumnIndex(0)
+                        )
                         .setRows(List.of(depositsHeader))
+
+        );
+        googleSheetsApiService.updateCells(user.getGoogleSheetId(), updateRequests);
+        googleSheetsApiService.mergeCells(user.getGoogleSheetId(), new MergeCellsRequest()
+                .setMergeType("MERGE_ALL")
+                .setRange(new GridRange()
+                        .setSheetId(commonSheetId)
+                        .setStartRowIndex(nextRowIndex)
+                        .setEndRowIndex(nextRowIndex+1)
+                        .setStartColumnIndex(0)
+                        .setEndColumnIndex(2)
+                )
         );
 
-        googleSheetsApiService.updateCells(user.getGoogleSheetId(), updateRequests);
 
         int batchSize = 50;
         nextRowIndex++;
@@ -413,13 +428,13 @@ public class GoogleSheetsService {
                                         .setUserEnteredValue(
                                                 new ExtendedValue().setStringValue(formatter.format(userBalanceAction.getDate().atZone(ZoneId.of("UTC"))))
                                         ).setUserEnteredFormat(
-                                                new CellFormat().setTextFormat(new TextFormat().setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
+                                                new CellFormat().setTextFormat(new TextFormat().setFontFamily(HELVETICA_NEUE).setFontSize(FONT_SIZE)).setBorders(ALL_BLACK_BORDERS)
                                         ),
                                 new CellData()
                                         .setUserEnteredValue(
                                                 new ExtendedValue().setNumberValue(userBalanceAction.getAmountForGoogleSheet().setScale(2, RoundingMode.HALF_DOWN).doubleValue())
                                         ).setUserEnteredFormat(
-                                                new CellFormat().setTextFormat(new TextFormat().setBold(true).setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
+                                                new CellFormat().setTextFormat(new TextFormat().setFontFamily(HELVETICA_NEUE).setBold(true).setFontSize(FONT_SIZE)).setBorders(ALL_BLACK_BORDERS)
                                         )
                         ))).toList();
                 googleSheetsApiService.updateCells(
@@ -448,7 +463,7 @@ public class GoogleSheetsService {
                                             .setStartIndex(0)
                                             .setEndIndex(1)
                             )
-                            .setProperties(new DimensionProperties().setPixelSize(220))
+                            .setProperties(new DimensionProperties().setPixelSize(260))
                             .setFields("*"),
                         new UpdateDimensionPropertiesRequest()
                                 .setRange(
@@ -458,7 +473,7 @@ public class GoogleSheetsService {
                                                 .setStartIndex(4)
                                                 .setEndIndex(5)
                                 )
-                                .setProperties(new DimensionProperties().setPixelSize(400))
+                                .setProperties(new DimensionProperties().setPixelSize(460))
                                 .setFields("*")
                 );
         googleSheetsApiService.updateDimensionPropertiesRequest(user.getGoogleSheetId(), requests);

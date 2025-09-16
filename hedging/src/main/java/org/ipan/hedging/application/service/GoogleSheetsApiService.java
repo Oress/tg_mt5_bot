@@ -91,6 +91,18 @@ public class GoogleSheetsApiService {
         ).execute();
     }
 
+    @Retryable
+    public void mergeCells(String sheetId, MergeCellsRequest mergeCellsRequest) throws IOException {
+        sheets.spreadsheets().batchUpdate(
+                sheetId,
+                new BatchUpdateSpreadsheetRequest()
+                        .setRequests(
+                                List.of(new Request().setMergeCells(mergeCellsRequest))
+                        )
+        ).execute();
+    }
+
+
 
     @Retryable
     public void clearSheet(String googleSheetId, int sheetId) throws IOException {
