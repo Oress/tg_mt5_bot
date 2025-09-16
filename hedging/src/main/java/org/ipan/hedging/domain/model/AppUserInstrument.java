@@ -77,6 +77,13 @@ public class AppUserInstrument {
         return clientOwnedBaseAmount.add(houseOwnedBaseAmount);
     }
 
+    public BigDecimal getUsd() {
+        return InstrumentMode.LONG.equals(getInstrument().getMode())
+                ? clientOwnedBaseAmount
+                : clientOwnedQuoteAmount;
+    }
+
+
     public void addVolumeShortMode(VolumeCalculation volumeCalculation) {
         if (volumeCalculation != null) {
             this.clientOwnedBaseAmount = volumeCalculation.getNewUserOwnedBase();

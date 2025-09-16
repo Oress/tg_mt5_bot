@@ -30,6 +30,9 @@ public interface ReportingCalculationRepository extends JpaRepository<ReportingC
     @Query("select rc.balance from ReportingCalculation rc where rc.userInstrument.id = :userInstrumentId order by rc.date desc")
     BigDecimal getBalanceForTheUserInstrument(Long userInstrumentId, Limit limit);
 
+    @Query("select sum(rc.deposit) from ReportingCalculation rc where rc.userInstrument.id = :userInstrumentId and rc.amount > 0")
+    BigDecimal getTotalPnlForUserInstrument(Long userInstrumentId);
+
     @Query("select rc from ReportingCalculation rc where rc.userInstrument.id = :userInstrumentId order by rc.date desc")
     ReportingCalculation getLastRowForTheUserInstrument(Long userInstrumentId, Limit limit);
 }

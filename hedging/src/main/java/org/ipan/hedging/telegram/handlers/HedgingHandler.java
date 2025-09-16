@@ -8,6 +8,7 @@ import org.ipan.hedging.application.service.Mt5ServiceImpl;
 import org.ipan.hedging.application.service.OrderOrchestrator;
 import org.ipan.hedging.application.service.command.PlaceOrderCommand;
 import org.ipan.hedging.application.service.command.PlaceOrderResponse;
+import org.ipan.hedging.domain.exception.CoverageException;
 import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.repository.InstrumentRepo;
 import org.ipan.hedging.domain.model.repository.UserRepo;
@@ -344,6 +345,9 @@ public class HedgingHandler {
                     googleSheetsService.syncUser(userId);
                 }
             }
+        } catch (CoverageException e) {
+            log.error("ADMIN_AS_CLIENT. Coverage exception Error when placing order: ", e);
+            hedgeViews.orderIsTooRisky(adminUserState);
         } catch (Exception e) {
             log.error("ADMIN_AS_CLIENT. Error when placing order: ", e);
             hedgeViews.orderFailed(adminUserState);
@@ -606,6 +610,9 @@ public class HedgingHandler {
                     googleSheetsService.syncUser(userState.getTelegramId());
                 }
             }
+        } catch (CoverageException e) {
+            log.error("Coverage exception Error when placing order: ", e);
+            hedgeViews.orderIsTooRisky(userState);
         } catch (Exception e) {
             log.error("Error when placing order: ", e);
             hedgeViews.orderFailed(userState);

@@ -6,6 +6,7 @@ import org.ipan.hedging.application.OrderPlaceMt5ErrorException;
 import org.ipan.hedging.application.service.command.PlaceOrderCommand;
 import org.ipan.hedging.application.service.command.PlaceOrderResponse;
 import org.ipan.hedging.domain.AppConstants;
+import org.ipan.hedging.domain.exception.CoverageException;
 import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.repository.AppUserInstrumentRepository;
 import org.ipan.hedging.domain.model.repository.UserRepo;
@@ -29,7 +30,7 @@ public class OrderOrchestrator {
     private final VolumeCalculationService volumeCalculationService;
     private final ReportingCalculationService reportingCalculationService;
     private final AppUserInstrumentRepository appUserInstrumentRepository;
-    private final Optional<OrderMt5InfoFetcherService> orderMt5InfoFetcherService;
+    private final CoverageService coverageService;
 
     public PlaceOrderResponse placeOrder(PlaceOrderCommand command) {
         log.info("Placing order for user: {}, instrument: {}, amount: {}, buy: {}", command.getUserId(), command.getInstrumentLabel(), command.getUserAmount(), command.isBuy());
@@ -54,6 +55,13 @@ public class OrderOrchestrator {
         Mt5ServiceImpl.SymbolInfo symbolInfo = mt5Service.symbolInfo(user, symbol);
         Mt5ServiceImpl.InfoTick infoTick = mt5Service.getInfoTick(user, symbol);
         log.info("Symbol info: {}, infoTick: {}", symbolInfo, infoTick);
+
+        CoverageReport coverageReport = coverageService.assessHedgeOperation(userInstrument.getId(), command);
+        if (CoverageRisk.RISKY.equals(coverageReport.getRisk())) {
+            log.error("Cannot place order for user: {}, instrument: {}. Coverage is RISKY, cov: {}", user.getTelegramId(), command.getInstrumentLabel(), coverageReport.getCoverage());
+            throw new CoverageException("Cannot place order. Coverage is RISKY");
+        }
+        log.info("Coverage check passed for user: {}, instrument: {}. cov: {}", user.getTelegramId(), command.getInstrumentLabel(), coverageReport.getCoverage());
 
         VolumeCalculation estimateVolumeCalculation = volumeCalculationService.calculate(
                 VolumeCalculationParams.builder()

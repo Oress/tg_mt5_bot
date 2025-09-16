@@ -18,6 +18,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardRow;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
+import java.lang.annotation.Repeatable;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
@@ -223,6 +224,19 @@ public class HedgeViews {
                 .build();
         tgClient.execute(message);
     }
+
+    @SneakyThrows
+    public void orderIsTooRisky(UserState userState) {
+        EditMessageText message = EditMessageText
+                .builder()
+                .chatId(userState.getChatId())
+                .messageId(userState.getMenuMessageId())
+                .text(hedgeLabels.orderTooRisky())
+//                .replyMarkup(commonViews.getToMainMenuMarkup())
+                .build();
+        tgClient.execute(message);
+    }
+
 
     @SneakyThrows
     public void successOrder(UserState userState, String orderId, String date, String operation,
