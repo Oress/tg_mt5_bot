@@ -80,8 +80,9 @@ public class Order {
     @Column(name = "user_base_amount")
     private BigDecimal userBaseAmount;
 
+    // amount entered by user in hedge currency either quote or base depending on the instrument mode
     @Column(name = "user_entered_quote_amount")
-    private BigDecimal userEnteredQuoteAmount;
+    private BigDecimal userEnteredAmount;
 
     // executed_ fields are only for actual MT5 orders
     @Column(name = "executed_volume")
@@ -172,6 +173,7 @@ public class Order {
                 || ((OrderType.MT5_SHORT.equals(type) || OrderType.HOUSE_CLIENT_TRANSFER_SHORT.equals(type)) && InstrumentMode.LONG.equals(userInstrument.getInstrument().getMode()));
     }
 
+/*
     public BigDecimal getUserEnteredAmount() {
         if (userInstrument != null && userInstrument.getInstrument() != null) {
             return userInstrument.getInstrument().getMode() == InstrumentMode.SHORT
@@ -181,8 +183,8 @@ public class Order {
             log.warn("User instrument or instrument is null for order: {}", this);
             return BigDecimal.ZERO;
         }
-
     }
+*/
 
 /*
     public void decreaseQuoteAmountLeftToUnhedge(BigDecimal quoteConsumptionAmount) {

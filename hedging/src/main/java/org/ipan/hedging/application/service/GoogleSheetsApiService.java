@@ -80,6 +80,17 @@ public class GoogleSheetsApiService {
         ).execute();
     }
 
+    @Retryable
+    public void updateDimensionPropertiesRequest(String sheetId, List<UpdateDimensionPropertiesRequest> requests) throws IOException {
+        sheets.spreadsheets().batchUpdate(
+                sheetId,
+                new BatchUpdateSpreadsheetRequest()
+                        .setRequests(
+                                requests.stream().map(r -> new Request().setUpdateDimensionProperties(r)).toList()
+                        )
+        ).execute();
+    }
+
 
     @Retryable
     public void clearSheet(String googleSheetId, int sheetId) throws IOException {

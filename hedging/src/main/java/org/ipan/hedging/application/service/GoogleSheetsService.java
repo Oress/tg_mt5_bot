@@ -56,13 +56,18 @@ public class GoogleSheetsService {
     private static final List<String> SCOPES = List.of(SheetsScopes.SPREADSHEETS, DriveScopes.DRIVE, DriveScopes.DRIVE_FILE);
     public static final String EUR_USD = "EUR/USD";
     public static final String USD_CAD = "USD/CAD";
-    public static final Color LIGHT_GREEN = new Color().setRed(0.5742f).setGreen(0.7656f).setBlue(0.4882f);
-    public static final Color LIGHT_CYAN = new Color().setRed(0.4609f).setGreen(0.6445f).setBlue(0.6835f);
-    public static final Color LIGHT_YELLOW2 = new Color().setRed(1f).setGreen(0.8945f).setBlue(0.5976f);
-    public static final Color LIGHT_ORANGE = new Color().setRed(0.9726f).setGreen(0.7929f).setBlue(0.6093f);
-    public static final Color LIGHT_PURPLE = new Color().setRed(0.5546f).setGreen(0.4843f).setBlue(0.7617f);
+    public static final Color LIGHT_GREEN = new Color().setRed(0.71373f).setGreen(0.84314f).setBlue(0.65882f);
+    public static final Color LIGHT_CYAN = new Color().setRed(0.62353f).setGreen(0.77255f).setBlue(0.90980f);
+    public static final Color LIGHT_YELLOW2 = new Color().setRed(1.00000f).setGreen(0.89804f).setBlue(0.60000f);
+    public static final Color LIGHT_ORANGE = new Color().setRed(0.97647f).setGreen(0.79608f).setBlue(0.61176f);
+    public static final Color LIGHT_PURPLE = new Color().setRed(0.70588f).setGreen(0.65490f).setBlue(0.83922f);
     public static final Color COLOR_BLACK = new Color().setRed(0f).setGreen(0f).setBlue(0f);
     public static final int BORDER_WIDTH = 1;
+    public static final Borders ALL_BLACK_BORDERS = new Borders()
+            .setTop(new Border().setWidth(BORDER_WIDTH).setStyle("SOLID").setColor(COLOR_BLACK))
+            .setBottom(new Border().setWidth(BORDER_WIDTH).setStyle("SOLID").setColor(COLOR_BLACK))
+            .setLeft(new Border().setWidth(BORDER_WIDTH).setStyle("SOLID").setColor(COLOR_BLACK))
+            .setRight(new Border().setWidth(BORDER_WIDTH).setStyle("SOLID").setColor(COLOR_BLACK));
     public static final CellFormat CURRENCY_FORMAT = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("#,##0.00"));
     public static final CellFormat CURRENCY_FORMAT_INT = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("#,##0"));
     public static final CellFormat NUMBER_FORMAT_5DIGITS = new CellFormat().setNumberFormat(new NumberFormat().setType("NUMBER").setPattern("0.00000"));
@@ -220,6 +225,10 @@ public class GoogleSheetsService {
 
         if (user.getGoogleSheetId() == null) return;
 
+        Spreadsheet spreadsheet = sheets.spreadsheets().get(user.getGoogleSheetId()).setIncludeGridData(false).execute();
+        List<Integer> sheetIds = spreadsheet.getSheets().stream().map(s -> s.getProperties().getSheetId()).toList();
+        ensureCommonSheetExists(sheetIds, user);
+
         googleSheetsApiService.clearSheet(user.getGoogleSheetId(), commonSheetId);
 
         List<UserBalanceAction> allForSyncByUser = userBalanceActionRepo.findAllForSyncByUser(Instant.EPOCH, user.getTelegramId());
@@ -249,13 +258,13 @@ public class GoogleSheetsService {
                                         .setUserEnteredValue(
                                                 new ExtendedValue().setStringValue("Баланс по %s".formatted(instrument.getLabel()))
                                         ).setUserEnteredFormat(
-                                                new CellFormat().setBackgroundColor(color)
+                                                new CellFormat().setBackgroundColor(color).setTextFormat(new TextFormat().setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
                                         ),
                                 new CellData()
                                         .setUserEnteredValue(
                                                 new ExtendedValue().setNumberValue(balanceForTheUserInstrument.setScale(2, RoundingMode.HALF_DOWN).doubleValue())
                                         ).setUserEnteredFormat(
-                                                new CellFormat().setBackgroundColor(color).setTextFormat(new TextFormat().setBold(true).setFontSize(12))
+                                                new CellFormat().setBackgroundColor(color).setTextFormat(new TextFormat().setBold(true).setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
                                         )
                         ));
                 updateRequests.add(
@@ -285,13 +294,13 @@ public class GoogleSheetsService {
                                         .setUserEnteredValue(
                                                 new ExtendedValue().setStringValue("Нереализованная курсовая разница %s".formatted(instrument.getLabel()))
                                         ).setUserEnteredFormat(
-                                                new CellFormat().setBackgroundColor(color)
+                                                new CellFormat().setBackgroundColor(color).setTextFormat(new TextFormat().setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
                                         ),
                                 new CellData()
                                         .setUserEnteredValue(
                                                 new ExtendedValue().setNumberValue(unrealizedPnl.setScale(2, RoundingMode.HALF_DOWN).doubleValue())
                                         ).setUserEnteredFormat(
-                                                new CellFormat().setBackgroundColor(color).setTextFormat(new TextFormat().setBold(true).setFontSize(12))
+                                                new CellFormat().setBackgroundColor(color).setTextFormat(new TextFormat().setBold(true).setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
                                         )
                         ));
                 RowData data2 = new RowData()
@@ -299,10 +308,14 @@ public class GoogleSheetsService {
                                 new CellData()
                                         .setUserEnteredValue(
                                                 new ExtendedValue().setStringValue("Текущий крос курс")
+                                        ).setUserEnteredFormat(
+                                                new CellFormat().setBorders(ALL_BLACK_BORDERS)
                                         ),
                                 new CellData()
                                         .setUserEnteredValue(
                                                 new ExtendedValue().setNumberValue(currentRate.setScale(5, RoundingMode.HALF_DOWN).doubleValue())
+                                        ).setUserEnteredFormat(
+                                                new CellFormat().setBorders(ALL_BLACK_BORDERS)
                                         )
                         ));
                 updateRequests.add(
@@ -323,13 +336,13 @@ public class GoogleSheetsService {
                                 .setUserEnteredValue(
                                         new ExtendedValue().setStringValue("Баланс")
                                 ).setUserEnteredFormat(
-                                        new CellFormat().setBackgroundColor(LIGHT_GREEN)
+                                        new CellFormat().setBackgroundColor(LIGHT_GREEN).setTextFormat(new TextFormat().setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
                                 ),
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setNumberValue(balanceUsd.setScale(2, RoundingMode.HALF_DOWN).doubleValue())
                                 ).setUserEnteredFormat(
-                                        new CellFormat().setBackgroundColor(LIGHT_GREEN).setTextFormat(new TextFormat().setBold(true).setFontSize(12))
+                                        new CellFormat().setBackgroundColor(LIGHT_GREEN).setTextFormat(new TextFormat().setBold(true).setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
                                 )
                 ));
 
@@ -340,13 +353,13 @@ public class GoogleSheetsService {
                                 .setUserEnteredValue(
                                         new ExtendedValue().setStringValue("Средства (обеспечение):")
                                 ).setUserEnteredFormat(
-                                        new CellFormat().setBackgroundColor(LIGHT_CYAN).setTextFormat(new TextFormat().setFontSize(12))
+                                        new CellFormat().setBackgroundColor(LIGHT_CYAN).setTextFormat(new TextFormat().setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
                                 ),
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setNumberValue(balanceWithCoverageUsd.setScale(2, RoundingMode.HALF_DOWN).doubleValue())
                                 ).setUserEnteredFormat(
-                                        new CellFormat().setBackgroundColor(LIGHT_CYAN).setTextFormat(new TextFormat().setBold(true).setFontSize(12))
+                                        new CellFormat().setBackgroundColor(LIGHT_CYAN).setTextFormat(new TextFormat().setBold(true).setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
                                 )
                 ));
         updateRequests.add(
@@ -366,13 +379,13 @@ public class GoogleSheetsService {
                                 .setUserEnteredValue(
                                         new ExtendedValue().setStringValue("Депозиты/Выводы")
                                 ).setUserEnteredFormat(
-                                        new CellFormat().setBackgroundColor(LIGHT_PURPLE)
+                                        new CellFormat().setBackgroundColor(LIGHT_PURPLE).setTextFormat(new TextFormat().setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
                                 ),
                         new CellData()
                                 .setUserEnteredValue(
                                         new ExtendedValue().setStringValue("")
                                 ).setUserEnteredFormat(
-                                        new CellFormat().setBackgroundColor(LIGHT_PURPLE)
+                                        new CellFormat().setBackgroundColor(LIGHT_PURPLE).setTextFormat(new TextFormat().setBold(true).setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
                                 )
                 ));
         updateRequests.add(
@@ -399,12 +412,14 @@ public class GoogleSheetsService {
                                 new CellData()
                                         .setUserEnteredValue(
                                                 new ExtendedValue().setStringValue(formatter.format(userBalanceAction.getDate().atZone(ZoneId.of("UTC"))))
+                                        ).setUserEnteredFormat(
+                                                new CellFormat().setTextFormat(new TextFormat().setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
                                         ),
                                 new CellData()
                                         .setUserEnteredValue(
                                                 new ExtendedValue().setNumberValue(userBalanceAction.getAmountForGoogleSheet().setScale(2, RoundingMode.HALF_DOWN).doubleValue())
                                         ).setUserEnteredFormat(
-                                                new CellFormat().setTextFormat(new TextFormat().setBold(true).setFontSize(12))
+                                                new CellFormat().setTextFormat(new TextFormat().setBold(true).setFontSize(12)).setBorders(ALL_BLACK_BORDERS)
                                         )
                         ))).toList();
                 googleSheetsApiService.updateCells(
@@ -422,6 +437,31 @@ public class GoogleSheetsService {
                 batch.clear();
             }
         }
+
+        List<UpdateDimensionPropertiesRequest> requests =
+                List.of(
+                    new UpdateDimensionPropertiesRequest()
+                            .setRange(
+                                    new DimensionRange()
+                                            .setDimension("COLUMNS")
+                                            .setSheetId(commonSheetId)
+                                            .setStartIndex(0)
+                                            .setEndIndex(1)
+                            )
+                            .setProperties(new DimensionProperties().setPixelSize(220))
+                            .setFields("*"),
+                        new UpdateDimensionPropertiesRequest()
+                                .setRange(
+                                        new DimensionRange()
+                                                .setDimension("COLUMNS")
+                                                .setSheetId(commonSheetId)
+                                                .setStartIndex(4)
+                                                .setEndIndex(5)
+                                )
+                                .setProperties(new DimensionProperties().setPixelSize(400))
+                                .setFields("*")
+                );
+        googleSheetsApiService.updateDimensionPropertiesRequest(user.getGoogleSheetId(), requests);
     }
 
     private Long calculateSum(List<UserBalanceAction> allForSyncByUser) {
@@ -708,12 +748,6 @@ public class GoogleSheetsService {
             ArrayMap<String, Object> addTableRequest = new ArrayMap<>();
             addTableRequest.put("table", getCreateTableRequestBasedOnTheInstrument(user, instrument, expectedId, sheetId));
 
-            Borders borders = new Borders()
-                    .setTop(new Border().setWidth(BORDER_WIDTH).setStyle("SOLID").setColor(COLOR_BLACK))
-                    .setBottom(new Border().setWidth(BORDER_WIDTH).setStyle("SOLID").setColor(COLOR_BLACK))
-                    .setLeft(new Border().setWidth(BORDER_WIDTH).setStyle("SOLID").setColor(COLOR_BLACK))
-                    .setRight(new Border().setWidth(BORDER_WIDTH).setStyle("SOLID").setColor(COLOR_BLACK));
-
             var updateCells = new UpdateCellsRequest()
                     .setStart(
                             new GridCoordinate()
@@ -726,7 +760,7 @@ public class GoogleSheetsService {
                         List.of(
                                 new RowData().setValues(
                                         IntStream.range(0,EUR_USD_COLUMNS.size())
-                                                .mapToObj(i -> new CellData().setUserEnteredFormat(new CellFormat().setHorizontalAlignment("RIGHT").setBorders(borders)))
+                                                .mapToObj(i -> new CellData().setUserEnteredFormat(new CellFormat().setHorizontalAlignment("RIGHT").setBorders(ALL_BLACK_BORDERS)))
                                                 .toList()
                                 )
                         )
@@ -811,21 +845,7 @@ public class GoogleSheetsService {
     @SneakyThrows
     private void createSheetsForUserIfNotExist(Spreadsheet spreadsheet, AppUser user) {
         List<Integer> sheetIds = spreadsheet.getSheets().stream().map(s -> s.getProperties().getSheetId()).toList();
-
-        if (!sheetIds.contains(AppConstants.COMMON_SHEET_ID)) {
-            log.info("Creating common sheet with id {} already exists for user {}", AppConstants.COMMON_SHEET_ID, user.getTelegramId());
-            AddSheetRequest addCommonSheetRequest = new AddSheetRequest()
-                    .setProperties(new SheetProperties()
-                            .setTitle(AppConstants.COMMON_SHEET_TITLE)
-                            .setSheetId(AppConstants.COMMON_SHEET_ID)
-                            .setGridProperties(
-                                    new GridProperties()
-                                            .setRowCount(1000)
-                                            .setColumnCount(26)
-                            )
-                    );
-            googleSheetsApiService.createSheet(user.getGoogleSheetId(), addCommonSheetRequest);
-        }
+        ensureCommonSheetExists(sheetIds, user);
 
         for (AppUserInstrument userInstrument : user.getAvailableInstruments()) {
             Instrument instrument = userInstrument.getInstrument();
@@ -849,6 +869,23 @@ public class GoogleSheetsService {
             googleSheetsApiService.createSheet(user.getGoogleSheetId(), addSheetRequest);
         }
 
+    }
+
+    private void ensureCommonSheetExists(List<Integer> sheetIds, AppUser user) throws IOException {
+        if (!sheetIds.contains(AppConstants.COMMON_SHEET_ID)) {
+            log.info("Creating common sheet with id {} already exists for user {}", AppConstants.COMMON_SHEET_ID, user.getTelegramId());
+            AddSheetRequest addCommonSheetRequest = new AddSheetRequest()
+                    .setProperties(new SheetProperties()
+                            .setTitle(AppConstants.COMMON_SHEET_TITLE)
+                            .setSheetId(AppConstants.COMMON_SHEET_ID)
+                            .setGridProperties(
+                                    new GridProperties()
+                                            .setRowCount(1000)
+                                            .setColumnCount(26)
+                            )
+                    );
+            googleSheetsApiService.createSheet(user.getGoogleSheetId(), addCommonSheetRequest);
+        }
     }
 
     @SneakyThrows

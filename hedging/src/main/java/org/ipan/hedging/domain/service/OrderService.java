@@ -47,7 +47,7 @@ public class OrderService {
 //        order.setBid(volumeCalculation.getPrice());
         order.setPrice(volumeCalculation.getPrice());
 
-        order.setUserEnteredQuoteAmount(BigDecimal.valueOf(command.getUserAmount()));
+        order.setUserEnteredAmount(BigDecimal.valueOf(command.getUserAmount()));
         order.setHouseBaseAmountFrom(volumeCalculation.getOldHouseOwnedBase());
         order.setHouseBaseAmountTo(volumeCalculation.getNewHouseOwnedBase());
         order.setClientBaseAmountFrom(volumeCalculation.getOldUserOwnedBase());
@@ -102,11 +102,7 @@ public class OrderService {
             order.setSystemType(OrderSystemType.LIQUIDATION);
         }
 
-        if (InstrumentMode.SHORT.equals(userInstrument.getInstrument().getMode())) {
-            order.setExecutedBaseAmount(BigDecimal.valueOf(command.getUserAmount()));
-        } else if (InstrumentMode.LONG.equals(userInstrument.getInstrument().getMode())) {
-            order.setUserEnteredQuoteAmount(BigDecimal.valueOf(command.getUserAmount()));
-        }
+        order.setUserEnteredAmount(BigDecimal.valueOf(command.getUserAmount()));
 
         orderRepo.save(order);
 

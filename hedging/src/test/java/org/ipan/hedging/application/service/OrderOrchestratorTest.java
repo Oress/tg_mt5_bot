@@ -371,7 +371,7 @@ class OrderOrchestratorTest {
         assertThat(order1.getClientBaseAmountTo()).isEqualByComparingTo(BigDecimal.valueOf(1000));
         assertThat(order1.getUserBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
 
-        assertThat(order1.getUserEnteredQuoteAmount()).isNull();
+        assertThat(order1.getUserEnteredAmount()).isNull();
         assertThat(order1.getLifoPosition()).isNull();
     }
 
@@ -392,7 +392,7 @@ class OrderOrchestratorTest {
         assertThat(order1.getClientBaseAmountTo()).isEqualByComparingTo(BigDecimal.valueOf(1560));
         assertThat(order1.getUserBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(1560));
 
-        assertThat(order1.getUserEnteredQuoteAmount()).isNull();
+        assertThat(order1.getUserEnteredAmount()).isNull();
         assertThat(order1.getLifoPosition()).isNull();
 
         PlaceOrderResponse response2 = placeEurUsdOrderResponse(1560, true, 1.36);
@@ -462,7 +462,7 @@ class OrderOrchestratorTest {
         assertThat(order1.getClientBaseAmountTo()).isEqualByComparingTo(BigDecimal.valueOf(735.29411765));
         assertThat(order1.getUserBaseAmount()).isEqualByComparingTo(BigDecimal.valueOf(735.29411765));
 
-        assertThat(order1.getUserEnteredQuoteAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
+        assertThat(order1.getUserEnteredAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
         assertThat(order1.getLifoPosition().getRemainingAmount()).isEqualByComparingTo(BigDecimal.valueOf(1000));
     }
 

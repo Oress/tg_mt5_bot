@@ -465,7 +465,7 @@ public class DashboardController {
                 .status(order.getStatus().name())
                 .mt5AccNumber(order.getMt5AccNumber())
                 .userBaseAmount(order.getUserBaseAmount())
-                .userEnteredQuoteAmount(order.getUserEnteredQuoteAmount())
+                .userEnteredQuoteAmount(order.getUserEnteredAmount())
                 .executedVolume(order.getExecutedVolume())
                 .executedBaseAmount(order.getExecutedBaseAmount())
                 .remainingQuoteAmount(order.getLifoPosition() != null ? order.getLifoPosition().getRemainingAmount() : BigDecimal.ZERO)
