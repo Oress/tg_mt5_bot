@@ -2,7 +2,7 @@ import {useEffect, useState} from "react";
 import api from "../../api.js";
 import {Button, Divider, Flex, InputNumber, Modal, Radio, Space, Spin, Table, Typography} from "antd";
 import {formatCurrency} from "../../utils.js";
-import {PlusOutlined} from "@ant-design/icons";
+import {DeleteOutlined, EditOutlined, PlusOutlined} from "@ant-design/icons";
 
 export function DepositsWithdrawalsSection({userId, refreshTrigger}) {
   const [transactions, setTransactions] = useState([]);
@@ -173,7 +173,7 @@ export function DepositsWithdrawalsSection({userId, refreshTrigger}) {
       width: 200,
       render: (date) => formatDate(date),
     },
-    /*    {
+        {
           title: 'Действия',
           key: 'actions',
           width: 120,
@@ -192,7 +192,7 @@ export function DepositsWithdrawalsSection({userId, refreshTrigger}) {
               />
             </Space>
           ),
-        }*/,
+        },
   ];
 
   return (
