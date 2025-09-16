@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.ipan.hedging.domain.model.BalanceActionType;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -14,7 +15,7 @@ import java.time.Instant;
 @Builder
 public class UserBalanceActionsDto {
     private Long id;
-    private String type;
+    private BalanceActionType type;
     private BigDecimal amount;
     private Instant date;
     private Instant createdAt;

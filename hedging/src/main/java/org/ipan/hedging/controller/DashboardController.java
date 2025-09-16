@@ -274,15 +274,31 @@ public class DashboardController {
         validateUserBalanceAction(payload);
 
         UserBalanceAction newItem;
-        if (payload.getType().equals(BalanceActionType.DEPOSIT.name())) {
+        if (payload.getType().equals(BalanceActionType.DEPOSIT)) {
             newItem = userBalanceService.createDepositAction(telegramId, payload.getAmount(), Instant.now());
-        } else if (payload.getType().equals(BalanceActionType.WITHDRAWAL.name())) {
+        } else if (payload.getType().equals(BalanceActionType.WITHDRAWAL)) {
             newItem = userBalanceService.createWithdrawAction(telegramId, payload.getAmount(), Instant.now());
         } else {
             throw new IllegalArgumentException("Unsupported balance action type: " + payload.getType());
         }
         return mapToDto(newItem);
     }
+
+    @DeleteMapping("/users/{telegramId}/balance-actions/{id}")
+    @Transactional
+    public ApiResponse<?> deleteUserBalanceAction(@PathVariable Long id) {
+        userBalanceService.deleteDepositAction(id);
+        return ApiResponse.success();
+    }
+
+    @PutMapping("/users/{telegramId}/balance-actions/{id}")
+    @Transactional
+    public ApiResponse<UserBalanceActionsDto> updateUserBalanceActions(@PathVariable Long id,
+                                                          @RequestBody UserBalanceActionsDto payload) {
+        UserBalanceAction item = userBalanceService.updateBalanceAction(id, payload.getType(), payload.getAmount());
+        return ApiResponse.success(mapToDto(item));
+    }
+
 
     @PostMapping("/users/{telegramId}/instruments/{userInstrumentId}/liquidate")
     public ApiResponse<?> liquidatePosition(@PathVariable Long userInstrumentId) {
@@ -360,26 +376,6 @@ public class DashboardController {
         }
     }
 
-/*
-    @PutMapping("/users/{telegramId}/instruments/{userInstrumentId}/balance-actions/{id}")
-    @Transactional
-    public UserBalanceActionsDto updateUserBalanceActions(@PathVariable Long id,
-                                                          @RequestBody UserBalanceActionsDto payload) {
-        UserBalanceAction byId = userBalanceActionsRepository.findById(id).get();
-        byId.setType(BalanceActionType.valueOf(payload.getType()));
-        byId.setDate(payload.getDate());
-        byId.setAmount(payload.getAmount());
-        return mapToDto(byId);
-    }
-*/
-
-    @DeleteMapping("/users/{telegramId}/balance-actions/{id}")
-    @Transactional
-    public ResponseEntity<?> deleteUserBalanceAction(@PathVariable Long id) {
-        userBalanceActionsRepository.deleteById(id);
-        return ResponseEntity.ok().build();
-    }
-
     @PostMapping("/users/{telegramId}/change-credentials")
     @Transactional
     public ApiResponse<?> changeAccountCreds(@PathVariable Long telegramId,
@@ -432,7 +428,7 @@ public class DashboardController {
     private UserBalanceActionsDto mapToDto(UserBalanceAction userBalanceAction) {
         return UserBalanceActionsDto.builder()
                 .id(userBalanceAction.getId())
-                .type(userBalanceAction.getType().name())
+                .type(userBalanceAction.getType())
                 .amount(userBalanceAction.getAmount())
                 .date(userBalanceAction.getDate())
                 .createdAt(userBalanceAction.getCreatedAt())

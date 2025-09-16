@@ -222,6 +222,12 @@ public class GoogleSheetsService {
         }
     }
 
+    @Async
+    public void syncCommonSheetAsync(Long userId) throws IOException {
+        AppUser user = userRepo.findByIdWithInstruments(userId);
+        syncCommonSheet(user);
+    }
+
     public void syncCommonSheet(AppUser user) throws IOException {
         Integer commonSheetId = AppConstants.COMMON_SHEET_ID;
 

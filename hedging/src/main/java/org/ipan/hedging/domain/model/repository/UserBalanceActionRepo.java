@@ -9,10 +9,9 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
 @Repository
-public interface UserBalanceActionRepo extends JpaRepository<UserBalanceAction, UUID> {
+public interface UserBalanceActionRepo extends JpaRepository<UserBalanceAction, Long> {
 
     @Query("select a from UserBalanceAction a join a.user u where a.date > :syncDt and u.telegramId = :telegramId order by a.createdAt")
     List<UserBalanceAction> findAllForSyncByUser(Instant syncDt, Long telegramId);
