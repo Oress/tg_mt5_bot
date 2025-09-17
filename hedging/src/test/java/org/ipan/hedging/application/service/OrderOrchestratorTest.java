@@ -63,6 +63,7 @@ class OrderOrchestratorTest {
         registry.add("spring.datasource.password", postgres::getPassword);
     }
 
+    private final NotificationService notificationService;
     private final UserService userService;
     private final UserRepo userRepo;
     private final OrderService orderService;
@@ -80,7 +81,7 @@ class OrderOrchestratorTest {
     private Mt5Service mt5Service;
 
     @Autowired
-    public OrderOrchestratorTest(UserService userService, UserRepo userRepo,
+    public OrderOrchestratorTest(NotificationService notificationService, UserService userService, UserRepo userRepo,
                                  OrderService orderService,
                                  AppUserInstrumentRepository appUserInstrumentRepository,
                                  OrderRepo orderRepo,
@@ -89,6 +90,7 @@ class OrderOrchestratorTest {
                                  ReportingCalculationRepository reportingCalculationRepository,
                                  UserBalanceActionRepo userBalanceActionRepo,
                                  UserBalanceService userBalanceService, CoverageService coverageService) {
+        this.notificationService = notificationService;
         this.userService = userService;
         this.userRepo = userRepo;
         this.orderService = orderService;
@@ -116,6 +118,7 @@ class OrderOrchestratorTest {
     void setUp() {
         mt5Service = mock(Mt5Service.class);
         orderOrchestrator = new OrderOrchestrator(
+                notificationService,
                 userRepo,
                 orderService,
                 mt5Service,
