@@ -490,7 +490,7 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
             {formatCurrency(selectedInstrument.swap)}
           </Descriptions.Item>
           <Descriptions.Item label="Разница с МТ5 (PnL сервиса)">
-            {formatCurrency(selectedInstrument.diffWithMt5)}
+            {formatCurrency(selectedInstrument.diffWithMt5, 'USD', 'en-US', 4)}
           </Descriptions.Item>
           <Descriptions.Item label={`${selectedInstrument.base} Сервиса`}>
             {formatCurrency(selectedInstrument.houseOwnedBaseAmount, selectedInstrument.base)}
@@ -526,7 +526,7 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
             {selectedInstrument.balance !== null ? formatCurrency(selectedInstrument.balance) : "Нет данных"}
           </Descriptions.Item>
           <Descriptions.Item label="Разница с МТ5 (PnL сервиса)">
-            {formatCurrency(selectedInstrument.diffWithMt5)}
+            {formatCurrency(selectedInstrument.diffWithMt5,'USD', 'en-US', 4)}
           </Descriptions.Item>
           <Descriptions.Item label="Текущий курс">
             {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? unrealizedPnL.rate : "Нет данных")}
@@ -630,7 +630,7 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
               {formatCurrency(selectedInstrument.swap)}
             </Descriptions.Item>
             <Descriptions.Item label="Разница с МТ5 (PnL сервиса)">
-              {formatCurrency(selectedInstrument.diffWithMt5)}
+              {formatCurrency(selectedInstrument.diffWithMt5,'USD', 'en-US', 4)}
             </Descriptions.Item>
             <Descriptions.Item label={`${selectedInstrument.base} Сервиса`}>
               {formatCurrency(selectedInstrument.houseOwnedBaseAmount, selectedInstrument.base)}
@@ -665,7 +665,7 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
               {formatCurrency(selectedInstrument.clientOwnedBaseAmount, selectedInstrument.base)}
             </Descriptions.Item>
             <Descriptions.Item label="Разница с МТ5 (PnL сервиса)">
-              {formatCurrency(selectedInstrument.diffWithMt5)}
+              {formatCurrency(selectedInstrument.diffWithMt5,'USD', 'en-US', 4)}
             </Descriptions.Item>
             <Descriptions.Item label="Текущий курс">
               {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? unrealizedPnL.rate : "Нет данных")}
