@@ -99,6 +99,31 @@ function InstrumentToolbar({selectedInstrument, userId, user}) {
     }
   };
 
+  const recalculateServicePnl = async () => {
+    try {
+      if (selectedInstrument) {
+        // Fetch order history for the selected instrument
+        const recalculateResponse = await api.post(`/users/${userId}/instruments/${selectedInstrument.id}/recalculate-service-pnl`);
+        if (recalculateResponse.data.success) {
+          notificationApi['success']({
+            message: 'PnL сервиса отправлен на обновление.',
+            description:
+              'PnL сервиса отправлен на обновление. Пожалуйста, подождите.',
+          });
+        } else {
+          notificationApi['error']({
+            message: 'Ошибка',
+            description:
+              'Что-то пошло не так. Пожалуйста, попробуйте позже.',
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      // You might want to set an error state here to display to the user
+    }
+  };
+
   const recalculateGoogleSheet = async () => {
     try {
       if (selectedInstrument) {
@@ -197,6 +222,14 @@ function InstrumentToolbar({selectedInstrument, userId, user}) {
       label: (
         <a onClick={recalculateInnerGoogleSheet}>
           Выполнить пересчет внутренней таблицы
+        </a>
+      ),
+    },
+    {
+      key: 'recalc_service_pnl',
+      label: (
+        <a onClick={recalculateServicePnl}>
+          Выполнить пересчет pnl сервиса
         </a>
       ),
     },
