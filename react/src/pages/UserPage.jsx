@@ -489,11 +489,8 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
           <Descriptions.Item label={`Swap`}>
             {formatCurrency(selectedInstrument.swap)}
           </Descriptions.Item>
-          <Descriptions.Item label="PnL Сервиса">
-            {loadingServicePnL ? "Загрузка..." : (servicePnL !== null ? formatCurrency(servicePnL.profit) : "Нет данных")}
-          </Descriptions.Item>
-          <Descriptions.Item label="Нериализованный PnL Сервиса">
-            {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profitHouse) : "Нет данных")}
+          <Descriptions.Item label="Разница с МТ5 (PnL сервиса)">
+            {formatCurrency(selectedInstrument.diffWithMt5)}
           </Descriptions.Item>
           <Descriptions.Item label={`${selectedInstrument.base} Сервиса`}>
             {formatCurrency(selectedInstrument.houseOwnedBaseAmount, selectedInstrument.base)}
@@ -506,9 +503,6 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
           </Descriptions.Item>
           <Descriptions.Item label="Текущий курс">
             {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? unrealizedPnL.rate : "Нет данных")}
-          </Descriptions.Item>
-          <Descriptions.Item label="Разница с МТ5">
-            {formatCurrency(selectedInstrument.diffWithMt5)}
           </Descriptions.Item>
         </Descriptions>
 
@@ -531,8 +525,8 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
           <Descriptions.Item label="Баланс USD">
             {selectedInstrument.balance !== null ? formatCurrency(selectedInstrument.balance) : "Нет данных"}
           </Descriptions.Item>
-          <Descriptions.Item label="PnL Сервиса">
-            {loadingServicePnL ? "Загрузка..." : (servicePnL !== null ? formatCurrency(servicePnL.profit) : "Нет данных")}
+          <Descriptions.Item label="Разница с МТ5 (PnL сервиса)">
+            {formatCurrency(selectedInstrument.diffWithMt5)}
           </Descriptions.Item>
           <Descriptions.Item label="Текущий курс">
             {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? unrealizedPnL.rate : "Нет данных")}
@@ -542,14 +536,6 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
           <Descriptions.Item label="Нериализованный PnL Клиента">
             {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profit) : "Нет данных")}
           </Descriptions.Item>
-          <Descriptions.Item label="Нериализованный PnL Сервиса">
-            {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profitHouse) : "Нет данных")}
-          </Descriptions.Item>
-          <Descriptions.Item label="Разница с МТ5">
-            {formatCurrency(selectedInstrument.diffWithMt5)}
-          </Descriptions.Item>
-
-          <Descriptions.Item label=""></Descriptions.Item>
           <Descriptions.Item label={`${selectedInstrument.base} Сервиса`}>
             {formatCurrency(selectedInstrument.houseOwnedBaseAmount, selectedInstrument.base)}
           </Descriptions.Item>
@@ -643,11 +629,8 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
             <Descriptions.Item label={`Swap`}>
               {formatCurrency(selectedInstrument.swap)}
             </Descriptions.Item>
-            <Descriptions.Item label="PnL Сервиса">
-              {loadingServicePnL ? "Загрузка..." : (servicePnL !== null ? formatCurrency(servicePnL.profit) : "Нет данных")}
-            </Descriptions.Item>
-            <Descriptions.Item label="Нериализованный PnL Сервиса">
-              {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profitHouse) : "Нет данных")}
+            <Descriptions.Item label="Разница с МТ5 (PnL сервиса)">
+              {formatCurrency(selectedInstrument.diffWithMt5)}
             </Descriptions.Item>
             <Descriptions.Item label={`${selectedInstrument.base} Сервиса`}>
               {formatCurrency(selectedInstrument.houseOwnedBaseAmount, selectedInstrument.base)}
@@ -660,9 +643,6 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
             </Descriptions.Item>
             <Descriptions.Item label="Текущий курс">
               {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? unrealizedPnL.rate : "Нет данных")}
-            </Descriptions.Item>
-            <Descriptions.Item label="Разница с МТ5">
-              {formatCurrency(selectedInstrument.diffWithMt5)}
             </Descriptions.Item>
           </Descriptions>
 
@@ -684,8 +664,8 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
             <Descriptions.Item label={`${selectedInstrument.base} эквивалент Клиента`}>
               {formatCurrency(selectedInstrument.clientOwnedBaseAmount, selectedInstrument.base)}
             </Descriptions.Item>
-            <Descriptions.Item label="PnL Сервиса">
-              {loadingServicePnL ? "Загрузка..." : (servicePnL !== null ? formatCurrency(servicePnL.profit) : "Нет данных")}
+            <Descriptions.Item label="Разница с МТ5 (PnL сервиса)">
+              {formatCurrency(selectedInstrument.diffWithMt5)}
             </Descriptions.Item>
             <Descriptions.Item label="Текущий курс">
               {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? unrealizedPnL.rate : "Нет данных")}
@@ -695,20 +675,16 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
             <Descriptions.Item label="Баланс USD">
               {selectedInstrument.balance !== null ? formatCurrency(selectedInstrument.balance) : "Нет данных"}
             </Descriptions.Item>
-            <Descriptions.Item label="Нериализованный PnL Сервиса">
-              {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profitHouse) : "Нет данных")}
+            <Descriptions.Item label={`${selectedInstrument.base} Сервиса`}>
+              {formatCurrency(selectedInstrument.houseOwnedBaseAmount, selectedInstrument.base)}
             </Descriptions.Item>
-            <Descriptions.Item label="Разница с МТ5">
-              {formatCurrency(selectedInstrument.diffWithMt5)}
-            </Descriptions.Item>
+            <Descriptions.Item></Descriptions.Item>
 
 
             <Descriptions.Item label="Нериализованный PnL Клиента">
               {loadingUnrealizedPnL ? "Загрузка..." : (unrealizedPnL !== null ? formatCurrency(unrealizedPnL.profit) : "Нет данных")}
             </Descriptions.Item>
-            <Descriptions.Item label={`${selectedInstrument.base} Сервиса`}>
-              {formatCurrency(selectedInstrument.houseOwnedBaseAmount, selectedInstrument.base)}
-            </Descriptions.Item>
+
           </Descriptions>
         </Space>
 
