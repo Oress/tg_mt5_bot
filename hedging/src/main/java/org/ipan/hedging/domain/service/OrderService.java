@@ -28,6 +28,7 @@ public class OrderService {
     private final OrderRepo orderRepo;
     private final LifoPositionRepository lifoPositionRepository;
     private final HouseOwnedPositionRepository houseOwnedPositionRepository;
+    private final ServicePnlCalculator servicePnlCalculator;
 
     @Transactional
     public Order redistributeBaseAmount(PlaceOrderCommand command, VolumeCalculation volumeCalculation) {
@@ -215,22 +216,12 @@ public class OrderService {
             PlannedHousePositionConsumption plannedHousePositionConsumption = orderIdToConsumption.get(houseOwnedPosition.getId());
             houseOwnedPosition.decreaseRemainingAmount(plannedHousePositionConsumption.getConsumptionAmount());
 
-            BigDecimal pnl = null;
-            if (HouseOwnedPositionType.LONG.equals(houseOwnedPosition.getType())) {
-                // PnL = position_usd * ((exit_rate / entry_rate) - 1)
-                pnl = plannedHousePositionConsumption.getConsumptionAmount().multiply(
-                        volumeCalculation.getPrice().divide(houseOwnedPosition.getOrder().getPrice(), 8, RoundingMode.HALF_DOWN)
-                                .subtract(BigDecimal.ONE)
-                );
-            } else if (HouseOwnedPositionType.SHORT.equals(houseOwnedPosition.getType())) {
-                // PnL = -1 * position_usd * (( exit_rate/entry_rate) - 1)
-                pnl = plannedHousePositionConsumption.getConsumptionAmount().multiply(
-                        volumeCalculation.getPrice().divide(houseOwnedPosition.getOrder().getPrice(), 8, RoundingMode.HALF_DOWN)
-                                .subtract(BigDecimal.ONE)
-                ).negate();
-            } else {
-                log.error("Unsupported house position type: {}", houseOwnedPosition.getType());
-            }
+            BigDecimal pnl = servicePnlCalculator.calculatePnl(
+                    houseOwnedPosition.getType(),
+                    plannedHousePositionConsumption.getConsumptionAmount(),
+                    houseOwnedPosition.getOrder().getPrice(),
+                    volumeCalculation.getPrice()
+            );
 
             HousePositionConsumption housePositionConsumption = new HousePositionConsumption();
             housePositionConsumption.setParentOrder(order);

@@ -45,6 +45,7 @@ public class DashboardController {
     private final OrderOrchestrator orderOrchestrator;
     private final GoogleSheetsService googleSheetsService;
     private final ReportingCalculationService reportingCalculationService;
+    private final ServicePnlCalculator servicePnlCalculator;
     private final CommissionWithdrawalRepository commissionWithdrawalRepository;
     private final CommissionWithdrawalService commissionWithdrawalService;
 
@@ -58,7 +59,7 @@ public class DashboardController {
                                Mt5Service mt5Service,
                                ReportingCalculationRepository reportingCalculationRepository,
                                UserBalanceService userBalanceService,
-                               UnrealizedPnlCalculator unrealizedPnlCalculator, HousePositionConsumptionRepository housePositionConsumptionRepository, OrderService orderService, OrderOrchestrator orderOrchestrator, GoogleSheetsService googleSheetsService, ReportingCalculationService reportingCalculationService, CommissionWithdrawalRepository commissionWithdrawalRepository, CommissionWithdrawalService commissionWithdrawalService) {
+                               UnrealizedPnlCalculator unrealizedPnlCalculator, HousePositionConsumptionRepository housePositionConsumptionRepository, OrderService orderService, OrderOrchestrator orderOrchestrator, GoogleSheetsService googleSheetsService, ReportingCalculationService reportingCalculationService, ServicePnlCalculator servicePnlCalculator, CommissionWithdrawalRepository commissionWithdrawalRepository, CommissionWithdrawalService commissionWithdrawalService) {
         this.userRepo = userRepo;
         this.orderRepo = orderRepo;
         this.userTelegramActivityRepo = userTelegramActivityRepo;
@@ -73,6 +74,7 @@ public class DashboardController {
         this.orderOrchestrator = orderOrchestrator;
         this.googleSheetsService = googleSheetsService;
         this.reportingCalculationService = reportingCalculationService;
+        this.servicePnlCalculator = servicePnlCalculator;
         this.commissionWithdrawalRepository = commissionWithdrawalRepository;
         this.commissionWithdrawalService = commissionWithdrawalService;
     }
@@ -335,6 +337,12 @@ public class DashboardController {
 
         reportingCalculationService.recalculateAllForUserInstrument(userInstrumentId);
 
+        return ApiResponse.success();
+    }
+
+    @PostMapping("/users/{telegramId}/instruments/{userInstrumentId}/recalculate-service-pnl")
+    public ApiResponse<?> recalculateServicePnL(@PathVariable Long userInstrumentId) {
+        servicePnlCalculator.recalculateServicePnlForInstrument(userInstrumentId);
         return ApiResponse.success();
     }
 
