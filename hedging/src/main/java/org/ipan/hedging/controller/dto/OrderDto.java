@@ -23,6 +23,7 @@ public class OrderDto {
     private Long order;
     private BigDecimal swap;
     private BigDecimal commission;
+    private BigDecimal mt5Profit;
     private String type; // OrderType
     private String systemType;
     private String status; // OrderStatus

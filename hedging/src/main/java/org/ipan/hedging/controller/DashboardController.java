@@ -462,6 +462,7 @@ public class DashboardController {
                 .deal(order.getDeal())
                 .order(order.getOrder())
                 .swap(order.getSwap())
+                .mt5Profit(order.getMt5Profit())
                 .commission(order.getMt5Commission())
                 .type(order.getType().name())
                 .pnlExcel(order.getReportingCalculation() != null ? order.getReportingCalculation().getPnL() : null)
