@@ -404,9 +404,9 @@ function RegularHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
     },
     {
       title: 'MT5 прибыль',
-      dataIndex: 'mt5profit',
-      key: 'mt5profit',
-      render: (mt5profit) => (formatCurrency(mt5profit))
+      dataIndex: 'mt5Profit',
+      key: 'mt5Profit',
+      render: (mt5Profit) => (formatCurrency(mt5Profit))
     },
     {
       title: 'Сумма ордера в базовой валюте',
@@ -895,9 +895,9 @@ function InverseHedgeDetails({selectedInstrument, userId, refreshTrigger, unreal
                 },
                 {
                   title: 'MT5 прибыль',
-                  dataIndex: 'mt5profit',
-                  key: 'mt5profit',
-                  render: (mt5profit) => (formatCurrency(mt5profit))
+                  dataIndex: 'mt5Profit',
+                  key: 'mt5Profit',
+                  render: (mt5Profit) => (formatCurrency(mt5Profit))
                 },
                 {
                   title: 'Сумма ордера в базовой валюте',
