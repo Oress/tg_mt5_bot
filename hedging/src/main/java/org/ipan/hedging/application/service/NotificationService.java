@@ -7,6 +7,7 @@ import org.ipan.hedging.telegram.utils.FormattingTools;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 @Service
@@ -38,6 +39,10 @@ public class NotificationService {
             default -> "Неизвестен";
         };
 
+        BigDecimal price = order.getPrice() != null ? order.getPrice() : BigDecimal.ZERO;
+        BigDecimal mt5Commission = order.getMt5Commission() != null ? order.getMt5Commission() : BigDecimal.ZERO;
+        BigDecimal mt5Profit = order.getMt5Profit() != null ? order.getMt5Profit() : BigDecimal.ZERO;
+        BigDecimal swap = order.getSwap() != null ? order.getSwap() : BigDecimal.ZERO;
         String msg = String.format("""
                         📢 Новый ордер!
 
@@ -60,12 +65,12 @@ public class NotificationService {
                 status,
                 order.getUserInstrument().getInstrument().getLabel(),
                 order.getUserEnteredAmount().setScale(0, RoundingMode.HALF_DOWN),
-                order.getPrice().setScale(5, RoundingMode.HALF_DOWN),
+                price.setScale(5, RoundingMode.HALF_DOWN),
                 FormattingTools.formatDateToUtc(order.getCreatedAt()),
 
-                order.getMt5Commission().setScale(2, RoundingMode.HALF_DOWN),
-                order.getMt5Profit().setScale(2, RoundingMode.HALF_DOWN),
-                order.getSwap().setScale(2, RoundingMode.HALF_DOWN),
+                mt5Commission.setScale(2, RoundingMode.HALF_DOWN),
+                mt5Profit.setScale(2, RoundingMode.HALF_DOWN),
+                swap.setScale(2, RoundingMode.HALF_DOWN),
                 order.getMt5RespCode(),
 
                 order.getId()
