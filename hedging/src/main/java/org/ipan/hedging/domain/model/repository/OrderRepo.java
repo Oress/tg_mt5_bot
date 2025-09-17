@@ -45,13 +45,10 @@ public interface OrderRepo extends JpaRepository<Order, Long> {
     List<Order> findOrdersWithEmptySwap();
 
     @Query(nativeQuery = true, value = """
-            select sum(coalesce(t.mt5profit, 0) - t.deposit - coalesce(t.house_pnl, 0)) from
+            select sum(coalesce(t.mt5profit, 0) - t.pnl) from
             (select o.id,
                   o.mt5profit,
-                  case when rp.amount > 0 then rp.deposit else 0 end as deposit,
-                  (select sum(hopc.pnl)
-                   from hed_house_owned_position_consumptions hopc
-                   where hopc.parent_order_id = o.id) as house_pnl
+                  case when rp.amount > 0 then rp.deposit else 0 end as pnl
             from hed_orders o
                     join hed_reporting_calculations rp on o.id = rp.order_id
             where o.user_instrument_id = :userInstrumentId
