@@ -189,6 +189,18 @@ public class TelegramMessages {
         return tgClient.execute(message);
     }
 
+    @Retryable
+    @SneakyThrows
+    public Message sendOrderPlacedNotification(Long groupId, String msg) {
+        SendMessage message = SendMessage
+                .builder()
+                .chatId(groupId)
+                .text(msg)
+                .build();
+        return tgClient.execute(message);
+    }
+
+
     @SneakyThrows
     public void updateUserMainMenuBasedOnRole(UserState userState, AppUser user, MainMenuPayload payload) {
         UserRole role = user != null ? user.getRole() : UserRole.USER;

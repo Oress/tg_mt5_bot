@@ -26,6 +26,8 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         generate_statistics: false
 app:
+  notification:
+    tggroupid: ${APP_TG_NOTIFICATION_GROUP_ID:-4897300417}
   auth:
     jwtExpirationMs: 100000000
     jwtSecret: ${APP_JWT_SECRET:thisisaverylongsecretkeyforuseinthejtwtokengenerationprocess123}

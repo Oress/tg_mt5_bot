@@ -24,6 +24,7 @@ import java.util.Optional;
 public class OrderOrchestrator {
     public static final List<Integer> SUCCESS_CODES = List.of(10008, 10009);
 
+    private final NotificationService notificationService;
     private final UserRepo userRepo;
     private final OrderService orderService;
     private final Mt5Service mt5Service;
@@ -170,6 +171,8 @@ public class OrderOrchestrator {
             // usually this means that the value is small
             order = orderService.redistributeBaseAmount(command, estimateVolumeCalculation);
         }
+
+        notificationService.sendNotificationAboutOrder(order);
 
         return new PlaceOrderResponse(successful, order);
     }
