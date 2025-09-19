@@ -11,6 +11,7 @@ import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.repository.AppUserInstrumentRepository;
 import org.ipan.hedging.domain.model.repository.UserRepo;
 import org.ipan.hedging.domain.service.*;
+import org.ipan.hedging.telegram.TelegramMessages;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -32,6 +33,7 @@ public class OrderOrchestrator {
     private final ReportingCalculationService reportingCalculationService;
     private final AppUserInstrumentRepository appUserInstrumentRepository;
     private final CoverageService coverageService;
+    private final MainMenuStatsService mainMenuStatsService;
 
     public PlaceOrderResponse placeOrder(PlaceOrderCommand command) {
         log.info("Placing order for user: {}, instrument: {}, amount: {}, buy: {}", command.getUserId(), command.getInstrumentLabel(), command.getUserAmount(), command.isBuy());
@@ -172,7 +174,10 @@ public class OrderOrchestrator {
             order = orderService.redistributeBaseAmount(command, estimateVolumeCalculation);
         }
 
-        notificationService.sendNotificationAboutOrder(order);
+        // reread for new info.
+        user = userRepo.findByIdWithInstruments(user.getTelegramId());
+        TelegramMessages.MainMenuPayload payload = mainMenuStatsService.createPayload(user);
+        notificationService.sendNotificationAboutOrder(order, payload);
 
         return new PlaceOrderResponse(successful, order);
     }

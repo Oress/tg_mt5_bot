@@ -23,7 +23,7 @@ public class NotificationService {
         this.telegramMessages = telegramMessages;
     }
 
-    public void sendNotificationAboutOrder(Order order) {
+    public void sendNotificationAboutOrder(Order order, TelegramMessages.MainMenuPayload payload) {
         if (order == null) return;
 
         String status = switch (order.getStatus()) {
@@ -46,6 +46,10 @@ public class NotificationService {
         String msg = String.format("""
                         📢 Новый ордер!
 
+                        👤 %s
+                        💰 Средства (обеспечение): %s\s
+                        💵 Общий баланс: %s\s
+
                        Тип: %s
                        Статус: %s
                        Инструмент: %s
@@ -61,6 +65,9 @@ public class NotificationService {
                        ID: %d
                        """
                 ,
+                FormattingTools.formatUser(order.getUserInstrument().getUser()),
+                FormattingTools.formatPrice(payload.getCoverage()),
+                FormattingTools.formatPrice(payload.getBalance()),
                 type,
                 status,
                 order.getUserInstrument().getInstrument().getLabel(),

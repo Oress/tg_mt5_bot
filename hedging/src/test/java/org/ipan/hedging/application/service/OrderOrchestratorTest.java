@@ -75,6 +75,7 @@ class OrderOrchestratorTest {
     private final ReportingCalculationRepository reportingCalculationRepository;
     private final UserBalanceActionRepo userBalanceActionRepo;
     private final CoverageService coverageService;
+    private final MainMenuStatsService mainMenuStatsService;
 
 
     private OrderOrchestrator orderOrchestrator;
@@ -89,7 +90,8 @@ class OrderOrchestratorTest {
                                  ReportingCalculationService reportingCalculationService,
                                  ReportingCalculationRepository reportingCalculationRepository,
                                  UserBalanceActionRepo userBalanceActionRepo,
-                                 UserBalanceService userBalanceService, CoverageService coverageService) {
+                                 UserBalanceService userBalanceService,
+                                 CoverageService coverageService, MainMenuStatsService mainMenuStatsService) {
         this.notificationService = notificationService;
         this.userService = userService;
         this.userRepo = userRepo;
@@ -102,6 +104,7 @@ class OrderOrchestratorTest {
         this.userBalanceActionRepo = userBalanceActionRepo;
         this.userBalanceService = userBalanceService;
         this.coverageService = coverageService;
+        this.mainMenuStatsService = mainMenuStatsService;
     }
 
     @BeforeAll
@@ -125,7 +128,8 @@ class OrderOrchestratorTest {
                 volumeCalculationService,
                 reportingCalculationService,
                 userInstrumentRepository,
-                coverageService
+                coverageService,
+                mainMenuStatsService
         );
 
         // clean orders for clean state every test.

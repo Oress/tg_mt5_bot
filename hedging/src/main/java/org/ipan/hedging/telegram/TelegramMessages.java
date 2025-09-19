@@ -273,10 +273,10 @@ public class TelegramMessages {
             commonBalance = commonBalance.add(payload.eurBalance);
 //            balances.add("Баланс по EUR/USD: \n*%s %s*".formatted(FormattingTools.formatPrice(payload.eurBalance), "USD"));
         }
+        coverage = coverage.add(commonBalance);
 
         balances.addFirst("\uD83D\uDCB5 Общий баланс: \n*%s %s*".formatted(FormattingTools.formatPrice(commonBalance), "USD"));
 
-        coverage = coverage.add(commonBalance);
         balances.addFirst("\uD83D\uDCB0 Средства (обеспечение): \n*%s %s*".formatted(FormattingTools.formatPrice(coverage), "USD"));
 
         String resultStr = """
@@ -419,11 +419,43 @@ public class TelegramMessages {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class MainMenuPayload {
+        private BigDecimal userBalance;
+
         private BigDecimal cadBalance;
         private BigDecimal eurBalance;
 
         private BigDecimal eurUnrealizedPnl;
         private BigDecimal cadUnrealizedPnl;
 
+
+        public BigDecimal getCoverage() {
+            BigDecimal commonBalance = userBalance != null ? userBalance : BigDecimal.ZERO;
+            BigDecimal coverage = BigDecimal.ZERO;
+
+            if (cadBalance != null) {
+                coverage = coverage.add(cadUnrealizedPnl);
+                commonBalance = commonBalance.add(cadBalance);
+            }
+
+            if (eurBalance != null) {
+                coverage = coverage.add(eurUnrealizedPnl);
+                commonBalance = commonBalance.add(eurBalance);
+            }
+            coverage = coverage.add(commonBalance);
+            return coverage;
+        }
+
+        public BigDecimal getBalance() {
+            BigDecimal commonBalance = userBalance != null ? userBalance : BigDecimal.ZERO;
+
+            if (cadBalance != null) {
+                commonBalance = commonBalance.add(cadBalance);
+            }
+
+            if (eurBalance != null) {
+                commonBalance = commonBalance.add(eurBalance);
+            }
+            return commonBalance;
+        }
     }
 }

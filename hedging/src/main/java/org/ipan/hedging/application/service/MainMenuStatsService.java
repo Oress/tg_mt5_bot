@@ -35,6 +35,8 @@ public class MainMenuStatsService {
     public TelegramMessages.MainMenuPayload createPayload(AppUser user) {
         TelegramMessages.MainMenuPayload mainMenuPayload = new TelegramMessages.MainMenuPayload();
 
+        mainMenuPayload.setUserBalance(user.getBalanceUsd());
+
         Set<AppUserInstrument> availableInstruments = user.getAvailableInstruments();
         for (AppUserInstrument userInstrument : availableInstruments) {
             Instrument instrument = userInstrument.getInstrument();
