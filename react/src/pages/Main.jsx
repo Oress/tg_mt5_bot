@@ -14,6 +14,7 @@ import {
   theme
 } from 'antd';
 import { SearchOutlined, LogoutOutlined, MoonOutlined, SunOutlined } from '@ant-design/icons';
+import {formatCurrency} from "../utils.js";
 
 function Main({ toggleTheme, themeMode }) {
   const { token } = theme.useToken();
@@ -22,7 +23,6 @@ function Main({ toggleTheme, themeMode }) {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Load all users when component mounts
   useEffect(() => {
     const fetchUsers = async () => {
       setIsLoading(true);
@@ -37,7 +37,14 @@ function Main({ toggleTheme, themeMode }) {
       }
     };
 
+    // Initial fetch
     fetchUsers();
+
+    // Set up interval to refresh users every 20 seconds
+    const interval = setInterval(fetchUsers, 20000);
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(interval);
   }, []);
 
   const handleSearch = (e) => {
@@ -81,11 +88,13 @@ function Main({ toggleTheme, themeMode }) {
       title: 'Обеспечение',
       dataIndex: 'coverage',
       key: 'coverage',
+      render: (coverage) => (formatCurrency(coverage))
     },
     {
       title: 'Баланс',
       dataIndex: 'balance',
       key: 'balance',
+      render: (balance) => (formatCurrency(balance))
     },
     {
       title: 'Имя пользователя',
