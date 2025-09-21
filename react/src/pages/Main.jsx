@@ -78,9 +78,14 @@ function Main({ toggleTheme, themeMode }) {
 
   const columns = [
     {
-      title: 'Имя',
-      dataIndex: 'firstName',
-      key: 'firstName',
+      title: 'Обеспечение',
+      dataIndex: 'coverage',
+      key: 'coverage',
+    },
+    {
+      title: 'Баланс',
+      dataIndex: 'balance',
+      key: 'balance',
     },
     {
       title: 'Имя пользователя',
