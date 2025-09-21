@@ -47,7 +47,7 @@ public interface UserRepo extends JpaRepository<AppUser, Long> {
     Integer getNextSheetId();
 
     @Query(value = """
-                    from AppUser u
+                    from AppUser u left join fetch u.availableInstruments ui left join fetch ui.instrument
                     where lower(u.telegramUsername) like :query or lower(u.telegramFirstName) like :query
                     order by u.telegramId, u.telegramUsername, u.telegramFirstName
                     """)

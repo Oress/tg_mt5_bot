@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,5 +20,7 @@ public class UserDto {
     private String accountType;
     private Integer mt5Account;
     private String googleSheetId;
+    private BigDecimal coverage;
+    private BigDecimal balance;
     private List<UserInstrumentDto> instruments = new ArrayList<>();
 }

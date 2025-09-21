@@ -10,6 +10,7 @@ import org.ipan.hedging.domain.exception.UserWithSameAccountNumberAlreadyExists;
 import org.ipan.hedging.domain.model.*;
 import org.ipan.hedging.domain.model.repository.*;
 import org.ipan.hedging.domain.service.*;
+import org.ipan.hedging.telegram.TelegramMessages;
 import org.ipan.hedging.telegram.utils.FormattingTools;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
@@ -48,6 +49,7 @@ public class DashboardController {
     private final ServicePnlCalculator servicePnlCalculator;
     private final CommissionWithdrawalRepository commissionWithdrawalRepository;
     private final CommissionWithdrawalService commissionWithdrawalService;
+    private final MainMenuStatsService mainMenuStatsService;
 
     public DashboardController(UserRepo userRepo,
                                OrderRepo orderRepo,
@@ -59,7 +61,7 @@ public class DashboardController {
                                Mt5Service mt5Service,
                                ReportingCalculationRepository reportingCalculationRepository,
                                UserBalanceService userBalanceService,
-                               UnrealizedPnlCalculator unrealizedPnlCalculator, HousePositionConsumptionRepository housePositionConsumptionRepository, OrderService orderService, OrderOrchestrator orderOrchestrator, GoogleSheetsService googleSheetsService, ReportingCalculationService reportingCalculationService, ServicePnlCalculator servicePnlCalculator, CommissionWithdrawalRepository commissionWithdrawalRepository, CommissionWithdrawalService commissionWithdrawalService) {
+                               UnrealizedPnlCalculator unrealizedPnlCalculator, HousePositionConsumptionRepository housePositionConsumptionRepository, OrderService orderService, OrderOrchestrator orderOrchestrator, GoogleSheetsService googleSheetsService, ReportingCalculationService reportingCalculationService, ServicePnlCalculator servicePnlCalculator, CommissionWithdrawalRepository commissionWithdrawalRepository, CommissionWithdrawalService commissionWithdrawalService, MainMenuStatsService mainMenuStatsService) {
         this.userRepo = userRepo;
         this.orderRepo = orderRepo;
         this.userTelegramActivityRepo = userTelegramActivityRepo;
@@ -77,13 +79,26 @@ public class DashboardController {
         this.servicePnlCalculator = servicePnlCalculator;
         this.commissionWithdrawalRepository = commissionWithdrawalRepository;
         this.commissionWithdrawalService = commissionWithdrawalService;
+        this.mainMenuStatsService = mainMenuStatsService;
     }
 
     @GetMapping("/users")
     @Transactional(readOnly = true)
     public List<UserDto> searchUsers(@RequestParam(required = false) String query) {
+        List<UserDto> result = new ArrayList<>();
+
         query = query != null ? "%" + query.trim() + "%"  : "%";
-        return userRepo.searchForUsers(query).stream().map(this::mapToDto).toList();
+        List<AppUser> appUsers = userRepo.searchForUsers(query);
+
+        for (AppUser user : appUsers) {
+            UserDto dto = mapToDto(user);
+            TelegramMessages.MainMenuPayload payload = mainMenuStatsService.createPayload(user);
+            dto.setBalance(payload.getBalance());
+            dto.setCoverage(payload.getCoverage());
+            result.add(dto);
+        }
+
+        return result;
     }
 
     @GetMapping("/users/{telegramId}")
