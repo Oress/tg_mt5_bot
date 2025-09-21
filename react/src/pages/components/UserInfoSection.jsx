@@ -152,7 +152,7 @@ export function UserInfoSection({user}) {
   return (
     <>
       {contextHolder}
-      <Card style={{marginBottom: '24px'}}>
+      <Card size="small" style={{marginBottom: '24px'}}>
         <Space direction="vertical" size="middle" style={{width: '100%'}}>
           <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
             <Typography.Title level={3} style={{margin: 0}}>

@@ -45,7 +45,7 @@ const getColorByOrderType = (orderType) => {
 
 function UserDepositsAndWithdrawals({userId, refreshTrigger}) {
   return (
-    <Card style={{ marginBottom: '24px' }}>
+    <Card size="small" style={{ marginBottom: '24px' }}>
       <DepositsWithdrawalsSection
         userId={userId}
         refreshTrigger={refreshTrigger}
@@ -1273,14 +1273,14 @@ function UserPage() {
 
         <Mt5DataSection userId={userId} refreshTrigger={refreshCounter}/>
 
-        <Card style={{ marginBottom: '24px' }}>
+        <Card size="small" style={{ marginBottom: '24px' }}>
           <CommissionWithdrawalsSection userId={userId} refreshTrigger={refreshCounter} />
         </Card>
 
         <UserDepositsAndWithdrawals userId={userId} refreshTrigger={refreshCounter}/>
 
         {/* Instruments Section */}
-        <Card style={{ marginBottom: '24px' }}>
+        <Card size="small" style={{ marginBottom: '24px' }}>
           <Space direction="vertical" size="middle" style={{ width: '100%' }}>
             <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
               <Typography.Title level={3} style={{ margin: 0 }}>

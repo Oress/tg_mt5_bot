@@ -29,7 +29,7 @@ export function Mt5DataSection({userId, refreshTrigger}) {
       title: 'Тип',
       dataIndex: 'type',
       key: 'type',
-      width: 60,
+      width: 80,
       render: (type) => (
         <Typography.Text
           style={{
@@ -51,7 +51,7 @@ export function Mt5DataSection({userId, refreshTrigger}) {
       title: 'Цена (на сейчас)',
       key: 'priceCurrent',
       dataIndex: 'priceCurrent',
-      width: 60,
+      width: 90,
     },
     {
       title: 'Нериализованный PnL (на сейчас)',
@@ -94,7 +94,7 @@ export function Mt5DataSection({userId, refreshTrigger}) {
 
   return (
     <>
-      <Card style={{marginBottom: '24px'}}>
+      <Card size="small" style={{marginBottom: '24px'}}>
         <Space direction="vertical" size="middle" style={{width: '100%'}}>
           <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
             <Typography.Title level={4} style={{margin: 0}}>

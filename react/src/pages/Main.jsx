@@ -78,11 +78,6 @@ function Main({ toggleTheme, themeMode }) {
 
   const columns = [
     {
-      title: 'Telegram ID',
-      dataIndex: 'telegramId',
-      key: 'telegramId',
-    },
-    {
       title: 'Имя',
       dataIndex: 'firstName',
       key: 'firstName',
@@ -91,6 +86,11 @@ function Main({ toggleTheme, themeMode }) {
       title: 'Имя пользователя',
       dataIndex: 'username',
       key: 'username',
+    },
+    {
+      title: 'Telegram ID',
+      dataIndex: 'telegramId',
+      key: 'telegramId',
     },
     {
       title: 'Действия',
@@ -111,7 +111,7 @@ function Main({ toggleTheme, themeMode }) {
       <div style={{ backgroundColor: token.colorBgContainer, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
           <Flex justify="space-between" align="center">
-            <Typography.Title level={2} style={{ margin: 0 }}>
+            <Typography.Title level={4} style={{ margin: 0 }}>
               Панель управления
             </Typography.Title>
             <Space>
@@ -133,10 +133,10 @@ function Main({ toggleTheme, themeMode }) {
         </div>
       </div>
 
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
-        <Card>
-          <Space direction="vertical" size="large" style={{ width: '100%' }}>
-            <Typography.Title level={3} style={{ margin: 0 }}>
+      <div className="pt-8 px-2 md:px-8" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        <Card size="small">
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <Typography.Title level={5} style={{ margin: 0 }}>
               Поиск пользователей
             </Typography.Title>
             <Divider style={{ margin: 0 }} />
@@ -144,7 +144,6 @@ function Main({ toggleTheme, themeMode }) {
             <form onSubmit={handleSearch}>
               <Space.Compact style={{ width: '100%' }}>
                 <Input
-                  size="large"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Поиск по имени, имени пользователя или Telegram ID"
@@ -153,7 +152,6 @@ function Main({ toggleTheme, themeMode }) {
                 <Button 
                   type="primary" 
                   htmlType="submit" 
-                  size="large"
                   icon={<SearchOutlined />}
                 >
                   Поиск
@@ -169,6 +167,7 @@ function Main({ toggleTheme, themeMode }) {
               <div>
                 {users.length > 0 ? (
                   <Table
+                    size="small"
                     columns={columns}
                     dataSource={users}
                     rowKey="telegramId"
