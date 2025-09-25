@@ -45,7 +45,7 @@ public interface OrderRepo extends JpaRepository<Order, Long> {
     List<Order> findOrdersWithEmptySwap();
 
     @Query(nativeQuery = true, value = """
-            select sum(coalesce(t.mt5profit, 0) - t.pnl) from
+            select sum(t.pnl - coalesce(t.mt5profit, 0)) from
             (select o.id,
                   o.mt5profit,
                   coalesce(rp.pnl, 0) as pnl
