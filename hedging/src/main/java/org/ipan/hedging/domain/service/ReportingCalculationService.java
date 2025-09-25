@@ -19,6 +19,9 @@ import java.util.concurrent.CompletableFuture;
 @Service
 @AllArgsConstructor
 public class ReportingCalculationService {
+    private final static int SCALE = 5; // keep this in sync with Google Sheets and rounding mode HALF_UP
+    private final static RoundingMode ROUNDING_MODE = RoundingMode.HALF_UP; // keep this in sync with Google Sheets and rounding mode HALF_UP
+
     private final AppUserInstrumentRepository appUserInstrumentRepository;
     private final OrderRepo orderRepo;
     private final ReportingCalculationRepository reportingCalculationRepository;
@@ -124,11 +127,11 @@ public class ReportingCalculationService {
             record.setDate(balanceAction.getDate());
 
             if (prevRecord != null) {
-                record.setInPosition(prevRecord.getInPosition());
-                record.setRate(prevRecord.getRate());
-                record.setDepositTotal(prevRecord.getDepositTotal().add(prevRecord.getDepositPayment()));
+                record.setInPosition(prevRecord.getInPosition().setScale(SCALE, ROUNDING_MODE));
+                record.setRate(prevRecord.getRate().setScale(SCALE, ROUNDING_MODE));
+                record.setDepositTotal(prevRecord.getDepositTotal().add(prevRecord.getDepositPayment()).setScale(SCALE, ROUNDING_MODE));
             }
-            record.setBalance(record.getDepositTotal().add(record.getDepositPayment()));
+            record.setBalance(record.getDepositTotal().add(record.getDepositPayment()).setScale(SCALE, ROUNDING_MODE));
 
             return record;
         }
@@ -143,54 +146,54 @@ public class ReportingCalculationService {
 
             // raw values
             record.setDate(order.getCreatedAt());
-            record.setAmount(order.getUserAmountForGoogleSheet());
-            record.setFix(order.getPrice());
+            record.setAmount(order.getUserAmountForGoogleSheet().setScale(SCALE, ROUNDING_MODE));
+            record.setFix(order.getPrice().setScale(SCALE, ROUNDING_MODE));
 
             // calculated values
-            record.setUsdt(calculateUsdt(order, record, prevRecord));
-            record.setCommissionPercentage(order.getCommissionCoef().multiply(AppConstants.HUNDRED));
-            record.setCommission(order.getCommissionCoef().multiply(record.getUsdt()).negate());
+            record.setUsdt(calculateUsdt(order, record, prevRecord).setScale(SCALE, ROUNDING_MODE));
+            record.setCommissionPercentage(order.getCommissionCoef().multiply(AppConstants.HUNDRED).setScale(SCALE, ROUNDING_MODE));
+            record.setCommission(order.getCommissionCoef().multiply(record.getUsdt()).negate().setScale(SCALE, ROUNDING_MODE));
 
             // in position
             if (prevRecord == null) {
-                record.setInPosition(record.getAmount());
+                record.setInPosition(record.getAmount().setScale(SCALE, ROUNDING_MODE));
             } else {
-                record.setInPosition(prevRecord.getInPosition().add(record.getAmount()));
+                record.setInPosition(prevRecord.getInPosition().add(record.getAmount()).setScale(SCALE, ROUNDING_MODE));
             }
 
             // rate
             if (prevRecord == null) {
-                record.setRate(record.getFix());
+                record.setRate(record.getFix().setScale(SCALE, ROUNDING_MODE));
             } else {
                 if (order.isHedgeOut()) {
-                    record.setRate(prevRecord.getRate());
+                    record.setRate(prevRecord.getRate().setScale(SCALE, ROUNDING_MODE));
                 } else {
                     // weighted avg
                     record.setRate(
                             prevRecord.getInPosition().multiply(prevRecord.getRate())
                                     .add(record.getAmount().multiply(record.getFix()))
-                                    .divide(record.getInPosition(), 8, RoundingMode.HALF_DOWN)
+                                    .divide(record.getInPosition(), SCALE, ROUNDING_MODE)
                     );
                 }
             }
 
             // deposit
-            record.setDeposit(calculateDeposit(order, record));
+            record.setDeposit(calculateDeposit(order, record).setScale(SCALE, ROUNDING_MODE));
 
             // deposit total
             if (prevRecord == null) {
-                record.setDepositTotal(record.getDeposit());
+                record.setDepositTotal(record.getDeposit().setScale(SCALE, ROUNDING_MODE));
             } else {
                 record.setDepositTotal(
                         record.getDeposit()
-                                .add(prevRecord.getDepositTotal())
-                                .add(prevRecord.getDepositPayment())
+                                .add(prevRecord.getDepositTotal().setScale(SCALE, ROUNDING_MODE))
+                                .add(prevRecord.getDepositPayment().setScale(SCALE, ROUNDING_MODE))
                 );
             }
 
             // balance
             record.setBalance(
-                    record.getDepositTotal().add(record.getDepositPayment())
+                    record.getDepositTotal().add(record.getDepositPayment()).setScale(SCALE, ROUNDING_MODE)
             );
 
             return record;
@@ -223,15 +226,15 @@ public class ReportingCalculationService {
 
         @Override
         protected BigDecimal calculateUsdt(Order order, ReportingCalculation record, ReportingCalculation prevRecord) {
-            return record.getAmount().divide(order.getPrice(), 8, RoundingMode.HALF_DOWN);
+            return record.getAmount().divide(order.getPrice(), SCALE, ROUNDING_MODE);
         }
 
         @Override
         protected BigDecimal calculateDeposit(Order order, ReportingCalculation record) {
             if (order.isHedgeOut()) {
-                return record.getFix().divide(record.getRate(), 8, RoundingMode.HALF_DOWN)
+                return record.getFix().divide(record.getRate(), SCALE, ROUNDING_MODE)
                         .subtract(BigDecimal.ONE).multiply(record.getAmount())
-                        .divide(record.getFix(), 8, RoundingMode.HALF_DOWN);
+                        .divide(record.getFix(), SCALE, ROUNDING_MODE);
             } else {
                 return record.getCommission().negate();
             }
