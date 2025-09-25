@@ -49,6 +49,8 @@ public class ReportingCalculation {
 
     private BigDecimal rate;
 
+    private BigDecimal pnl;
+
     private BigDecimal deposit;
 
     @Column(name = "deposit_total")

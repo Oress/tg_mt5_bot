@@ -19,6 +19,7 @@ import java.util.concurrent.CompletableFuture;
 @Service
 @AllArgsConstructor
 public class ReportingCalculationService {
+    private final static int SCALE_USD = 2; // keep this in sync with Google Sheets and rounding mode HALF_UP
     private final static int SCALE = 5; // keep this in sync with Google Sheets and rounding mode HALF_UP
     private final static RoundingMode ROUNDING_MODE = RoundingMode.HALF_UP; // keep this in sync with Google Sheets and rounding mode HALF_UP
 
@@ -150,9 +151,9 @@ public class ReportingCalculationService {
             record.setFix(order.getPrice().setScale(SCALE, ROUNDING_MODE));
 
             // calculated values
-            record.setUsdt(calculateUsdt(order, record, prevRecord).setScale(SCALE, ROUNDING_MODE));
+            record.setUsdt(calculateUsdt(order, record, prevRecord).setScale(SCALE_USD, ROUNDING_MODE));
             record.setCommissionPercentage(order.getCommissionCoef().multiply(AppConstants.HUNDRED).setScale(SCALE, ROUNDING_MODE));
-            record.setCommission(order.getCommissionCoef().multiply(record.getUsdt()).negate().setScale(SCALE, ROUNDING_MODE));
+            record.setCommission(order.getCommissionCoef().multiply(record.getUsdt()).negate().setScale(SCALE_USD, ROUNDING_MODE));
 
             // in position
             if (prevRecord == null) {
@@ -178,7 +179,11 @@ public class ReportingCalculationService {
             }
 
             // deposit
-            record.setDeposit(calculateDeposit(order, record).setScale(SCALE, ROUNDING_MODE));
+            record.setDeposit(calculateDeposit(order, record).setScale(SCALE_USD, ROUNDING_MODE));
+
+            if (record.getAmount().compareTo(BigDecimal.ZERO) > 0) {
+                record.setPnl(record.getDeposit());
+            }
 
             // deposit total
             if (prevRecord == null) {

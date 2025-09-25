@@ -48,7 +48,7 @@ public interface OrderRepo extends JpaRepository<Order, Long> {
             select sum(coalesce(t.mt5profit, 0) - t.pnl) from
             (select o.id,
                   o.mt5profit,
-                  case when rp.amount > 0 then rp.deposit else 0 end as pnl
+                  coalesce(rp.pnl, 0) as pnl
             from hed_orders o
                     join hed_reporting_calculations rp on o.id = rp.order_id
             where o.user_instrument_id = :userInstrumentId

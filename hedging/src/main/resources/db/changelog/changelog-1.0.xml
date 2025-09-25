@@ -615,4 +615,10 @@
         </addColumn>
     </changeSet>
 
+    <changeSet id="add pnl to hed_reporting_calculations" author="oress">
+        <addColumn tableName="hed_reporting_calculations">
+            <column name="pnl" type="decimal(20,8)" />
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>
