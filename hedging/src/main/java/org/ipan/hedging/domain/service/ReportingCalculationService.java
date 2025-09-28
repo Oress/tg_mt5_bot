@@ -21,6 +21,7 @@ import java.util.concurrent.CompletableFuture;
 public class ReportingCalculationService {
     private final static int SCALE_USD = 2; // keep this in sync with Google Sheets and rounding mode HALF_UP
     private final static int SCALE = 5; // keep this in sync with Google Sheets and rounding mode HALF_UP
+    private final static int SCALE7 = 7;
     private final static RoundingMode ROUNDING_MODE = RoundingMode.HALF_UP; // keep this in sync with Google Sheets and rounding mode HALF_UP
 
     private final AppUserInstrumentRepository appUserInstrumentRepository;
@@ -129,7 +130,7 @@ public class ReportingCalculationService {
 
             if (prevRecord != null) {
                 record.setInPosition(prevRecord.getInPosition().setScale(SCALE, ROUNDING_MODE));
-                record.setRate(prevRecord.getRate().setScale(SCALE, ROUNDING_MODE));
+                record.setRate(prevRecord.getRate().setScale(SCALE7, ROUNDING_MODE));
                 record.setDepositTotal(prevRecord.getDepositTotal().add(prevRecord.getDepositPayment()).setScale(SCALE, ROUNDING_MODE));
             }
             record.setBalance(record.getDepositTotal().add(record.getDepositPayment()).setScale(SCALE, ROUNDING_MODE));
@@ -164,16 +165,16 @@ public class ReportingCalculationService {
 
             // rate
             if (prevRecord == null) {
-                record.setRate(record.getFix().setScale(SCALE, ROUNDING_MODE));
+                record.setRate(record.getFix().setScale(SCALE7, ROUNDING_MODE));
             } else {
                 if (order.isHedgeOut()) {
-                    record.setRate(prevRecord.getRate().setScale(SCALE, ROUNDING_MODE));
+                    record.setRate(prevRecord.getRate().setScale(SCALE7, ROUNDING_MODE));
                 } else {
                     // weighted avg
                     record.setRate(
                             prevRecord.getInPosition().multiply(prevRecord.getRate())
                                     .add(record.getAmount().multiply(record.getFix()))
-                                    .divide(record.getInPosition(), SCALE, ROUNDING_MODE)
+                                    .divide(record.getInPosition(), SCALE7, ROUNDING_MODE)
                     );
                 }
             }
