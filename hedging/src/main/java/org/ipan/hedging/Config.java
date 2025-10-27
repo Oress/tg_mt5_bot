@@ -42,6 +42,7 @@ public class Config {
     @Primary
     public Mt5Service getMainMt5Service(RestTemplate restTemplate, PythonProxyConfig proxyConfig, PasswordService passwordService) {
         PythonProxyConfig pythonProxyConfig = new PythonProxyConfig();
+        log.info("Whole config is {}", proxyConfig);
         pythonProxyConfig.setUrl(proxyConfig.getUrl());
         return new Mt5ServiceImpl(
                 restTemplate,
