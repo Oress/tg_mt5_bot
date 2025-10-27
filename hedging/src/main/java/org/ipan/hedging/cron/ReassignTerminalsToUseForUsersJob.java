@@ -24,7 +24,7 @@ public class ReassignTerminalsToUseForUsersJob {
     public void run() throws IOException {
         log.info("ReassignTerminalsToUseForUsersJob started");
 
-        List<AppUser> allUsers = userRepo.findAllByDisabled(false, Sort.by(Sort.Direction.ASC, AppUser_.CREATED_AT));
+        List<AppUser> allUsers = userRepo.findAllByDisabledAndMt5AccNumberNotNull(false, Sort.by(Sort.Direction.ASC, AppUser_.CREATED_AT));
         for (AppUser user : allUsers) {
             user.setTerminalToUse(terminalBroker.getNextTerminalToUse());
             userRepo.save(user);

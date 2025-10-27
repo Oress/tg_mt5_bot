@@ -37,7 +37,6 @@ public class UserService {
 
         appUser = new AppUser();
         updateModelFromCommand(command, appUser);
-        appUser.setTerminalToUse(terminalBroker.getNextTerminalToUse());
         userRepo.save(appUser);
 
         return appUser;
@@ -83,6 +82,9 @@ public class UserService {
         appUser.setMt5AccNumber(accountNumber);
         appUser.setAccountType(accountType);
         appUser.setMt5AccPwdEnc(passwordService.encrypt(accountPwd));
+        if (appUser.getTerminalToUse() == null) {
+            appUser.setTerminalToUse(terminalBroker.getNextTerminalToUse());
+        }
 
         return appUser;
     }

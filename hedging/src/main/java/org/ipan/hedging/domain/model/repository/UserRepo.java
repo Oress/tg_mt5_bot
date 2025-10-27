@@ -54,5 +54,5 @@ public interface UserRepo extends JpaRepository<AppUser, Long> {
                     """)
     List<AppUser> searchForUsers(String query);
 
-    List<AppUser> findAllByDisabled(Boolean disabled, Sort sort);
+    List<AppUser> findAllByDisabledAndMt5AccNumberNotNull(Boolean disabled, Sort sort);
 }
