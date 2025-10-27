@@ -26,17 +26,19 @@ public class OrderMt5InfoFetcherService {
     private final Mt5Service mt5Service;
 
     public OrderMt5InfoFetcherService(OrderRepo orderRepo,
-                                      @Qualifier(Config.AUX_MT5) Mt5Service mt5Service) {
+                                      @Qualifier(Config.MAIN_MT5) Mt5Service mt5Service) {
         this.orderRepo = orderRepo;
         this.mt5Service = mt5Service;
     }
 
+/*
     @Async
     @Transactional
     @Retryable(maxAttempts = 5)
     public void fetchInfoForOrderAsync(Long orderId) {
         fetchInfoForOrderSync(orderId);
     }
+*/
 
     @Transactional
     @Retryable(maxAttempts = 5)

@@ -621,4 +621,10 @@
         </addColumn>
     </changeSet>
 
+    <changeSet id="add terminal_to_use to hed_users" author="oress">
+        <addColumn tableName="hed_users">
+            <column name="terminal_to_use" type="text" defaultValue="proxy_1" />
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

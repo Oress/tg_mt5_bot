@@ -1,8 +1,9 @@
 package org.ipan.hedging.domain.service;
 
-import org.ipan.hedging.Config;
+import lombok.AllArgsConstructor;
 import org.ipan.hedging.application.service.Mt5Service;
 import org.ipan.hedging.application.service.Mt5ServiceImpl;
+import org.ipan.hedging.application.service.TerminalBroker;
 import org.ipan.hedging.application.service.command.PlaceOrderCommand;
 import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.model.AppUserInstrument;
@@ -10,7 +11,6 @@ import org.ipan.hedging.domain.model.Instrument;
 import org.ipan.hedging.domain.model.InstrumentMode;
 import org.ipan.hedging.domain.model.repository.AppUserInstrumentRepository;
 import org.ipan.hedging.domain.model.repository.ReportingCalculationRepository;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +19,7 @@ import java.math.RoundingMode;
 import java.util.Set;
 
 @Service
+@AllArgsConstructor
 public class CoverageService {
     private static final BigDecimal COMFORTABLE = new BigDecimal("0.08");
     private static final BigDecimal WARNING = new BigDecimal("0.06");
@@ -27,17 +28,8 @@ public class CoverageService {
     private final AppUserInstrumentRepository userInstrumentRepository;
     private final ReportingCalculationRepository calculationRepository;
     private final UnrealizedPnlCalculator unrealizedPnlCalculator;
-    private final Mt5Service mt5Service;
+    private final TerminalBroker terminalBroker;
 
-    public CoverageService(AppUserInstrumentRepository userInstrumentRepository,
-                           ReportingCalculationRepository calculationRepository,
-                           UnrealizedPnlCalculator unrealizedPnlCalculator,
-                           @Qualifier(Config.AUX_MT5) Mt5Service mt5Service) {
-        this.userInstrumentRepository = userInstrumentRepository;
-        this.calculationRepository = calculationRepository;
-        this.unrealizedPnlCalculator = unrealizedPnlCalculator;
-        this.mt5Service = mt5Service;
-    }
 
     @Transactional(readOnly = true)
     public CoverageReport assessHedgeOperation(Long userInstrumentId, PlaceOrderCommand command) {
@@ -73,6 +65,7 @@ public class CoverageService {
             Instrument instrument = userInstrument.getInstrument();
             boolean isLong = InstrumentMode.LONG.equals(instrument.getMode());
             String symbol = user.getSymbolByLabelAndAccType(instrument.getLabel());
+            Mt5Service mt5Service = terminalBroker.getMt5Service(user);
             Mt5ServiceImpl.InfoTick infoTick = mt5Service.getInfoTick(user, symbol);
             BigDecimal currentRate = isLong
                     ? BigDecimal.valueOf(infoTick.getBid()).setScale(5, RoundingMode.HALF_DOWN)
@@ -96,6 +89,7 @@ public class CoverageService {
             Instrument instrument = userInstrument.getInstrument();
             boolean isLong = InstrumentMode.LONG.equals(instrument.getMode());
             String symbol = user.getSymbolByLabelAndAccType(instrument.getLabel());
+            Mt5Service mt5Service = terminalBroker.getMt5Service(user);
             Mt5ServiceImpl.InfoTick infoTick = mt5Service.getInfoTick(user, symbol);
             BigDecimal currentRate = isLong
                     ? BigDecimal.valueOf(infoTick.getBid()).setScale(5, RoundingMode.HALF_DOWN)

@@ -28,7 +28,7 @@ public class OrderOrchestrator {
     private final NotificationService notificationService;
     private final UserRepo userRepo;
     private final OrderService orderService;
-    private final Mt5Service mt5Service;
+    private final TerminalBroker terminalBroker;
     private final VolumeCalculationService volumeCalculationService;
     private final ReportingCalculationService reportingCalculationService;
     private final AppUserInstrumentRepository appUserInstrumentRepository;
@@ -55,6 +55,7 @@ public class OrderOrchestrator {
         }
 
         boolean successful = false;
+        Mt5Service mt5Service = terminalBroker.getMt5Service(user);
         Mt5ServiceImpl.SymbolInfo symbolInfo = mt5Service.symbolInfo(user, symbol);
         Mt5ServiceImpl.InfoTick infoTick = mt5Service.getInfoTick(user, symbol);
         log.info("Symbol info: {}, infoTick: {}", symbolInfo, infoTick);

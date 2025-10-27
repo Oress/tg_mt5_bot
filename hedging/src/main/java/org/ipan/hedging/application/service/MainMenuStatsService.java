@@ -1,5 +1,6 @@
 package org.ipan.hedging.application.service;
 
+import lombok.AllArgsConstructor;
 import org.ipan.hedging.Config;
 import org.ipan.hedging.domain.AppConstants;
 import org.ipan.hedging.domain.model.*;
@@ -17,19 +18,11 @@ import java.math.RoundingMode;
 import java.util.Set;
 
 @Service
+@AllArgsConstructor
 public class MainMenuStatsService {
     private final ReportingCalculationRepository reportingCalculationRepository;
     private final UnrealizedPnlCalculator unrealizedPnlCalculator;
-    private final Mt5Service mt5Service;
-
-    public MainMenuStatsService(
-            ReportingCalculationRepository reportingCalculationRepository,
-            UnrealizedPnlCalculator unrealizedPnlCalculator,
-            @Qualifier(Config.AUX_MT5) Mt5Service mt5Service) {
-        this.reportingCalculationRepository = reportingCalculationRepository;
-        this.unrealizedPnlCalculator = unrealizedPnlCalculator;
-        this.mt5Service = mt5Service;
-    }
+    private final TerminalBroker terminalBroker;
 
     @Transactional(readOnly = true)
     public TelegramMessages.MainMenuPayload createPayload(AppUser user) {
@@ -43,6 +36,7 @@ public class MainMenuStatsService {
             ReportingCalculation lastRow = reportingCalculationRepository.getLastRowForTheUserInstrument(userInstrument.getId(), Limit.of(1));
 
             if (lastRow != null) {
+                Mt5Service mt5Service = terminalBroker.getMt5Service(user);
                 Mt5ServiceImpl.InfoTick infoTick = mt5Service.getInfoTick(user, user.getSymbolByLabelAndAccType(instrument.getLabel()));
                 BigDecimal currentRate = InstrumentMode.LONG.equals(instrument.getMode())
                         ? BigDecimal.valueOf(infoTick.getBid()).setScale(5, RoundingMode.HALF_DOWN)

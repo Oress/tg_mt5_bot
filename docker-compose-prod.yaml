@@ -17,7 +17,97 @@ services:
     volumes:
       - ./config1:/config
     ports:
-      - 4000:3000
+      - 4001:3000
+
+  mt5_2:
+    extends:
+      file: docker-compose-base.yaml
+      service: mt5service
+    restart: unless-stopped
+    volumes:
+      - ./config2:/config
+    ports:
+      - 4002:3000
+
+  mt5_3:
+    extends:
+      file: docker-compose-base.yaml
+      service: mt5service
+    restart: unless-stopped
+    volumes:
+      - ./config3:/config
+    ports:
+      - 4003:3000
+
+  mt5_4:
+    extends:
+      file: docker-compose-base.yaml
+      service: mt5service
+    restart: unless-stopped
+    volumes:
+      - ./config3:/config
+    ports:
+      - 4004:3000
+
+  mt5_5:
+    extends:
+      file: docker-compose-base.yaml
+      service: mt5service
+    restart: unless-stopped
+    volumes:
+      - ./config3:/config
+    ports:
+      - 4005:3000
+
+  mt5_6:
+    extends:
+      file: docker-compose-base.yaml
+      service: mt5service
+    restart: unless-stopped
+    volumes:
+      - ./config3:/config
+    ports:
+      - 4006:3000
+
+  mt5_7:
+    extends:
+      file: docker-compose-base.yaml
+      service: mt5service
+    restart: unless-stopped
+    volumes:
+      - ./config3:/config
+    ports:
+      - 4007:3000
+
+  mt5_8:
+    extends:
+      file: docker-compose-base.yaml
+      service: mt5service
+    restart: unless-stopped
+    volumes:
+      - ./config3:/config
+    ports:
+      - 4008:3000
+
+  mt5_9:
+    extends:
+      file: docker-compose-base.yaml
+      service: mt5service
+    restart: unless-stopped
+    volumes:
+      - ./config3:/config
+    ports:
+      - 4009:3000
+
+  mt5_10:
+    extends:
+      file: docker-compose-base.yaml
+      service: mt5service
+    restart: unless-stopped
+    volumes:
+      - ./config3:/config
+    ports:
+      - 4010:3000
 
   postgres:
     restart: unless-stopped
@@ -38,6 +128,78 @@ services:
       service: pythonproxyservice
     environment:
       - MT5_HOST=mt5_1
+
+  ptyhonhttpproxy_2:
+    restart: unless-stopped
+    extends:
+      file: docker-compose-base.yaml
+      service: pythonproxyservice
+    environment:
+      - MT5_HOST=mt5_2
+
+  ptyhonhttpproxy_3:
+    restart: unless-stopped
+    extends:
+      file: docker-compose-base.yaml
+      service: pythonproxyservice
+    environment:
+      - MT5_HOST=mt5_3
+
+  ptyhonhttpproxy_4:
+    restart: unless-stopped
+    extends:
+      file: docker-compose-base.yaml
+      service: pythonproxyservice
+    environment:
+      - MT5_HOST=mt5_4
+
+  ptyhonhttpproxy_5:
+    restart: unless-stopped
+    extends:
+      file: docker-compose-base.yaml
+      service: pythonproxyservice
+    environment:
+      - MT5_HOST=mt5_5
+
+  ptyhonhttpproxy_6:
+    restart: unless-stopped
+    extends:
+      file: docker-compose-base.yaml
+      service: pythonproxyservice
+    environment:
+      - MT5_HOST=mt5_6
+
+  ptyhonhttpproxy_7:
+    restart: unless-stopped
+    extends:
+      file: docker-compose-base.yaml
+      service: pythonproxyservice
+    environment:
+      - MT5_HOST=mt5_7
+
+  ptyhonhttpproxy_8:
+    restart: unless-stopped
+    extends:
+      file: docker-compose-base.yaml
+      service: pythonproxyservice
+    environment:
+      - MT5_HOST=mt5_8
+
+  ptyhonhttpproxy_9:
+    restart: unless-stopped
+    extends:
+      file: docker-compose-base.yaml
+      service: pythonproxyservice
+    environment:
+      - MT5_HOST=mt5_9
+
+  ptyhonhttpproxy_10:
+    restart: unless-stopped
+    extends:
+      file: docker-compose-base.yaml
+      service: pythonproxyservice
+    environment:
+      - MT5_HOST=mt5_10
 
   server:
     restart: unless-stopped

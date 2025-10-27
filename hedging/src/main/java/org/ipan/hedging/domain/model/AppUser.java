@@ -27,6 +27,9 @@ public class AppUser {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<AppUserInstrument> availableInstruments = new HashSet<>();
 
+    @Column(name = "terminal_to_use")
+    private String terminalToUse = AppConstants.TERMINAL_PROXY1;
+
     @Column(name = "balance_usd")
     private BigDecimal balanceUsd = BigDecimal.ZERO;
 

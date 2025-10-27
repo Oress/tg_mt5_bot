@@ -1,5 +1,6 @@
 package org.ipan.hedging.domain.service;
 
+import org.ipan.hedging.application.service.TerminalBroker;
 import org.ipan.hedging.domain.model.AccountType;
 import org.ipan.hedging.domain.model.AppUser;
 import org.ipan.hedging.domain.model.AppUserInstrument;
@@ -25,6 +26,7 @@ public class UserService {
     private final InstrumentRepo instrumentRepo;
     private final PasswordService passwordService;
     private final AppUserInstrumentRepository appUserInstrumentRepository;
+    private final TerminalBroker terminalBroker;
 
     @Transactional
     public AppUser createUser(CreateUserCommand command) {
@@ -35,7 +37,7 @@ public class UserService {
 
         appUser = new AppUser();
         updateModelFromCommand(command, appUser);
-
+        appUser.setTerminalToUse(terminalBroker.getNextTerminalToUse());
         userRepo.save(appUser);
 
         return appUser;

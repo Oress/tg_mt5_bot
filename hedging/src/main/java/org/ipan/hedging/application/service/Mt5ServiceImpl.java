@@ -16,7 +16,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
-@Service
 @Slf4j
 @AllArgsConstructor
 public class Mt5ServiceImpl implements Mt5Service {

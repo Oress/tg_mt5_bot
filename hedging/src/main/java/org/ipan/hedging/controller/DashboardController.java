@@ -1,7 +1,6 @@
 package org.ipan.hedging.controller;
 
 import lombok.extern.slf4j.Slf4j;
-import org.ipan.hedging.Config;
 import org.ipan.hedging.application.service.*;
 import org.ipan.hedging.controller.dto.*;
 import org.ipan.hedging.domain.AppConstants;
@@ -12,7 +11,6 @@ import org.ipan.hedging.domain.model.repository.*;
 import org.ipan.hedging.domain.service.*;
 import org.ipan.hedging.telegram.TelegramMessages;
 import org.ipan.hedging.telegram.utils.FormattingTools;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Limit;
 import org.springframework.http.ResponseEntity;
@@ -38,7 +36,6 @@ public class DashboardController {
     private final UserBalanceActionsRepository userBalanceActionsRepository;
     private final AppUserInstrumentRepository appUserInstrumentRepository;
     private final UserService userService;
-    private final Mt5Service mt5Service;
     private final ReportingCalculationRepository reportingCalculationRepository;
     private final UserBalanceService userBalanceService;
     private final UnrealizedPnlCalculator unrealizedPnlCalculator;
@@ -50,6 +47,7 @@ public class DashboardController {
     private final CommissionWithdrawalRepository commissionWithdrawalRepository;
     private final CommissionWithdrawalService commissionWithdrawalService;
     private final MainMenuStatsService mainMenuStatsService;
+    private final TerminalBroker terminalBroker;
 
     public DashboardController(UserRepo userRepo,
                                OrderRepo orderRepo,
@@ -57,8 +55,7 @@ public class DashboardController {
                                UserBalanceActionsRepository userBalanceActionsRepository,
                                AppUserInstrumentRepository appUserInstrumentRepository,
                                UserService userService,
-                               @Qualifier(Config.AUX_MT5)
-                               Mt5Service mt5Service,
+                               TerminalBroker terminalBroker,
                                ReportingCalculationRepository reportingCalculationRepository,
                                UserBalanceService userBalanceService,
                                UnrealizedPnlCalculator unrealizedPnlCalculator, HousePositionConsumptionRepository housePositionConsumptionRepository, OrderService orderService, OrderOrchestrator orderOrchestrator, GoogleSheetsService googleSheetsService, ReportingCalculationService reportingCalculationService, ServicePnlCalculator servicePnlCalculator, CommissionWithdrawalRepository commissionWithdrawalRepository, CommissionWithdrawalService commissionWithdrawalService, MainMenuStatsService mainMenuStatsService) {
@@ -68,7 +65,7 @@ public class DashboardController {
         this.userBalanceActionsRepository = userBalanceActionsRepository;
         this.appUserInstrumentRepository = appUserInstrumentRepository;
         this.userService = userService;
-        this.mt5Service = mt5Service;
+        this.terminalBroker = terminalBroker;
         this.reportingCalculationRepository = reportingCalculationRepository;
         this.userBalanceService = userBalanceService;
         this.unrealizedPnlCalculator = unrealizedPnlCalculator;
@@ -140,6 +137,7 @@ public class DashboardController {
     @Transactional(readOnly = true)
     public ApiResponse<List<TerminalPositionDto>> getMt5Data(@PathVariable Long telegramId) {
         AppUser user = userRepo.findById(telegramId).get();
+        Mt5Service mt5Service = terminalBroker.getMt5Service(user);
         List<Mt5ServiceImpl.TradePos> positions = mt5Service.positionsGetAll(user);
         List<TerminalPositionDto> result = positions.stream()
                 .map((p) -> {
@@ -164,6 +162,7 @@ public class DashboardController {
     @Transactional(readOnly = true)
     public ApiResponse<TerminalBalanceDto> getMt5Balance(@PathVariable Long telegramId) {
         AppUser user = userRepo.findById(telegramId).get();
+        Mt5Service mt5Service = terminalBroker.getMt5Service(user);
         Mt5ServiceImpl.BalanceDetails balanceDetails = mt5Service.getAccountInfo(user);
 
         TerminalBalanceDto dto = new TerminalBalanceDto();
@@ -184,6 +183,7 @@ public class DashboardController {
 
         if (user.hasAccount()) {
             Instrument instrument = userInstrument.getInstrument();
+            Mt5Service mt5Service = terminalBroker.getMt5Service(user);
             Mt5ServiceImpl.InfoTick infoTick = mt5Service.getInfoTick(user, user.getSymbolByLabelAndAccType(instrument.getLabel()));
             BigDecimal rate = InstrumentMode.LONG.equals(instrument.getMode())
                     ? BigDecimal.valueOf(infoTick.getBid()).setScale(5, RoundingMode.HALF_DOWN)
@@ -413,6 +413,7 @@ public class DashboardController {
             throw new UserWithSameAccountNumberAlreadyExists();
         }
 
+        Mt5Service mt5Service = terminalBroker.getMainTerminal();
         if (!mt5Service.checkCredentials(accountNumber, accountPwd)) {
             log.warn("User enters invalid credentials");
             throw new InvalidAccountCredentialsException();

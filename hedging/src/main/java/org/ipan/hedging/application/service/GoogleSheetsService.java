@@ -93,7 +93,7 @@ public class GoogleSheetsService {
                                AppUserInstrumentRepository userInstrumentRepository,
                                ReportingCalculationRepository reportingCalculationRepository,
                                GoogleSheetsApiService googleSheetsApiService,
-                               @Qualifier(Config.AUX_MT5)
+                               @Qualifier(Config.MAIN_MT5)
                                Mt5Service mt5Service, UnrealizedPnlCalculator unrealizedPnlCalculator) throws IOException {
         this.config = config;
         this.userRepo = userRepo;
