@@ -45,7 +45,7 @@ services:
       service: mt5service
     restart: unless-stopped
     volumes:
-      - ./config3:/config
+      - ./config4:/config
     ports:
       - 4004:3000
 
@@ -55,7 +55,7 @@ services:
       service: mt5service
     restart: unless-stopped
     volumes:
-      - ./config3:/config
+      - ./config5:/config
     ports:
       - 4005:3000
 
@@ -65,7 +65,7 @@ services:
       service: mt5service
     restart: unless-stopped
     volumes:
-      - ./config3:/config
+      - ./config6:/config
     ports:
       - 4006:3000
 
@@ -75,7 +75,7 @@ services:
       service: mt5service
     restart: unless-stopped
     volumes:
-      - ./config3:/config
+      - ./config7:/config
     ports:
       - 4007:3000
 
@@ -85,7 +85,7 @@ services:
       service: mt5service
     restart: unless-stopped
     volumes:
-      - ./config3:/config
+      - ./config8:/config
     ports:
       - 4008:3000
 
@@ -95,7 +95,7 @@ services:
       service: mt5service
     restart: unless-stopped
     volumes:
-      - ./config3:/config
+      - ./config9:/config
     ports:
       - 4009:3000
 
@@ -105,7 +105,7 @@ services:
       service: mt5service
     restart: unless-stopped
     volumes:
-      - ./config3:/config
+      - ./config10:/config
     ports:
       - 4010:3000
 
