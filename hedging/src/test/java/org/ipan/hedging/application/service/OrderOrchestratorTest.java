@@ -80,6 +80,7 @@ class OrderOrchestratorTest {
 
     private OrderOrchestrator orderOrchestrator;
     private Mt5Service mt5Service;
+    private TerminalBroker terminalBroker;
 
     @Autowired
     public OrderOrchestratorTest(NotificationService notificationService, UserService userService, UserRepo userRepo,
@@ -119,12 +120,13 @@ class OrderOrchestratorTest {
 
     @BeforeEach
     void setUp() {
+        terminalBroker = mock(TerminalBroker.class);
         mt5Service = mock(Mt5Service.class);
         orderOrchestrator = new OrderOrchestrator(
                 notificationService,
                 userRepo,
                 orderService,
-                mt5Service,
+                terminalBroker,
                 volumeCalculationService,
                 reportingCalculationService,
                 userInstrumentRepository,
