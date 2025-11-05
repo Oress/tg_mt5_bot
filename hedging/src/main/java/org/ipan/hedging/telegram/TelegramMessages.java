@@ -433,12 +433,16 @@ public class TelegramMessages {
             BigDecimal coverage = BigDecimal.ZERO;
 
             if (cadBalance != null) {
-                coverage = coverage.add(cadUnrealizedPnl);
+                if (cadUnrealizedPnl != null) {
+                    coverage = coverage.add(cadUnrealizedPnl);
+                }
                 commonBalance = commonBalance.add(cadBalance);
             }
 
             if (eurBalance != null) {
-                coverage = coverage.add(eurUnrealizedPnl);
+                if (eurUnrealizedPnl != null) {
+                    coverage = coverage.add(eurUnrealizedPnl);
+                }
                 commonBalance = commonBalance.add(eurBalance);
             }
             coverage = coverage.add(commonBalance);
