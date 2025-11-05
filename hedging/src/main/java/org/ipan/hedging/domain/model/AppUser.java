@@ -123,7 +123,7 @@ public class AppUser {
                     case STANDARD -> instrument.getSymbolStandard();
                     case MINI -> instrument.getSymbolMini();
                     case ZERO -> instrument.getSymbolZero();
-                    default -> instrument.getSymbolMini();
+                    default -> instrument.getSymbolStandard();
                 };
             }
         }
@@ -187,5 +187,9 @@ public class AppUser {
             log.warn("User {} balance is negative: {}", telegramId, balanceUsd);
             throw new NegativeBalanceException();
         }
+    }
+
+    public boolean hasAccountInfo() {
+        return mt5AccNumber != null && mt5AccPwdEnc != null;
     }
 }

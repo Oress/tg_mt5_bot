@@ -36,20 +36,26 @@ public class MainMenuStatsService {
             ReportingCalculation lastRow = reportingCalculationRepository.getLastRowForTheUserInstrument(userInstrument.getId(), Limit.of(1));
 
             if (lastRow != null) {
-                Mt5Service mt5Service = terminalBroker.getMt5Service(user);
-                Mt5ServiceImpl.InfoTick infoTick = mt5Service.getInfoTick(user, user.getSymbolByLabelAndAccType(instrument.getLabel()));
-                BigDecimal currentRate = InstrumentMode.LONG.equals(instrument.getMode())
-                        ? BigDecimal.valueOf(infoTick.getBid()).setScale(5, RoundingMode.HALF_DOWN)
-                        : BigDecimal.valueOf(infoTick.getAsk()).setScale(5, RoundingMode.HALF_DOWN);
+                if (user.hasAccountInfo()) {
+                    Mt5Service mt5Service = terminalBroker.getMt5Service(user);
 
-                UnrealizedPnl calculate = unrealizedPnlCalculator.calculate(userInstrument.getId(), currentRate);
+                    Mt5ServiceImpl.InfoTick infoTick = mt5Service.getInfoTick(user, user.getSymbolByLabelAndAccType(instrument.getLabel()));
+                    BigDecimal currentRate = InstrumentMode.LONG.equals(instrument.getMode())
+                            ? BigDecimal.valueOf(infoTick.getBid()).setScale(5, RoundingMode.HALF_DOWN)
+                            : BigDecimal.valueOf(infoTick.getAsk()).setScale(5, RoundingMode.HALF_DOWN);
+                    UnrealizedPnl calculate = unrealizedPnlCalculator.calculate(userInstrument.getId(), currentRate);
+
+                    if (AppConstants.USD_CAD.equals(instrument.getLabel())) {
+                        mainMenuPayload.setCadUnrealizedPnl(calculate.getResult());
+                    } else if (AppConstants.EUR_USD.equals(instrument.getLabel())) {
+                        mainMenuPayload.setEurUnrealizedPnl(calculate.getResult());
+                    }
+                }
+
                 if (AppConstants.USD_CAD.equals(instrument.getLabel())) {
                     mainMenuPayload.setCadBalance(lastRow.getBalance());
-                    mainMenuPayload.setCadUnrealizedPnl(calculate.getResult());
-
                 } else if (AppConstants.EUR_USD.equals(instrument.getLabel())) {
                     mainMenuPayload.setEurBalance(lastRow.getBalance());
-                    mainMenuPayload.setEurUnrealizedPnl(calculate.getResult());
                 }
             }
         }
