@@ -2,10 +2,7 @@ package org.ipan.hedging.telegram.handlers;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.ipan.hedging.application.service.GoogleSheetsService;
-import org.ipan.hedging.application.service.MainMenuStatsService;
-import org.ipan.hedging.application.service.Mt5ServiceImpl;
-import org.ipan.hedging.application.service.OrderOrchestrator;
+import org.ipan.hedging.application.service.*;
 import org.ipan.hedging.application.service.command.PlaceOrderCommand;
 import org.ipan.hedging.application.service.command.PlaceOrderResponse;
 import org.ipan.hedging.domain.exception.CoverageException;
@@ -82,7 +79,7 @@ public class HedgingHandler {
     private final BalanceViews balanceViews;
     private final HedgeViews hedgeViews;
     private final HedgeLabels hedgeLabels;
-    private final Mt5ServiceImpl mt5Service;
+    private final TerminalBroker terminalBroker;
     private final TelegramMessages telegramMessages;
     private final GoogleSheetsService googleSheetsService;
     private final OrderOrchestrator orderOrchestrator;
@@ -136,6 +133,7 @@ public class HedgingHandler {
         String symbol = targetUser.getSymbolByLabelAndAccType(instrumentLabel);
         Instrument instrument = targetUser.findInstrumentBySymbol(symbol);
         telegramState.updateHedgeOp(adminUserState.getTelegramId(), hedgeOp.withInstrumentLabel(instrumentLabel));
+        Mt5Service mt5Service = terminalBroker.getMt5Service(targetUser);
         mt5Service.symbolInfo(targetUser, symbol);
 
         if (InstrumentMode.SHORT.equals(instrument.getMode())) {
@@ -165,6 +163,7 @@ public class HedgingHandler {
 
         HedgeOpState hedgeOp = telegramState.getOrCreateHedgeOp(adminUserState.getTelegramId());
         String symbol = targetUser.getSymbolByLabelAndAccType(hedgeOp.getInstrumentLabel());
+        Mt5Service mt5Service = terminalBroker.getMt5Service(targetUser);
         mt5Service.symbolInfo(targetUser, symbol);
         AppUserInstrument userInstrument = targetUser.findUserInstrument(hedgeOp.getInstrumentLabel());
         Instrument instrumentBySymbol = userInstrument.getInstrument();
@@ -225,6 +224,7 @@ public class HedgingHandler {
             AppUserInstrument userInstrument = targetUser.findUserInstrument(hedgeOp.getInstrumentLabel());
             Instrument instrument = userInstrument.getInstrument();
             String symbol = targetUser.getSymbolByLabelAndAccType(hedgeOp.getInstrumentLabel());
+            Mt5Service mt5Service = terminalBroker.getMt5Service(targetUser);
             var symbolInfo = mt5Service.symbolInfo(targetUser, symbol);
 
             if (isHedgeOut(instrument, hedgeOp.getOperation())) {
@@ -292,6 +292,7 @@ public class HedgingHandler {
         String symbol = targetUser.getSymbolByLabelAndAccType(instrumentLabel);
         Instrument instrument = instrumentRepo.findById(instrumentLabel).get();
 
+        Mt5Service mt5Service = terminalBroker.getMt5Service(targetUser);
         var symbolInfo = mt5Service.symbolInfo(targetUser, symbol);
         log.info("ADMIN_AS_CLIENT. Handling hedge preview place for targetUser: {}, {}", adminUserState.getTelegramId(), hedgeOp);
 
@@ -408,6 +409,7 @@ public class HedgingHandler {
         String symbol = user.getSymbolByLabelAndAccType(instrumentLabel);
         Instrument instrument = user.findInstrumentBySymbol(symbol);
         telegramState.updateHedgeOp(userState.getTelegramId(), hedgeOp.withInstrumentLabel(instrumentLabel));
+        Mt5Service mt5Service = terminalBroker.getMt5Service(user);
         mt5Service.symbolInfo(user, symbol);
 
         if (InstrumentMode.SHORT.equals(instrument.getMode())) {
@@ -436,6 +438,7 @@ public class HedgingHandler {
 
         HedgeOpState hedgeOp = telegramState.getOrCreateHedgeOp(userState.getTelegramId());
         String symbol = user.getSymbolByLabelAndAccType(hedgeOp.getInstrumentLabel());
+        Mt5Service mt5Service = terminalBroker.getMt5Service(user);
         mt5Service.symbolInfo(user, symbol);
         AppUserInstrument userInstrument = user.findUserInstrument(hedgeOp.getInstrumentLabel());
         Instrument instrumentBySymbol = userInstrument.getInstrument();
@@ -494,6 +497,7 @@ public class HedgingHandler {
             AppUserInstrument userInstrument = user.findUserInstrument(hedgeOp.getInstrumentLabel());
             Instrument instrument = userInstrument.getInstrument();
             String symbol = user.getSymbolByLabelAndAccType(hedgeOp.getInstrumentLabel());
+            Mt5Service mt5Service = terminalBroker.getMt5Service(user);
             var symbolInfo = mt5Service.symbolInfo(user, symbol);
 
             if (isHedgeOut(instrument, hedgeOp.getOperation())) {
@@ -559,6 +563,7 @@ public class HedgingHandler {
         String symbol = user.getSymbolByLabelAndAccType(instrumentLabel);
         Instrument instrument = instrumentRepo.findById(instrumentLabel).get();
 
+        Mt5Service mt5Service = terminalBroker.getMt5Service(user);
         var symbolInfo = mt5Service.symbolInfo(user, symbol);
         log.info("Handling hedge preview place for user: {}, {}", userState.getTelegramId(), hedgeOp);
 
