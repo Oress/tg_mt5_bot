@@ -26,6 +26,7 @@ public class RefreshCommonSheetsJob {
 
         List<AppUser> forCommonSheetSync = userRepo.findForCommonSheetSync();
         for (AppUser user : forCommonSheetSync) {
+            log.info("refreshing data for the {}, {}", user.getTelegramId(), user.getTelegramUsername());
             googleSheetsService.syncCommonSheet(user);
         }
 

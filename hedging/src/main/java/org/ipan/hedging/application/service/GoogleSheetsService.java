@@ -85,21 +85,21 @@ public class GoogleSheetsService {
     private final AppUserInstrumentRepository userInstrumentRepository;
     private final ReportingCalculationRepository reportingCalculationRepository;
     private final GoogleSheetsApiService googleSheetsApiService;
-    private final Mt5Service mt5Service;
     private final UnrealizedPnlCalculator unrealizedPnlCalculator;
+    private final TerminalBroker terminalBroker;
 
     public GoogleSheetsService(GoogleSheetsConfig config, UserRepo userRepo,
                                OrderRepo orderRepo, UserBalanceActionRepo userBalanceActionRepo,
                                AppUserInstrumentRepository userInstrumentRepository,
                                ReportingCalculationRepository reportingCalculationRepository,
                                GoogleSheetsApiService googleSheetsApiService,
-                               @Qualifier(Config.MAIN_MT5)
-                               Mt5Service mt5Service, UnrealizedPnlCalculator unrealizedPnlCalculator) throws IOException {
+                               TerminalBroker terminalBroker,
+                               UnrealizedPnlCalculator unrealizedPnlCalculator) throws IOException {
         this.config = config;
         this.userRepo = userRepo;
         this.userInstrumentRepository = userInstrumentRepository;
         this.googleSheetsApiService = googleSheetsApiService;
-        this.mt5Service = mt5Service;
+        this.terminalBroker = terminalBroker;
         this.unrealizedPnlCalculator = unrealizedPnlCalculator;
 
         GoogleCredentials credentials = GoogleCredentials
@@ -287,6 +287,7 @@ public class GoogleSheetsService {
 
                 boolean isLong = InstrumentMode.LONG.equals(instrument.getMode());
                 String symbol = user.getSymbolByLabelAndAccType(instrument.getLabel());
+                Mt5Service mt5Service = terminalBroker.getMt5Service(user);
                 Mt5ServiceImpl.InfoTick infoTick = mt5Service.getInfoTick(user, symbol);
                 BigDecimal currentRate = isLong
                         ? BigDecimal.valueOf(infoTick.getBid()).setScale(5, RoundingMode.HALF_DOWN)
