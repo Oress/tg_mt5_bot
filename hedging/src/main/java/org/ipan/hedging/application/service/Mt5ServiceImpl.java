@@ -14,16 +14,44 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
+import java.net.URI;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
 @AllArgsConstructor
-public class Mt5ServiceImpl implements Mt5Service {
+public class Mt5ServiceImpl implements Mt5Service, AutoCloseable {
     private final ReentrantLock lock = new ReentrantLock(true);
+
+    private final AtomicReference<Mt5WebSocketTransport> gateway = new AtomicReference<>();
 
     private RestTemplate restTemplate;
     private PythonProxyConfig pythonProxyConfig;
     private PasswordService passwordService;
+
+    private <T> ResponseEntity<T> post(String endpoint, Object request, Class<T> resultType) {
+        URI uri = URI.create(pythonProxyConfig.getUrl());
+        if ("ws".equals(uri.getScheme()) || "wss".equals(uri.getScheme())) {
+            if (gateway.get() == null) {
+                gateway.set(new Mt5WebSocketTransport(uri, pythonProxyConfig.getToken()));
+            }
+            String action = URI.create(endpoint).getPath();
+            action = action.substring(action.lastIndexOf('/') + 1);
+            return ResponseEntity.ok(gateway.get().request(action, request, resultType));
+        }
+        return restTemplate.postForEntity(endpoint, request, resultType);
+    }
+
+    @Override
+    public void close() {
+        lock.lock();
+        try {
+            Mt5WebSocketTransport transport = gateway.get();
+            if (transport != null) transport.close();
+        } finally {
+            lock.unlock();
+        }
+    }
 
     public Boolean checkCredentials(Integer accountNumber, String password) {
         lock.lock();
@@ -36,7 +64,7 @@ public class Mt5ServiceImpl implements Mt5Service {
                     .account_number(accountNumber)
                     .password(password)
                     .build();
-            ResponseEntity<CheckCredsResponse> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, CheckCredsResponse.class);
+            ResponseEntity<CheckCredsResponse> resp = post(componentsBuilder.toUriString(), request, CheckCredsResponse.class);
             log.info("validate credentials response {}", resp.toString());
             return resp.getBody().getValid();
         } finally {
@@ -56,7 +84,7 @@ public class Mt5ServiceImpl implements Mt5Service {
                     .account_number(user.getMt5AccNumber())
                     .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
                     .build();
-            ResponseEntity<SymbolInfoResponse> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), getSymbolReq, SymbolInfoResponse.class);
+            ResponseEntity<SymbolInfoResponse> resp = post(componentsBuilder.toUriString(), getSymbolReq, SymbolInfoResponse.class);
             log.info("symbolInfo response {}", resp.toString());
             return resp.getBody().getInfo();
         } finally {
@@ -75,7 +103,7 @@ public class Mt5ServiceImpl implements Mt5Service {
                     .account_number(accountNumber)
                     .password(password)
                     .build();
-            ResponseEntity<AccountTypeResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, AccountTypeResp.class);
+            ResponseEntity<AccountTypeResp> resp = post(componentsBuilder.toUriString(), request, AccountTypeResp.class);
             log.info("determineAccountType response {}", resp.toString());
             return resp.getBody().getAcc_type();
         } finally {
@@ -95,7 +123,7 @@ public class Mt5ServiceImpl implements Mt5Service {
                     .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
                     .symbol(symbol)
                     .build();
-            ResponseEntity<PositionsGetResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, PositionsGetResp.class);
+            ResponseEntity<PositionsGetResp> resp = post(componentsBuilder.toUriString(), request, PositionsGetResp.class);
             log.info("positionsGet response {}", resp.toString());
             return resp.getBody().getPositions().isEmpty() ? null : resp.getBody().getPositions().get(0);
         } finally {
@@ -114,7 +142,7 @@ public class Mt5ServiceImpl implements Mt5Service {
                     .account_number(user.getMt5AccNumber())
                     .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
                     .build();
-            ResponseEntity<BalanceDetails> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, BalanceDetails.class);
+            ResponseEntity<BalanceDetails> resp = post(componentsBuilder.toUriString(), request, BalanceDetails.class);
             log.info("positionsGet response {}", resp.toString());
             return resp.getBody();
         } finally {
@@ -133,7 +161,7 @@ public class Mt5ServiceImpl implements Mt5Service {
                     .account_number(user.getMt5AccNumber())
                     .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
                     .build();
-            ResponseEntity<PositionsGetResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, PositionsGetResp.class);
+            ResponseEntity<PositionsGetResp> resp = post(componentsBuilder.toUriString(), request, PositionsGetResp.class);
             log.info("positionsGet response {}", resp.toString());
             return resp.getBody().getPositions();
         } finally {
@@ -153,7 +181,7 @@ public class Mt5ServiceImpl implements Mt5Service {
                     .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
                     .symbol(symbol)
                     .build();
-            ResponseEntity<PriceForShortResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, PriceForShortResp.class);
+            ResponseEntity<PriceForShortResp> resp = post(componentsBuilder.toUriString(), request, PriceForShortResp.class);
             log.info("getPriceForShort response {}", resp.toString());
             return resp.getBody().getPrice();
         } finally {
@@ -173,7 +201,7 @@ public class Mt5ServiceImpl implements Mt5Service {
                     .password(passwordService.decrypt(user.getMt5AccPwdEnc()))
                     .symbol(symbol)
                     .build();
-            ResponseEntity<InfoTickResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, InfoTickResp.class);
+            ResponseEntity<InfoTickResp> resp = post(componentsBuilder.toUriString(), request, InfoTickResp.class);
             log.info("getPriceForShort response {}", resp.toString());
             return resp.getBody().getTick();
         } finally {
@@ -196,7 +224,7 @@ public class Mt5ServiceImpl implements Mt5Service {
                     .volume(volume)
                     .comment(correlationId)
                     .build();
-            ResponseEntity<OrderResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, OrderResp.class);
+            ResponseEntity<OrderResp> resp = post(componentsBuilder.toUriString(), request, OrderResp.class);
             log.info("placeLongOrder response {}", resp);
             return resp.getBody().getOrder();
         } finally {
@@ -220,7 +248,7 @@ public class Mt5ServiceImpl implements Mt5Service {
                     .volume(volume)
                     .comment(correlationId)
                     .build();
-            ResponseEntity<OrderResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, OrderResp.class);
+            ResponseEntity<OrderResp> resp = post(componentsBuilder.toUriString(), request, OrderResp.class);
             log.info("placeShortOrder response {}", resp);
             return resp.getBody().getOrder();
         } finally {
@@ -243,7 +271,7 @@ public class Mt5ServiceImpl implements Mt5Service {
                     .position_id(positionId)
                     .group(null)
                     .build();
-            ResponseEntity<HistoryResp> resp = restTemplate.postForEntity(componentsBuilder.toUriString(), request, HistoryResp.class);
+            ResponseEntity<HistoryResp> resp = post(componentsBuilder.toUriString(), request, HistoryResp.class);
             log.info("getOrderHistory response {}", resp);
             return resp.getBody().getHistory();
         } finally {

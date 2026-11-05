@@ -35,6 +35,7 @@ app:
     sa-json: ${APP_GGL_SA_FILE_LOCATION}
     emails: ${APP_GGL_SHARE_EMAILS}
   python-http-proxy:
+    token: ${APP_MT5_GATEWAY_TOKEN:}
     url: ${APP_PYTHON_PROXY_URL:http://127.0.0.1:8000}
     url1: ${APP_PYTHON_PROXY_URL_1:http://127.0.0.1:9001}
     url2: ${APP_PYTHON_PROXY_URL_2:http://127.0.0.1:9002}

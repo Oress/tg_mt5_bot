@@ -1,6 +1,7 @@
 package org.ipan.hedging;
 
 import lombok.Data;
+import lombok.ToString;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -8,6 +9,9 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "app.python-http-proxy")
 @Data
 public class PythonProxyConfig {
+    @ToString.Exclude
+    private String token;
+
     private String url;
 
     private String url1;

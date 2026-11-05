@@ -1,5 +1,7 @@
  Deployment Documentation
 
+The new opt-in WebSocket worker and automatic EA startup are documented in [mt5_gateway/README.md](mt5_gateway/README.md). Native x86 MT5 validation is still pending; existing deployment files continue to use the HTTP proxy.
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Prerequisites](#prerequisites)

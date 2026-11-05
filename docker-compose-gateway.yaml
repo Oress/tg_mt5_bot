@@ -1,0 +1,21 @@
+# Independent worker for validation; existing deployments remain selectable.
+services:
+  mt5gateway:
+    platform: linux/amd64
+    build: ./mt5_gateway
+    image: tg-mt5-gateway:local
+    restart: unless-stopped
+    init: true
+    environment:
+      MT5_GATEWAY_TOKEN: ${MT5_GATEWAY_TOKEN:?Set a random gateway token of at least 32 characters}
+      MT5_SERVER: ${MT5_SERVER:-}
+      MT5_FEED_SYMBOL: ${MT5_FEED_SYMBOL:-EURUSD}
+      MT5_ALLOW_TRADING: ${MT5_ALLOW_TRADING:-0}
+    volumes:
+      - mt5gateway-state:/state
+    ports:
+      - "127.0.0.1:8010:8000"
+    shm_size: 256m
+
+volumes:
+  mt5gateway-state:

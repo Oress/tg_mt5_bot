@@ -1,0 +1,2 @@
+websockets==15.0.1
+MetaTrader5==5.0.6231; sys_platform == 'win32'
